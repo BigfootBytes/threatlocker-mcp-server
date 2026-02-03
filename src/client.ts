@@ -34,10 +34,11 @@ export class ThreatLockerClient {
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      APIKey: this.apiKey,
+      'Authorization': this.apiKey,
     };
     if (this.organizationId) {
-      headers['managedOrganizationId'] = this.organizationId;
+      headers['ManagedOrganizationId'] = this.organizationId;
+      headers['OverrideManagedOrganizationId'] = this.organizationId;
     }
     return headers;
   }

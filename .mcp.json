@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "threatlocker": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "cwd": "/mnt/dev/github/applied-motion-systems/threatlocker-mcp"
+    }
+  }
+}
