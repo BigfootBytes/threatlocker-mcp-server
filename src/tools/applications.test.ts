@@ -19,6 +19,7 @@ describe('applications tool', () => {
     expect(applicationsToolSchema.inputSchema.properties.action.enum).toContain('search');
     expect(applicationsToolSchema.inputSchema.properties.action.enum).toContain('get');
     expect(applicationsToolSchema.inputSchema.properties.action.enum).toContain('research');
+    expect(applicationsToolSchema.inputSchema.properties.action.enum).toContain('files');
   });
 
   it('returns error for missing action', async () => {
@@ -67,6 +68,23 @@ describe('applications tool', () => {
     expect(mockClient.get).toHaveBeenCalledWith(
       'Application/ApplicationGetResearchDetailsById',
       { applicationId: 'app-123' }
+    );
+  });
+
+  it('returns error for files without applicationId', async () => {
+    const result = await handleApplicationsTool(mockClient, { action: 'files' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+    }
+  });
+
+  it('calls correct endpoint for files action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
+    await handleApplicationsTool(mockClient, { action: 'files', applicationId: 'app-123' });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'ApplicationFile/ApplicationFileGetByApplicationId',
+      expect.objectContaining({ applicationId: 'app-123' })
     );
   });
 });

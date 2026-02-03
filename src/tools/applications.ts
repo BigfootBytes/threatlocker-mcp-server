@@ -9,16 +9,16 @@ export const applicationsToolSchema = {
     properties: {
       action: {
         type: 'string',
-        enum: ['search', 'get', 'research'],
+        enum: ['search', 'get', 'research', 'files'],
         description: 'Action to perform',
       },
       applicationId: {
         type: 'string',
-        description: 'Application ID (required for get and research)',
+        description: 'Application ID (required for get, research, and files)',
       },
       searchText: {
         type: 'string',
-        description: 'Search text for search action',
+        description: 'Search text for search and files actions',
       },
       searchBy: {
         type: 'string',
@@ -48,7 +48,7 @@ export const applicationsToolSchema = {
 };
 
 interface ApplicationsInput {
-  action?: 'search' | 'get' | 'research';
+  action?: 'search' | 'get' | 'research' | 'files';
   applicationId?: string;
   searchText?: string;
   searchBy?: string;
@@ -108,6 +108,17 @@ export async function handleApplicationsTool(
         return errorResponse('BAD_REQUEST', 'applicationId is required for research action');
       }
       return client.get('Application/ApplicationGetResearchDetailsById', { applicationId });
+
+    case 'files':
+      if (!applicationId) {
+        return errorResponse('BAD_REQUEST', 'applicationId is required for files action');
+      }
+      return client.get('ApplicationFile/ApplicationFileGetByApplicationId', {
+        applicationId,
+        searchText,
+        pageNumber: String(pageNumber),
+        pageSize: String(pageSize),
+      });
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

@@ -1,0 +1,303 @@
+{
+  "info": {
+    "name": "ThreatLocker API",
+    "description": "Collection for testing ThreatLocker Portal API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "Authorization",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.request.headers.add({",
+          "    key: 'ManagedOrganizationId',",
+          "    value: pm.environment.get('orgId')",
+          "});",
+          "pm.request.headers.add({",
+          "    key: 'OverrideManagedOrganizationId',",
+          "    value: pm.environment.get('orgId')",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://betaportalapi.g.threatlocker.com/portalapi"
+    }
+  ],
+  "item": [
+    {
+      "name": "Computers",
+      "item": [
+        {
+          "name": "List Computers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pageNumber\": 1,\n  \"pageSize\": 25,\n  \"isAscending\": true,\n  \"orderBy\": \"computername\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Computer/ComputerGetByAllParameters",
+              "host": ["{{baseUrl}}"],
+              "path": ["Computer", "ComputerGetByAllParameters"]
+            }
+          }
+        },
+        {
+          "name": "Get Computer by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Computer/ComputerGetForEditById?computerId={{computerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Computer", "ComputerGetForEditById"],
+              "query": [
+                {
+                  "key": "computerId",
+                  "value": "{{computerId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Computer Checkins",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"computerId\": \"{{computerId}}\",\n  \"pageNumber\": 1,\n  \"pageSize\": 25,\n  \"hideHeartbeat\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ComputerCheckin/ComputerCheckinGetByParameters",
+              "host": ["{{baseUrl}}"],
+              "path": ["ComputerCheckin", "ComputerCheckinGetByParameters"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Computer Groups",
+      "item": [
+        {
+          "name": "List Computer Groups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ComputerGroup/ComputerGroupGetGroupAndComputer?osType=0&includeAllComputers=true&includeGlobal=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["ComputerGroup", "ComputerGroupGetGroupAndComputer"],
+              "query": [
+                {
+                  "key": "osType",
+                  "value": "0"
+                },
+                {
+                  "key": "includeAllComputers",
+                  "value": "true"
+                },
+                {
+                  "key": "includeGlobal",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Computer Groups Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ComputerGroup/ComputerGroupGetDropdownWithOrganization?hideGlobals=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["ComputerGroup", "ComputerGroupGetDropdownWithOrganization"],
+              "query": [
+                {
+                  "key": "hideGlobals",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "item": [
+        {
+          "name": "Search Applications",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pageNumber\": 1,\n  \"pageSize\": 25,\n  \"searchBy\": \"app\",\n  \"searchText\": \"\",\n  \"osType\": 0,\n  \"isAscending\": true,\n  \"orderBy\": \"name\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Application/ApplicationGetByParameters",
+              "host": ["{{baseUrl}}"],
+              "path": ["Application", "ApplicationGetByParameters"]
+            }
+          }
+        },
+        {
+          "name": "Get Application by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Application/ApplicationGetById?applicationId={{applicationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Application", "ApplicationGetById"],
+              "query": [
+                {
+                  "key": "applicationId",
+                  "value": "{{applicationId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Application Research Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Application/ApplicationGetResearchDetailsById?applicationId={{applicationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Application", "ApplicationGetResearchDetailsById"],
+              "query": [
+                {
+                  "key": "applicationId",
+                  "value": "{{applicationId}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Policies",
+      "item": [
+        {
+          "name": "Get Policy by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Policy/PolicyGetById?policyId={{policyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Policy", "PolicyGetById"],
+              "query": [
+                {
+                  "key": "policyId",
+                  "value": "{{policyId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Policies by Application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"{{applicationId}}\",\n  \"organizationId\": \"{{orgId}}\",\n  \"pageNumber\": 1,\n  \"pageSize\": 25,\n  \"includeDenies\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Policy/PolicyGetForViewPoliciesByApplicationId",
+              "host": ["{{baseUrl}}"],
+              "path": ["Policy", "PolicyGetForViewPoliciesByApplicationId"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Unified Audit",
+      "item": [
+        {
+          "name": "Get Action Logs",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "usenewsearch",
+                "value": "true"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00Z\",\n  \"endDate\": \"2025-01-31T23:59:59Z\",\n  \"pageNumber\": 1,\n  \"pageSize\": 100,\n  \"paramsFieldsDto\": [],\n  \"showTotalCount\": true,\n  \"showChildOrganizations\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ActionLog/ActionLogGetByParametersV2",
+              "host": ["{{baseUrl}}"],
+              "path": ["ActionLog", "ActionLogGetByParametersV2"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
