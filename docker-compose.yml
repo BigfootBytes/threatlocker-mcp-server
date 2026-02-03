@@ -1,6 +1,6 @@
 services:
   threatlocker-mcp:
-    build: .
+    image: ghcr.io/applied-motion-systems/threatlocker-mcp:latest
     env_file:
       - .env
     stdin_open: true

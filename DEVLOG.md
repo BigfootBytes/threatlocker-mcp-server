@@ -11,3 +11,5 @@
 - Added GitHub Actions workflow for GHCR publishing on version tags
 - Added docker-compose.yml and .env.example
 - Security: enforce HTTPS for base URL, run container as non-root user
+- Released v0.1.0 to GHCR
+- Updated docker-compose to use published image
