@@ -10,3 +10,4 @@
 - Added multi-stage Dockerfile for in-container TypeScript builds
 - Added GitHub Actions workflow for GHCR publishing on version tags
 - Added docker-compose.yml and .env.example
+- Security: enforce HTTPS for base URL, run container as non-root user

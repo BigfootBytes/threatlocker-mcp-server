@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains an MCP (Model Context Protocol) server implementation for ThreatLocker integration.
 
+## Development Workflow
+
+Always update `DEVLOG.md` with a bullet point summary of changes before committing.
+
 ## ThreatLocker API Reference
 
 ### Base URL
