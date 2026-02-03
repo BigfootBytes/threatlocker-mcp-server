@@ -23,11 +23,16 @@ Replace `INSTANCE` with your organization's instance identifier.
 
 ### Authentication
 
-All endpoints require authentication via header:
-- `APIKey` or `Authorization` token (required)
-- `managedOrganizationId` (optional, GUID format) - for cross-organization operations
+All endpoints require authentication via headers:
 
-Content type: `application/json`
+```
+Authorization: <your-api-key>
+ManagedOrganizationId: <org-guid>           # For cross-org operations
+OverrideManagedOrganizationId: <org-guid>   # For cross-org operations
+Content-Type: application/json
+```
+
+**IMPORTANT**: Despite some documentation suggesting `APIKey` header, use `Authorization` instead. The header names are case-sensitive (`ManagedOrganizationId` not `managedOrganizationId`).
 
 ### KB Documentation
 
