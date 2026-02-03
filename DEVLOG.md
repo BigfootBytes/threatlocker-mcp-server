@@ -41,7 +41,7 @@ Added `.env` file support via `dotenv` package and changed from instance-based U
 
 ```env
 THREATLOCKER_API_KEY=your-key
-THREATLOCKER_BASE_URL=https://betaportalapi.g.threatlocker.com/portalapi
+THREATLOCKER_BASE_URL=https://portalapi.g.threatlocker.com/portalapi
 THREATLOCKER_ORG_ID=your-org-id
 ```
 
