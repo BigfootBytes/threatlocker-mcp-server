@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import 'dotenv/config';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -13,7 +14,7 @@ import { applicationsToolSchema, handleApplicationsTool } from './tools/applicat
 import { policiesToolSchema, handlePoliciesTool } from './tools/policies.js';
 
 const apiKey = process.env.THREATLOCKER_API_KEY;
-const instance = process.env.THREATLOCKER_INSTANCE;
+const baseUrl = process.env.THREATLOCKER_BASE_URL;
 const organizationId = process.env.THREATLOCKER_ORG_ID;
 
 if (!apiKey) {
@@ -21,12 +22,12 @@ if (!apiKey) {
   process.exit(1);
 }
 
-if (!instance) {
-  console.error('THREATLOCKER_INSTANCE environment variable is required');
+if (!baseUrl) {
+  console.error('THREATLOCKER_BASE_URL environment variable is required');
   process.exit(1);
 }
 
-const client = new ThreatLockerClient({ apiKey, instance, organizationId });
+const client = new ThreatLockerClient({ apiKey, baseUrl, organizationId });
 
 const server = new Server(
   {

@@ -8,7 +8,7 @@ import {
 
 export interface ClientConfig {
   apiKey: string;
-  instance: string;
+  baseUrl: string;
   organizationId?: string;
 }
 
@@ -21,13 +21,14 @@ export class ThreatLockerClient {
     if (!config.apiKey) {
       throw new Error('API key is required');
     }
-    if (!config.instance) {
-      throw new Error('Instance is required');
+    if (!config.baseUrl) {
+      throw new Error('Base URL is required');
     }
 
     this.apiKey = config.apiKey;
     this.organizationId = config.organizationId;
-    this.baseUrl = `https://portalapi.${config.instance}.threatlocker.com/portalapi`;
+    // Remove trailing slash if present
+    this.baseUrl = config.baseUrl.replace(/\/+$/, '');
   }
 
   private getHeaders(): Record<string, string> {
