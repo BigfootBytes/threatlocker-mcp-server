@@ -1,6 +1,17 @@
 services:
-  threatlocker-mcp:
+  # HTTP mode - credentials passed per-request
+  threatlocker-mcp-http:
+    image: ghcr.io/applied-motion-systems/threatlocker-mcp:latest
+    environment:
+      - TRANSPORT=http
+    ports:
+      - "8080:8080"
+
+  # Stdio mode - for local MCP client use
+  threatlocker-mcp-stdio:
     image: ghcr.io/applied-motion-systems/threatlocker-mcp:latest
     env_file:
       - .env
     stdin_open: true
+    profiles:
+      - stdio

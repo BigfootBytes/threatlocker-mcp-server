@@ -13,3 +13,5 @@
 - Security: enforce HTTPS for base URL, run container as non-root user
 - Released v0.1.0 to GHCR
 - Updated docker-compose to use published image
+- Added dual-mode transport: stdio (default) and HTTP with per-request auth
+- HTTP mode uses pass-through credentials (no secrets stored on server)

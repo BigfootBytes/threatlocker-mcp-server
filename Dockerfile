@@ -14,5 +14,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 
+EXPOSE 8080
+
 USER node
 ENTRYPOINT ["node", "dist/index.js"]
