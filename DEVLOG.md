@@ -100,3 +100,75 @@ Debugged by testing with Node's fetch directly, which revealed `TOKEN_REVOKED` e
 2. **Error Message Visibility**: Wrapping API responses can hide useful error details. The raw API returned `TOKEN_REVOKED` but our wrapper only showed `403 Forbidden`.
 
 3. **Self-Debugging**: Hilariously, the correct header implementation was found in another Python project... also written by Claude. Past Claude helped Present Claude fix the bug.
+
+---
+
+## 2026-02-03: Discovered Undocumented Application Files Endpoint
+
+### The Problem
+
+The `ApplicationGetById` endpoint returns application metadata but the `applicationFiles` array is always empty. We needed a way to retrieve the actual file rules (hash, path, cert, process) that define what an application matches.
+
+### Investigation
+
+1. **Tested documented endpoints** - `ApplicationGetById`, `ApplicationGetByParameters`, `ApplicationGetMatchingList` - none returned file rules
+2. **Checked ThreatLocker KB** - No documentation for retrieving application file definitions
+3. **Web search** - Found the [DynamicIT/ThreatLocker](https://github.com/DynamicIT/ThreatLocker) PowerShell module
+
+### The Discovery
+
+The PowerShell module revealed an **undocumented endpoint**:
+
+```
+GET /ApplicationFile/ApplicationFileGetByApplicationId
+    ?applicationId={guid}
+    &searchText=
+    &pageNumber=1
+    &pageSize=25
+```
+
+This returns the complete file rules for an application:
+
+```json
+{
+  "applicationFileId": 6889720648,
+  "applicationId": "416e7839-...",
+  "fullPath": "c:\\users\\*\\appdata\\local\\programs\\python\\python314\\lib\\*.py",
+  "hash": "",
+  "cert": "",
+  "processPath": "c:\\users\\*\\appdata\\local\\programs\\python\\python*\\python.exe",
+  "installedBy": "",
+  "isHashOnly": false,
+  "applicationFileDetails": "File matches ... AND Process matches ..."
+}
+```
+
+### Implementation
+
+Added `files` action to the applications tool:
+
+```typescript
+case 'files':
+  return client.get('ApplicationFile/ApplicationFileGetByApplicationId', {
+    applicationId,
+    searchText,
+    pageNumber: String(pageNumber),
+    pageSize: String(pageSize),
+  });
+```
+
+### Updated Stats
+
+- **Tests**: 30 passing (was 28)
+- **Tools**: 4 tools, 11 actions total (was 10)
+- **New action**: `applications` tool now has `files` action
+
+### Commits
+
+16. `5c03d16` - feat: add files action to get application file rules
+
+### Lessons Learned
+
+4. **Community code reveals undocumented APIs**: When official docs fall short, check GitHub for community implementations. The DynamicIT PowerShell module was the key to discovering this endpoint.
+
+5. **Swagger schemas don't guarantee implementation**: The `ApplicationFileDto` schema existed in Swagger, but wasn't linked to any documented GET endpoint for retrieval.
