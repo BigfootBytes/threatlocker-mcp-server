@@ -24,6 +24,9 @@ export class ThreatLockerClient {
     if (!config.baseUrl) {
       throw new Error('Base URL is required');
     }
+    if (!config.baseUrl.startsWith('https://')) {
+      throw new Error('Base URL must use HTTPS');
+    }
 
     this.apiKey = config.apiKey;
     this.organizationId = config.organizationId;

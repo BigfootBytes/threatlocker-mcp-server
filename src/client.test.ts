@@ -10,6 +10,10 @@ describe('ThreatLockerClient', () => {
     expect(() => new ThreatLockerClient({ apiKey: 'test' } as any)).toThrow('Base URL is required');
   });
 
+  it('throws if base URL is not HTTPS', () => {
+    expect(() => new ThreatLockerClient({ apiKey: 'test', baseUrl: 'http://example.com' })).toThrow('Base URL must use HTTPS');
+  });
+
   it('stores base URL correctly', () => {
     const client = new ThreatLockerClient({ apiKey: 'test', baseUrl: 'https://portalapi.g.threatlocker.com/portalapi' });
     expect(client.baseUrl).toBe('https://portalapi.g.threatlocker.com/portalapi');
