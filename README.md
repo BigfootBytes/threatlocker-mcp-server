@@ -10,6 +10,15 @@ docker pull ghcr.io/applied-motion-systems/threatlocker-mcp:latest
 
 ## Configuring with Claude
 
+### Config File Locations
+
+| Client | OS | Path |
+|--------|-----|------|
+| Claude Desktop | macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Claude Desktop | Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Claude Desktop | Linux | `~/.config/Claude/claude_desktop_config.json` |
+| Claude Code | All | `~/.claude/claude_desktop_config.json` |
+
 ### Option 1: Local (stdio)
 
 Run the server locally on the same machine as Claude Desktop/Code.

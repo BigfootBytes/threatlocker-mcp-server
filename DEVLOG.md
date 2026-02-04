@@ -17,3 +17,4 @@
 - HTTP mode uses pass-through credentials (no secrets stored on server)
 - Rewrote README with Docker and Claude configuration instructions
 - Added SSE transport for Claude Desktop/Code remote server support
+- Added config file paths to README
