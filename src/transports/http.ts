@@ -26,6 +26,30 @@ function extractCredentials(req: Request): ClientCredentials | null {
   return { apiKey, baseUrl, organizationId };
 }
 
+function validateOrigin(req: Request): boolean {
+  const origin = req.headers['origin'];
+
+  // No origin header (non-browser clients) - allow
+  if (origin === undefined) {
+    return true;
+  }
+
+  // Null origin (local files, sandboxed iframes) - allow
+  if (origin === 'null') {
+    return true;
+  }
+
+  // Check against allowed origins from environment
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || [];
+
+  // If no allowed origins configured, reject all browser requests for safety
+  if (allowedOrigins.length === 0) {
+    return false;
+  }
+
+  return allowedOrigins.includes(origin);
+}
+
 // Zod schemas for McpServer tool registration
 const computersZodSchema = {
   action: z.enum(['list', 'get', 'checkins']).describe('Action to perform'),
@@ -140,6 +164,15 @@ export function createHttpServer(port: number): void {
 
   // Direct tool call endpoint (REST API) - requires auth headers per request
   app.post('/tools/:toolName', async (req: Request, res: Response) => {
+    // DNS rebinding protection
+    if (!validateOrigin(req)) {
+      res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Origin not allowed' },
+      });
+      return;
+    }
+
     const credentials = extractCredentials(req);
     if (!credentials) {
       res.status(401).json({
@@ -190,6 +223,16 @@ export function createHttpServer(port: number): void {
 
   // Streamable HTTP MCP endpoint
   app.post('/mcp', async (req: Request, res: Response) => {
+    // DNS rebinding protection
+    if (!validateOrigin(req)) {
+      res.status(403).json({
+        jsonrpc: '2.0',
+        error: { code: -32600, message: 'Origin not allowed' },
+        id: req.body?.id || null,
+      });
+      return;
+    }
+
     const credentials = extractCredentials(req);
     if (!credentials) {
       res.status(401).json({

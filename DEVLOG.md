@@ -30,3 +30,5 @@
 - Removed crypto import (no longer needed for session IDs)
 - Inlined tool dispatch in REST API /tools/:name endpoint
 - Updated startup console messages to reflect Streamable HTTP as primary transport
+- Added Origin header validation for DNS rebinding protection on POST /mcp and POST /tools/:name endpoints
+- Added whitespace trimming to ALLOWED_ORIGINS parsing for better config file handling
