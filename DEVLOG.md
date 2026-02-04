@@ -15,3 +15,4 @@
 - Updated docker-compose to use published image
 - Added dual-mode transport: stdio (default) and HTTP with per-request auth
 - HTTP mode uses pass-through credentials (no secrets stored on server)
+- Rewrote README with Docker and Claude configuration instructions
