@@ -95,7 +95,7 @@ const policiesZodSchema = {
 function createMcpServer(client: ThreatLockerClient): McpServer {
   const server = new McpServer({
     name: 'threatlocker-mcp',
-    version: '0.3.0',
+    version: '0.4.0',
   });
 
   server.tool(
@@ -147,7 +147,12 @@ export function createHttpServer(port: number): void {
 
   // Health check - no auth required
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', transport: 'http', version: '0.3.0' });
+    res.json({
+      status: 'ok',
+      transport: 'streamable-http',
+      protocolVersion: '2025-03-26',
+      version: '0.4.0'
+    });
   });
 
   // List available tools - no auth required

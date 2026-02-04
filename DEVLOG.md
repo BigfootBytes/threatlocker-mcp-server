@@ -32,3 +32,5 @@
 - Updated startup console messages to reflect Streamable HTTP as primary transport
 - Added Origin header validation for DNS rebinding protection on POST /mcp and POST /tools/:name endpoints
 - Added whitespace trimming to ALLOWED_ORIGINS parsing for better config file handling
+- Bumped version to 0.4.0 in package.json, http.ts, and index.ts for Streamable HTTP release
+- Updated /health endpoint to report transport as 'streamable-http' and include protocolVersion '2025-03-26'
