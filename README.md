@@ -1,37 +1,20 @@
 # ThreatLocker MCP Server
 
-An MCP (Model Context Protocol) server providing read-only access to the ThreatLocker Portal API. Supports both stdio transport (for Claude Desktop/Code) and HTTP transport (for remote access).
+An MCP (Model Context Protocol) server providing read-only access to the ThreatLocker Portal API. Supports stdio transport (local) and HTTP/SSE transport (remote).
 
 ## Quick Start
-
-### Docker (Recommended)
 
 ```bash
 docker pull ghcr.io/applied-motion-systems/threatlocker-mcp:latest
 ```
 
-### From Source
-
-```bash
-git clone https://github.com/Applied-Motion-Systems/threatlocker-mcp.git
-cd threatlocker-mcp
-npm install
-npm run build
-```
-
-## Transport Modes
-
-| Mode | Use Case | Credentials |
-|------|----------|-------------|
-| **stdio** (default) | Claude Desktop, Claude Code | Environment variables |
-| **http** | Remote clients, shared server | Per-request headers |
-
 ## Configuring with Claude
 
-### Claude Code
+### Option 1: Local (stdio)
 
-Add to `~/.claude/claude_desktop_config.json`:
+Run the server locally on the same machine as Claude Desktop/Code.
 
+**Docker:**
 ```json
 {
   "mcpServers": {
@@ -48,8 +31,7 @@ Add to `~/.claude/claude_desktop_config.json`:
 }
 ```
 
-Or run locally without Docker:
-
+**Node.js:**
 ```json
 {
   "mcpServers": {
@@ -65,25 +47,47 @@ Or run locally without Docker:
 }
 ```
 
-### Claude Desktop
+### Option 2: Remote Server (SSE)
 
-Same configuration as above - add to your Claude Desktop config file.
+Connect Claude Desktop/Code to a remote MCP server over HTTPS.
+
+**1. Deploy the server:**
+```bash
+docker run -d -p 8080:8080 -e TRANSPORT=http ghcr.io/applied-motion-systems/threatlocker-mcp:latest
+```
+
+**2. Configure Claude to connect:**
+```json
+{
+  "mcpServers": {
+    "threatlocker": {
+      "url": "https://your-server.example.com/sse",
+      "headers": {
+        "Authorization": "your-threatlocker-api-key",
+        "X-ThreatLocker-Base-URL": "https://portalapi.g.threatlocker.com/portalapi",
+        "X-ThreatLocker-Org-ID": "optional-org-id"
+      }
+    }
+  }
+}
+```
+
+**Note:** For production, deploy behind a reverse proxy (nginx, Caddy) with HTTPS.
 
 ## HTTP Mode
 
-Run as an HTTP server for remote access:
+### Endpoints
 
-```bash
-# Via Docker
-docker run -p 8080:8080 -e TRANSPORT=http ghcr.io/applied-motion-systems/threatlocker-mcp:latest
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/health` | No | Health check |
+| GET | `/tools` | No | List available tools |
+| GET | `/sse` | Yes | SSE stream for Claude Desktop/Code |
+| POST | `/messages` | Session | Messages from SSE clients |
+| POST | `/tools/:name` | Yes | Direct tool call (REST API) |
+| POST | `/mcp` | Yes | MCP JSON-RPC (REST API) |
 
-# Or locally
-node dist/index.js --http --port=8080
-```
-
-### Authentication
-
-HTTP mode uses pass-through authentication - each request must include ThreatLocker credentials in headers:
+### Authentication Headers
 
 | Header | Required | Description |
 |--------|----------|-------------|
@@ -91,19 +95,10 @@ HTTP mode uses pass-through authentication - each request must include ThreatLoc
 | `X-ThreatLocker-Base-URL` | Yes | API base URL |
 | `X-ThreatLocker-Org-ID` | No | Organization ID |
 
-### Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check (no auth) |
-| GET | `/tools` | List available tools (no auth) |
-| POST | `/tools/:name` | Call a tool |
-| POST | `/mcp` | MCP JSON-RPC endpoint |
-
-### Example Request
+### Direct API Example
 
 ```bash
-curl -X POST http://localhost:8080/tools/computers \
+curl -X POST https://your-server.example.com/tools/computers \
   -H "Authorization: your-api-key" \
   -H "X-ThreatLocker-Base-URL: https://portalapi.g.threatlocker.com/portalapi" \
   -H "Content-Type: application/json" \
@@ -119,33 +114,30 @@ curl -X POST http://localhost:8080/tools/computers \
 | `applications` | search, get, research, files | Search and inspect applications |
 | `policies` | get, list_by_application | Inspect policies |
 
-## Configuration Reference
+## Configuration
 
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `TRANSPORT` | `stdio` | Transport mode: `stdio` or `http` |
-| `PORT` | `8080` | HTTP server port (http mode only) |
-| `THREATLOCKER_API_KEY` | - | API key (stdio mode only) |
-| `THREATLOCKER_BASE_URL` | - | Base URL (stdio mode only) |
-| `THREATLOCKER_ORG_ID` | - | Organization ID (stdio mode only) |
+| `TRANSPORT` | `stdio` | Transport: `stdio` or `http` |
+| `PORT` | `8080` | HTTP port |
+| `THREATLOCKER_API_KEY` | - | API key (stdio mode) |
+| `THREATLOCKER_BASE_URL` | - | Base URL (stdio mode) |
+| `THREATLOCKER_ORG_ID` | - | Org ID (stdio mode) |
 
 ### CLI Flags
 
-```bash
-node dist/index.js [options]
-
-Options:
-  --stdio       Force stdio mode (default)
-  --http        Force HTTP mode
-  --port=XXXX   Set HTTP port (default: 8080)
+```
+--stdio       Force stdio mode (default)
+--http        Force HTTP mode
+--port=XXXX   Set HTTP port
 ```
 
-### Common Base URLs
+### ThreatLocker Base URLs
 
-| Environment | Base URL |
-|-------------|----------|
+| Environment | URL |
+|-------------|-----|
 | Production | `https://portalapi.g.threatlocker.com/portalapi` |
 | Beta | `https://betaportalapi.g.threatlocker.com/portalapi` |
 
@@ -153,8 +145,8 @@ Options:
 
 ```bash
 npm install      # Install dependencies
-npm run build    # Build TypeScript
-npm test         # Run tests
+npm run build    # Build
+npm test         # Test
 npm run dev      # Watch mode
 ```
 

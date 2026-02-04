@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import crypto from 'crypto';
 import { ThreatLockerClient } from '../client.js';
 import { computersToolSchema, handleComputersTool } from '../tools/computers.js';
 import { computerGroupsToolSchema, handleComputerGroupsTool } from '../tools/computer-groups.js';
@@ -11,6 +11,14 @@ interface ClientCredentials {
   baseUrl: string;
   organizationId?: string;
 }
+
+interface SSESession {
+  res: Response;
+  credentials: ClientCredentials;
+}
+
+// Active SSE sessions by session ID
+const sseSessions = new Map<string, SSESession>();
 
 function extractCredentials(req: Request): ClientCredentials | null {
   const apiKey = req.headers['authorization'] as string;
@@ -43,16 +51,89 @@ async function handleToolCall(
   }
 }
 
+async function handleMcpMessage(
+  credentials: ClientCredentials,
+  method: string,
+  params: Record<string, unknown> | undefined,
+  id: string | number | null
+): Promise<object> {
+  try {
+    const client = new ThreatLockerClient(credentials);
+
+    if (method === 'initialize') {
+      return {
+        jsonrpc: '2.0',
+        result: {
+          protocolVersion: '2024-11-05',
+          capabilities: { tools: {} },
+          serverInfo: { name: 'threatlocker-mcp', version: '0.3.0' },
+        },
+        id,
+      };
+    }
+
+    if (method === 'notifications/initialized') {
+      // No response needed for notifications
+      return { jsonrpc: '2.0', result: {}, id };
+    }
+
+    if (method === 'tools/list') {
+      return {
+        jsonrpc: '2.0',
+        result: {
+          tools: [
+            computersToolSchema,
+            computerGroupsToolSchema,
+            applicationsToolSchema,
+            policiesToolSchema,
+          ],
+        },
+        id,
+      };
+    }
+
+    if (method === 'tools/call') {
+      const toolParams = params as { name?: string; arguments?: Record<string, unknown> } | undefined;
+      const result = await handleToolCall(client, toolParams?.name || '', toolParams?.arguments || {});
+      return {
+        jsonrpc: '2.0',
+        result: {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        },
+        id,
+      };
+    }
+
+    return {
+      jsonrpc: '2.0',
+      error: { code: -32601, message: `Method not found: ${method}` },
+      id,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return {
+      jsonrpc: '2.0',
+      error: { code: -32603, message },
+      id,
+    };
+  }
+}
+
+function sendSSEEvent(res: Response, event: string, data: unknown): void {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
 export function createHttpServer(port: number): void {
   const app = express();
   app.use(express.json());
 
   // Health check - no auth required
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', transport: 'http', version: '0.2.0' });
+    res.json({ status: 'ok', transport: 'http', version: '0.3.0' });
   });
 
-  // List available tools
+  // List available tools - no auth required
   app.get('/tools', (_req, res) => {
     res.json({
       tools: [
@@ -64,7 +145,69 @@ export function createHttpServer(port: number): void {
     });
   });
 
-  // Call a tool - requires auth headers
+  // SSE endpoint for Claude Desktop/Code remote connections
+  app.get('/sse', (req: Request, res: Response) => {
+    const credentials = extractCredentials(req);
+    if (!credentials) {
+      res.status(401).json({
+        error: 'Missing required headers: Authorization and X-ThreatLocker-Base-URL',
+      });
+      return;
+    }
+
+    // Generate session ID
+    const sessionId = crypto.randomUUID();
+
+    // Set up SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    // Store session
+    sseSessions.set(sessionId, { res, credentials });
+
+    // Send endpoint event with session-specific message URL
+    sendSSEEvent(res, 'endpoint', `/messages?sessionId=${sessionId}`);
+
+    // Keep connection alive
+    const keepAlive = setInterval(() => {
+      res.write(':keepalive\n\n');
+    }, 30000);
+
+    // Clean up on disconnect
+    req.on('close', () => {
+      clearInterval(keepAlive);
+      sseSessions.delete(sessionId);
+    });
+  });
+
+  // Messages endpoint for SSE clients
+  app.post('/messages', async (req: Request, res: Response) => {
+    const sessionId = req.query.sessionId as string;
+    const session = sseSessions.get(sessionId);
+
+    if (!session) {
+      res.status(400).json({
+        jsonrpc: '2.0',
+        error: { code: -32600, message: 'Invalid or expired session. Connect to /sse first.' },
+        id: req.body?.id || null,
+      });
+      return;
+    }
+
+    const { method, params, id } = req.body;
+    const response = await handleMcpMessage(session.credentials, method, params, id);
+
+    // Send response via SSE
+    sendSSEEvent(session.res, 'message', response);
+
+    // Also send HTTP response for acknowledgment
+    res.status(202).json({ status: 'accepted' });
+  });
+
+  // Direct tool call endpoint (REST API) - requires auth headers per request
   app.post('/tools/:toolName', async (req: Request, res: Response) => {
     const credentials = extractCredentials(req);
     if (!credentials) {
@@ -92,7 +235,7 @@ export function createHttpServer(port: number): void {
     }
   });
 
-  // MCP JSON-RPC endpoint for full MCP protocol support
+  // Direct MCP JSON-RPC endpoint (REST API) - requires auth headers per request
   app.post('/mcp', async (req: Request, res: Response) => {
     const credentials = extractCredentials(req);
     if (!credentials) {
@@ -105,60 +248,21 @@ export function createHttpServer(port: number): void {
     }
 
     const { method, params, id } = req.body;
-
-    try {
-      const client = new ThreatLockerClient(credentials);
-
-      if (method === 'tools/list') {
-        res.json({
-          jsonrpc: '2.0',
-          result: {
-            tools: [
-              computersToolSchema,
-              computerGroupsToolSchema,
-              applicationsToolSchema,
-              policiesToolSchema,
-            ],
-          },
-          id,
-        });
-        return;
-      }
-
-      if (method === 'tools/call') {
-        const { name, arguments: args } = params || {};
-        const result = await handleToolCall(client, name, args || {});
-        res.json({
-          jsonrpc: '2.0',
-          result: {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          },
-          id,
-        });
-        return;
-      }
-
-      res.json({
-        jsonrpc: '2.0',
-        error: { code: -32601, message: `Method not found: ${method}` },
-        id,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json({
-        jsonrpc: '2.0',
-        error: { code: -32603, message },
-        id,
-      });
-    }
+    const response = await handleMcpMessage(credentials, method, params, id);
+    res.json(response);
   });
 
   app.listen(port, () => {
     console.error(`ThreatLocker MCP server running on http://localhost:${port}`);
-    console.error('Endpoints:');
-    console.error('  GET  /health      - Health check');
-    console.error('  GET  /tools       - List available tools');
-    console.error('  POST /tools/:name - Call a tool (requires auth headers)');
-    console.error('  POST /mcp         - MCP JSON-RPC endpoint');
+    console.error('');
+    console.error('SSE Transport (for Claude Desktop/Code):');
+    console.error('  GET  /sse          - SSE connection (requires auth headers)');
+    console.error('  POST /messages     - Send messages (via session)');
+    console.error('');
+    console.error('REST API (direct calls):');
+    console.error('  GET  /health       - Health check');
+    console.error('  GET  /tools        - List available tools');
+    console.error('  POST /tools/:name  - Call a tool (requires auth headers)');
+    console.error('  POST /mcp          - MCP JSON-RPC (requires auth headers)');
   });
 }
