@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ThreatLockerClient } from '../client.js';
 import { computersToolSchema, handleComputersTool } from '../tools/computers.js';
 import { computerGroupsToolSchema, handleComputerGroupsTool } from '../tools/computer-groups.js';
@@ -328,7 +329,7 @@ export function createHttpServer(port: number): void {
     }
   });
 
-  // Direct MCP JSON-RPC endpoint (REST API) - requires auth headers per request
+  // Streamable HTTP MCP endpoint
   app.post('/mcp', async (req: Request, res: Response) => {
     const credentials = extractCredentials(req);
     if (!credentials) {
@@ -340,9 +341,43 @@ export function createHttpServer(port: number): void {
       return;
     }
 
-    const { method, params, id } = req.body;
-    const response = await handleMcpMessage(credentials, method, params, id);
-    res.json(response);
+    try {
+      const client = new ThreatLockerClient(credentials);
+      const server = createMcpServer(client);
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined, // Stateless mode
+      });
+
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: '2.0',
+          error: { code: -32603, message },
+          id: req.body?.id || null,
+        });
+      }
+    }
+  });
+
+  // GET /mcp - Not supported (no server-initiated messages)
+  app.get('/mcp', (_req: Request, res: Response) => {
+    res.status(405).json({
+      jsonrpc: '2.0',
+      error: { code: -32600, message: 'GET not supported. Use POST to send messages.' },
+      id: null,
+    });
+  });
+
+  // DELETE /mcp - Not supported (stateless, no sessions)
+  app.delete('/mcp', (_req: Request, res: Response) => {
+    res.status(405).json({
+      jsonrpc: '2.0',
+      error: { code: -32600, message: 'Sessions not supported in stateless mode.' },
+      id: null,
+    });
   });
 
   app.listen(port, () => {

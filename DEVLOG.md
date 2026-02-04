@@ -23,3 +23,5 @@
 
 - Updated MCP SDK from v1.0.0 to v1.26.0 for Streamable HTTP transport support
 - Added createMcpServer factory function with Zod schemas for Streamable HTTP transport
+- Implemented Streamable HTTP POST /mcp endpoint using StreamableHTTPServerTransport
+- Added GET /mcp and DELETE /mcp handlers returning 405 (not supported in stateless mode)
