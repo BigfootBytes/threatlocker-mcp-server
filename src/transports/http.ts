@@ -1,5 +1,7 @@
 import express, { Request, Response } from 'express';
 import crypto from 'crypto';
+import { z } from 'zod';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ThreatLockerClient } from '../client.js';
 import { computersToolSchema, handleComputersTool } from '../tools/computers.js';
 import { computerGroupsToolSchema, handleComputerGroupsTool } from '../tools/computer-groups.js';
@@ -30,6 +32,97 @@ function extractCredentials(req: Request): ClientCredentials | null {
   }
 
   return { apiKey, baseUrl, organizationId };
+}
+
+// Zod schemas for McpServer tool registration
+const computersZodSchema = {
+  action: z.enum(['list', 'get', 'checkins']).describe('Action to perform'),
+  computerId: z.string().optional().describe('Computer ID (required for get and checkins)'),
+  searchText: z.string().optional().describe('Search text for list action'),
+  action_filter: z.enum(['Secure', 'Installation', 'Learning', 'MonitorOnly']).optional().describe('Filter by computer mode for list action'),
+  computerGroup: z.string().optional().describe('Computer group ID for list action'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Page size (default: 25)'),
+  hideHeartbeat: z.boolean().optional().describe('Hide heartbeat entries for checkins action'),
+};
+
+const computerGroupsZodSchema = {
+  action: z.enum(['list', 'dropdown']).describe('Action to perform'),
+  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
+  includeGlobal: z.boolean().optional().describe('Include global application-permitting group (list action)'),
+  includeAllComputers: z.boolean().optional().describe('Include all computers in response (list action)'),
+  hideGlobals: z.boolean().optional().describe('Hide global groups (dropdown action)'),
+};
+
+const applicationsZodSchema = {
+  action: z.enum(['search', 'get', 'research', 'files']).describe('Action to perform'),
+  applicationId: z.string().optional().describe('Application ID (required for get, research, and files)'),
+  searchText: z.string().optional().describe('Search text for search and files actions'),
+  searchBy: z.enum(['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries']).optional().describe('Field to search by (default: app)'),
+  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
+  category: z.number().optional().describe('Category filter'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Page size (default: 25)'),
+};
+
+const policiesZodSchema = {
+  action: z.enum(['get', 'list_by_application']).describe('Action to perform'),
+  policyId: z.string().optional().describe('Policy ID (required for get)'),
+  applicationId: z.string().optional().describe('Application ID (required for list_by_application)'),
+  organizationId: z.string().optional().describe('Organization ID (required for list_by_application)'),
+  appliesToId: z.string().optional().describe('Computer group ID to filter by'),
+  includeDenies: z.boolean().optional().describe('Include deny policies'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Page size (default: 25)'),
+};
+
+function createMcpServer(client: ThreatLockerClient): McpServer {
+  const server = new McpServer({
+    name: 'threatlocker-mcp',
+    version: '0.3.0',
+  });
+
+  server.tool(
+    computersToolSchema.name,
+    computersToolSchema.description,
+    computersZodSchema,
+    async (args) => {
+      const result = await handleComputersTool(client, args);
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    computerGroupsToolSchema.name,
+    computerGroupsToolSchema.description,
+    computerGroupsZodSchema,
+    async (args) => {
+      const result = await handleComputerGroupsTool(client, args);
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    applicationsToolSchema.name,
+    applicationsToolSchema.description,
+    applicationsZodSchema,
+    async (args) => {
+      const result = await handleApplicationsTool(client, args);
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    policiesToolSchema.name,
+    policiesToolSchema.description,
+    policiesZodSchema,
+    async (args) => {
+      const result = await handlePoliciesTool(client, args);
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  return server;
 }
 
 async function handleToolCall(

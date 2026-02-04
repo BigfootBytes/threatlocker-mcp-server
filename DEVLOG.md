@@ -22,3 +22,4 @@
 ## 2026-02-04
 
 - Updated MCP SDK from v1.0.0 to v1.26.0 for Streamable HTTP transport support
+- Added createMcpServer factory function with Zod schemas for Streamable HTTP transport
