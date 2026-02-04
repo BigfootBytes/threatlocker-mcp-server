@@ -18,3 +18,7 @@
 - Rewrote README with Docker and Claude configuration instructions
 - Added SSE transport for Claude Desktop/Code remote server support
 - Added config file paths to README
+
+## 2026-02-04
+
+- Updated MCP SDK from v1.0.0 to v1.26.0 for Streamable HTTP transport support
