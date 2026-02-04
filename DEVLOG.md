@@ -25,3 +25,8 @@
 - Added createMcpServer factory function with Zod schemas for Streamable HTTP transport
 - Implemented Streamable HTTP POST /mcp endpoint using StreamableHTTPServerTransport
 - Added GET /mcp and DELETE /mcp handlers returning 405 (not supported in stateless mode)
+- Removed legacy SSE transport code (SSESession, sseSessions Map, sendSSEEvent, handleMcpMessage, handleToolCall)
+- Removed GET /sse and POST /messages endpoints
+- Removed crypto import (no longer needed for session IDs)
+- Inlined tool dispatch in REST API /tools/:name endpoint
+- Updated startup console messages to reflect Streamable HTTP as primary transport
