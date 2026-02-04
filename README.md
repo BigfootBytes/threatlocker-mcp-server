@@ -1,6 +1,6 @@
 # ThreatLocker MCP Server
 
-An MCP (Model Context Protocol) server providing read-only access to the ThreatLocker Portal API. Supports stdio transport (local) and HTTP/SSE transport (remote).
+An MCP (Model Context Protocol) server providing read-only access to the ThreatLocker Portal API. Supports stdio transport (local) and Streamable HTTP transport (remote).
 
 ## Quick Start
 
@@ -56,7 +56,7 @@ Run the server locally on the same machine as Claude Desktop/Code.
 }
 ```
 
-### Option 2: Remote Server (SSE)
+### Option 2: Remote Server (Streamable HTTP)
 
 Connect Claude Desktop/Code to a remote MCP server over HTTPS.
 
@@ -70,7 +70,7 @@ docker run -d -p 8080:8080 -e TRANSPORT=http ghcr.io/applied-motion-systems/thre
 {
   "mcpServers": {
     "threatlocker": {
-      "url": "https://your-server.example.com/sse",
+      "url": "https://your-server.example.com/mcp",
       "headers": {
         "Authorization": "your-threatlocker-api-key",
         "X-ThreatLocker-Base-URL": "https://portalapi.g.threatlocker.com/portalapi",
@@ -81,7 +81,7 @@ docker run -d -p 8080:8080 -e TRANSPORT=http ghcr.io/applied-motion-systems/thre
 }
 ```
 
-**Note:** For production, deploy behind a reverse proxy (nginx, Caddy) with HTTPS.
+**Note:** This implementation is stateless - each request is independent. For production, deploy behind a reverse proxy (nginx, Caddy) with HTTPS.
 
 ## HTTP Mode
 
@@ -91,10 +91,8 @@ docker run -d -p 8080:8080 -e TRANSPORT=http ghcr.io/applied-motion-systems/thre
 |--------|----------|------|-------------|
 | GET | `/health` | No | Health check |
 | GET | `/tools` | No | List available tools |
-| GET | `/sse` | Yes | SSE stream for Claude Desktop/Code |
-| POST | `/messages` | Session | Messages from SSE clients |
+| POST | `/mcp` | Yes | Streamable HTTP MCP endpoint |
 | POST | `/tools/:name` | Yes | Direct tool call (REST API) |
-| POST | `/mcp` | Yes | MCP JSON-RPC (REST API) |
 
 ### Authentication Headers
 
@@ -134,6 +132,7 @@ curl -X POST https://your-server.example.com/tools/computers \
 | `THREATLOCKER_API_KEY` | - | API key (stdio mode) |
 | `THREATLOCKER_BASE_URL` | - | Base URL (stdio mode) |
 | `THREATLOCKER_ORG_ID` | - | Org ID (stdio mode) |
+| `ALLOWED_ORIGINS` | - | Comma-separated allowed origins for browser requests |
 
 ### CLI Flags
 
