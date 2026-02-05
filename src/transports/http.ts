@@ -104,7 +104,7 @@ const policiesZodSchema = {
 function createMcpServer(client: ThreatLockerClient): McpServer {
   const server = new McpServer({
     name: 'threatlocker-mcp',
-    version: '0.4.0',
+    version: '0.4.1',
   });
 
   server.tool(
@@ -160,7 +160,7 @@ export function createHttpServer(port: number): void {
       status: 'ok',
       transports: ['sse', 'streamable-http'],
       protocolVersion: '2025-03-26',
-      version: '0.4.0'
+      version: '0.4.1'
     });
   });
 
