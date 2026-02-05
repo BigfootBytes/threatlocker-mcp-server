@@ -12,6 +12,10 @@ import { computersToolSchema, handleComputersTool } from './tools/computers.js';
 import { computerGroupsToolSchema, handleComputerGroupsTool } from './tools/computer-groups.js';
 import { applicationsToolSchema, handleApplicationsTool } from './tools/applications.js';
 import { policiesToolSchema, handlePoliciesTool } from './tools/policies.js';
+import { actionLogToolSchema, handleActionLogTool } from './tools/action-log.js';
+import { approvalRequestsToolSchema, handleApprovalRequestsTool } from './tools/approval-requests.js';
+import { organizationsToolSchema, handleOrganizationsTool } from './tools/organizations.js';
+import { reportsToolSchema, handleReportsTool } from './tools/reports.js';
 import { createHttpServer } from './transports/http.js';
 import { VERSION } from './version.js';
 
@@ -77,6 +81,10 @@ if (transportMode === 'http') {
       computerGroupsToolSchema,
       applicationsToolSchema,
       policiesToolSchema,
+      actionLogToolSchema,
+      approvalRequestsToolSchema,
+      organizationsToolSchema,
+      reportsToolSchema,
     ],
   }));
 
@@ -96,6 +104,18 @@ if (transportMode === 'http') {
         break;
       case 'policies':
         result = await handlePoliciesTool(client, args || {});
+        break;
+      case 'action_log':
+        result = await handleActionLogTool(client, args || {});
+        break;
+      case 'approval_requests':
+        result = await handleApprovalRequestsTool(client, args || {});
+        break;
+      case 'organizations':
+        result = await handleOrganizationsTool(client, args || {});
+        break;
+      case 'reports':
+        result = await handleReportsTool(client, args || {});
         break;
       default:
         return {
