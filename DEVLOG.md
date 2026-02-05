@@ -2,8 +2,12 @@
 
 ## 2026-02-05
 
-- Added `reports` tool for querying ThreatLocker reports (list, get_data actions)
-- Added `action_log` tool for querying ThreatLocker unified audit logs (search, get, file_history actions)
+- Added four new read-only tools:
+  - `action_log` - Query unified audit logs (search, get, file_history)
+  - `approval_requests` - Query approval requests (list, get, count)
+  - `organizations` - Query organizations (list_children, get_auth_key)
+  - `reports` - Query reports (list, get_data)
+- Added custom headers support to client.post() for ActionLog's `usenewsearch` requirement
 - Added API key masking in logs - shows first 4 and last 4 characters only (e.g., `ABCD**********WXYZ`)
   - Sanitizes all log data recursively to catch API keys in error response bodies
   - Prevents accidental credential exposure from ThreatLocker API error messages
