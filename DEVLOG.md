@@ -8,6 +8,13 @@
   - `includeOrganizations` - Include accessible organizations
   - `includeParentGroups` - Show parent computer groups
   - `includeLoggedInObjects` - Add contextual path labels
+- Added search/filter parameters to applications tool:
+  - `orderBy` - Sort by name, date-created, review-rating, computer-count, policy
+  - `isAscending` - Sort direction (default: true)
+  - `includeChildOrganizations` - Include child org applications
+  - `isHidden` - Include hidden/temporary applications
+  - `permittedApplications` - Only show apps with active permit policies
+  - `countries` - Filter by ISO country codes (use with searchBy=countries)
 - Added four new read-only tools:
   - `action_log` - Query unified audit logs (search, get, file_history)
   - `approval_requests` - Query approval requests (list, get, count)

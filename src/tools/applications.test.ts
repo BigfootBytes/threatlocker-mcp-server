@@ -53,6 +53,44 @@ describe('applications tool', () => {
     );
   });
 
+  it('passes sort and filter parameters for search action', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: [] });
+    await handleApplicationsTool(mockClient, {
+      action: 'search',
+      orderBy: 'date-created',
+      isAscending: false,
+      includeChildOrganizations: true,
+      permittedApplications: true,
+    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'Application/ApplicationGetByParameters',
+      expect.objectContaining({
+        orderBy: 'date-created',
+        isAscending: false,
+        includeChildOrganizations: true,
+        permittedApplications: true,
+      }),
+      expect.any(Function)
+    );
+  });
+
+  it('passes countries array for country search', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: [] });
+    await handleApplicationsTool(mockClient, {
+      action: 'search',
+      searchBy: 'countries',
+      countries: ['US', 'GB'],
+    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'Application/ApplicationGetByParameters',
+      expect.objectContaining({
+        searchBy: 'countries',
+        countries: ['US', 'GB'],
+      }),
+      expect.any(Function)
+    );
+  });
+
   it('calls correct endpoint for get action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
     await handleApplicationsTool(mockClient, { action: 'get', applicationId: 'app-123' });

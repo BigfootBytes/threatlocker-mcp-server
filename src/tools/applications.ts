@@ -32,7 +32,34 @@ export const applicationsToolSchema = {
       },
       category: {
         type: 'number',
-        description: 'Category filter',
+        enum: [0, 1, 2],
+        description: 'Category filter: 0=All Applications, 1=My Applications (Custom), 2=Built-In Applications',
+      },
+      orderBy: {
+        type: 'string',
+        enum: ['name', 'date-created', 'review-rating', 'computer-count', 'policy'],
+        description: 'Field to sort by (default: name)',
+      },
+      isAscending: {
+        type: 'boolean',
+        description: 'Sort ascending (default: true)',
+      },
+      includeChildOrganizations: {
+        type: 'boolean',
+        description: 'Include child organization applications (default: false)',
+      },
+      isHidden: {
+        type: 'boolean',
+        description: 'Include hidden/temporary applications (default: false)',
+      },
+      permittedApplications: {
+        type: 'boolean',
+        description: 'Only show apps with active permit policies (default: false)',
+      },
+      countries: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'ISO country codes to filter by (use with searchBy=countries)',
       },
       pageNumber: {
         type: 'number',
@@ -54,6 +81,12 @@ interface ApplicationsInput {
   searchBy?: string;
   osType?: number;
   category?: number;
+  orderBy?: string;
+  isAscending?: boolean;
+  includeChildOrganizations?: boolean;
+  isHidden?: boolean;
+  permittedApplications?: boolean;
+  countries?: string[];
   pageNumber?: number;
   pageSize?: number;
 }
@@ -69,6 +102,12 @@ export async function handleApplicationsTool(
     searchBy = 'app',
     osType = 0,
     category = 0,
+    orderBy = 'name',
+    isAscending = true,
+    includeChildOrganizations = false,
+    isHidden = false,
+    permittedApplications = false,
+    countries,
     pageNumber = 1,
     pageSize = 25,
   } = input;
@@ -88,11 +127,12 @@ export async function handleApplicationsTool(
           searchBy,
           osType,
           category,
-          isAscending: true,
-          orderBy: 'name',
-          includeChildOrganizations: false,
-          isHidden: false,
-          permittedApplications: false,
+          orderBy,
+          isAscending,
+          includeChildOrganizations,
+          isHidden,
+          permittedApplications,
+          countries,
         },
         extractPaginationFromHeaders
       );
