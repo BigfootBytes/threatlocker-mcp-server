@@ -2,6 +2,7 @@
 
 ## 2026-02-05
 
+- Added `reports` tool for querying ThreatLocker reports (list, get_data actions)
 - Added `action_log` tool for querying ThreatLocker unified audit logs (search, get, file_history actions)
 - Added API key masking in logs - shows first 4 and last 4 characters only (e.g., `ABCD**********WXYZ`)
   - Sanitizes all log data recursively to catch API keys in error response bodies
