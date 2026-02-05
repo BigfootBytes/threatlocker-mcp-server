@@ -3,18 +3,32 @@ import { ApiResponse, errorResponse } from '../types/responses.js';
 
 export const maintenanceModeToolSchema = {
   name: 'maintenance_mode',
-  description: 'Query ThreatLocker maintenance mode history for computers',
+  description: `Query ThreatLocker maintenance mode history for computers.
+
+Maintenance mode temporarily changes a computer's protection level. Types include:
+- Installation Mode: Allows new software installs, auto-learns new applications
+- Learning Mode: Monitors and records software usage without blocking
+- Monitor Only: Logs but doesn't block (audit mode)
+- Tamper Protection Disabled: Allows ThreatLocker service changes
+
+Common workflows:
+- View maintenance history for a computer: action=get_history, computerId="..."
+- Audit who put computers in installation mode: check history across computers
+
+Maintenance mode history shows who enabled it, when, duration, and what applications were learned during that time.
+
+Related tools: computers (get computer IDs, see current mode), computer_groups (group-level modes)`,
   inputSchema: {
     type: 'object' as const,
     properties: {
       action: {
         type: 'string',
         enum: ['get_history'],
-        description: 'Action to perform',
+        description: 'get_history=paginated maintenance mode history for a computer',
       },
       computerId: {
         type: 'string',
-        description: 'Computer ID (required)',
+        description: 'Computer GUID (required). Get from computers tool.',
       },
       pageNumber: {
         type: 'number',
@@ -22,7 +36,7 @@ export const maintenanceModeToolSchema = {
       },
       pageSize: {
         type: 'number',
-        description: 'Page size (default: 25)',
+        description: 'Results per page (default: 25)',
       },
     },
     required: ['action', 'computerId'],

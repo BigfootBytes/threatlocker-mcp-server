@@ -3,63 +3,76 @@ import { ApiResponse, errorResponse } from '../types/responses.js';
 
 export const applicationsToolSchema = {
   name: 'applications',
-  description: 'Search and inspect ThreatLocker applications',
+  description: `Search and inspect ThreatLocker applications.
+
+Applications are collections of file rules (hashes, paths, certificates) that define what software is allowed or denied. ThreatLocker comes with built-in applications for common software, and you can create custom ones.
+
+Common workflows:
+- Find an application by name: action=search, searchText="Chrome"
+- Find apps by file hash: action=search, searchBy=hash, searchText="abc123..."
+- Find apps by certificate: action=search, searchBy=cert, searchText="Microsoft"
+- Get ThreatLocker research on an app: action=research, applicationId="..."
+- List files in an application: action=files, applicationId="..."
+- Find apps actively permitted: action=search, permittedApplications=true
+- Find recently created custom apps: action=search, category=1, orderBy=date-created
+
+Related tools: policies (see policies using this app), action_log (see app activity), approval_requests (pending approvals for this app)`,
   inputSchema: {
     type: 'object' as const,
     properties: {
       action: {
         type: 'string',
         enum: ['search', 'get', 'research', 'files'],
-        description: 'Action to perform',
+        description: 'search=find applications, get=details by ID, research=ThreatLocker security analysis, files=list file rules in app',
       },
       applicationId: {
         type: 'string',
-        description: 'Application ID (required for get, research, and files)',
+        description: 'Application GUID (required for get, research, and files). Find via search action first.',
       },
       searchText: {
         type: 'string',
-        description: 'Search text for search and files actions',
+        description: 'Search text. Supports wildcards (*). Examples: "Chrome*", "*Office*", or a SHA256 hash.',
       },
       searchBy: {
         type: 'string',
         enum: ['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries'],
-        description: 'Field to search by (default: app)',
+        description: 'Search field: app=name (default), full=full path rules, process=process path, hash=SHA256, cert=certificate subject, created=created by path, categories=app categories, countries=compilation country',
       },
       osType: {
         type: 'number',
         enum: [0, 1, 2, 3, 5],
-        description: 'OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP',
+        description: 'Filter by OS: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP (legacy)',
       },
       category: {
         type: 'number',
         enum: [0, 1, 2],
-        description: 'Category filter: 0=All Applications, 1=My Applications (Custom), 2=Built-In Applications',
+        description: 'Filter by source: 0=All, 1=My Applications (custom apps you created), 2=Built-In (ThreatLocker curated apps)',
       },
       orderBy: {
         type: 'string',
         enum: ['name', 'date-created', 'review-rating', 'computer-count', 'policy'],
-        description: 'Field to sort by (default: name)',
+        description: 'Sort field: name, date-created (newest first when desc), review-rating (ThreatLocker security rating), computer-count (deployment spread), policy (policy count)',
       },
       isAscending: {
         type: 'boolean',
-        description: 'Sort ascending (default: true)',
+        description: 'Sort direction. false with date-created shows newest first.',
       },
       includeChildOrganizations: {
         type: 'boolean',
-        description: 'Include child organization applications (default: false)',
+        description: 'Include applications from child organizations (MSP/enterprise view).',
       },
       isHidden: {
         type: 'boolean',
-        description: 'Include hidden/temporary applications (default: false)',
+        description: 'Include hidden/temporary applications. Useful for finding auto-created learning apps.',
       },
       permittedApplications: {
         type: 'boolean',
-        description: 'Only show apps with active permit policies (default: false)',
+        description: 'Only show apps with active permit policies. Useful for auditing what software is allowed.',
       },
       countries: {
         type: 'array',
         items: { type: 'string' },
-        description: 'ISO country codes to filter by (use with searchBy=countries)',
+        description: 'ISO country codes (e.g., ["US", "GB"]). Use with searchBy=countries to find apps compiled in specific countries.',
       },
       pageNumber: {
         type: 'number',
@@ -67,7 +80,7 @@ export const applicationsToolSchema = {
       },
       pageSize: {
         type: 'number',
-        description: 'Page size (default: 25)',
+        description: 'Results per page (default: 25)',
       },
     },
     required: ['action'],

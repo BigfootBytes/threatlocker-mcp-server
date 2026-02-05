@@ -3,31 +3,44 @@ import { ApiResponse, errorResponse } from '../types/responses.js';
 
 export const organizationsToolSchema = {
   name: 'organizations',
-  description: 'Query ThreatLocker organizations',
+  description: `Query ThreatLocker organizations.
+
+Organizations are the top-level containers in ThreatLocker. MSPs have a parent organization with child organizations for each client. Enterprises may have organizations per business unit or location.
+
+Common workflows:
+- List child organizations: action=list_children
+- Search for a client org: action=list_children, searchText="client name"
+- List all nested children (full tree): action=list_children, includeAllChildren=true
+- Get installation auth key: action=get_auth_key
+- Get orgs available for moving computers: action=get_for_move_computers
+
+The organizationId is needed for many API calls (policies, applications, etc.) to scope the request to a specific organization.
+
+Related tools: computers (computers in org), computer_groups (groups in org), policies (policies in org)`,
   inputSchema: {
     type: 'object' as const,
     properties: {
       action: {
         type: 'string',
         enum: ['list_children', 'get_auth_key', 'get_for_move_computers'],
-        description: 'Action to perform',
+        description: 'list_children=list child orgs, get_auth_key=installation key for current org, get_for_move_computers=orgs available for computer relocation',
       },
       searchText: {
         type: 'string',
-        description: 'Filter by name (for list_children)',
+        description: 'Filter child orgs by name. Supports partial matching.',
       },
       includeAllChildren: {
         type: 'boolean',
-        description: 'Include nested children (default: false)',
+        description: 'Include all nested descendants (grandchildren, etc.), not just direct children.',
       },
       orderBy: {
         type: 'string',
         enum: ['billingMethod', 'businessClassificationName', 'dateAdded', 'name'],
-        description: 'Field to order by',
+        description: 'Sort field: billingMethod, businessClassificationName (industry), dateAdded (newest/oldest), name (alphabetical)',
       },
       isAscending: {
         type: 'boolean',
-        description: 'Sort ascending (default: true)',
+        description: 'Sort direction. false with dateAdded shows newest first.',
       },
       pageNumber: {
         type: 'number',
@@ -35,7 +48,7 @@ export const organizationsToolSchema = {
       },
       pageSize: {
         type: 'number',
-        description: 'Page size (default: 25)',
+        description: 'Results per page (default: 25)',
       },
     },
     required: ['action'],

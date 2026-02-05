@@ -3,37 +3,49 @@ import { ApiResponse, errorResponse } from '../types/responses.js';
 
 export const scheduledActionsToolSchema = {
   name: 'scheduled_actions',
-  description: 'Query ThreatLocker scheduled agent actions (version updates, etc.)',
+  description: `Query ThreatLocker scheduled agent actions.
+
+Scheduled actions are pending operations on ThreatLocker agents, primarily version updates. Updates are batched and scheduled within maintenance windows to avoid disruption.
+
+Common workflows:
+- List all scheduled actions: action=list
+- Search with filters: action=search, organizationIds=["..."], computerGroupIds=["..."]
+- Get scheduled action details: action=get, scheduledActionId="..."
+- Get available targets for scheduling: action=get_applies_to
+
+Scheduled action types: Version Update (update ThreatLocker agent)
+
+Related tools: computers (see current versions), computer_groups (target groups for updates), organizations (filter by org)`,
   inputSchema: {
     type: 'object' as const,
     properties: {
       action: {
         type: 'string',
         enum: ['list', 'search', 'get', 'get_applies_to'],
-        description: 'Action to perform',
+        description: 'list=all scheduled actions, search=filtered search, get=single action details, get_applies_to=available scheduling targets',
       },
       scheduledActionId: {
         type: 'string',
-        description: 'Scheduled action ID (required for get action)',
+        description: 'Scheduled action GUID (required for get). Get from list or search.',
       },
       organizationIds: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Filter by organization IDs (for search)',
+        description: 'Filter to specific organizations (search only). Get org IDs from organizations tool.',
       },
       computerGroupIds: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Filter by computer group IDs (for search)',
+        description: 'Filter to specific computer groups (search only). Get group IDs from computer_groups tool.',
       },
       orderBy: {
         type: 'string',
         enum: ['scheduleddatetime', 'computername', 'computergroupname', 'organizationname'],
-        description: 'Field to sort by (default: scheduleddatetime)',
+        description: 'Sort field: scheduleddatetime (when scheduled), computername, computergroupname, organizationname',
       },
       isAscending: {
         type: 'boolean',
-        description: 'Sort ascending (default: true)',
+        description: 'Sort direction. false with scheduleddatetime shows most recent first.',
       },
       pageNumber: {
         type: 'number',
@@ -41,7 +53,7 @@ export const scheduledActionsToolSchema = {
       },
       pageSize: {
         type: 'number',
-        description: 'Page size (default: 25)',
+        description: 'Results per page (default: 25)',
       },
     },
     required: ['action'],

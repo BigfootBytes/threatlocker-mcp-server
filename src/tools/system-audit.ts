@@ -3,60 +3,74 @@ import { ApiResponse, errorResponse } from '../types/responses.js';
 
 export const systemAuditToolSchema = {
   name: 'system_audit',
-  description: 'Query ThreatLocker portal audit logs (user logins, config changes)',
+  description: `Query ThreatLocker portal audit logs.
+
+System audit tracks administrator actions in the ThreatLocker portal: logins, policy changes, approvals, configuration modifications. This is different from action_log which tracks endpoint events.
+
+Common workflows:
+- Find all logins in date range: action=search, startDate="...", endDate="...", auditAction=Logon
+- Find failed login attempts: action=search, ..., auditAction=Logon, effectiveAction=Denied
+- Find changes by a specific admin: action=search, ..., username="admin@company.com"
+- Find policy modifications: action=search, ..., auditAction=Modify, details="*policy*"
+- Get health center dashboard: action=health_center, days=7
+- Search health center by location: action=health_center, searchText="lat:X&long:Y"
+
+Audit actions: Create (new objects), Delete (removals), Logon (portal access), Modify (changes), Read (views)
+
+Related tools: action_log (endpoint events, not portal events), organizations (filter by org)`,
   inputSchema: {
     type: 'object' as const,
     properties: {
       action: {
         type: 'string',
         enum: ['search', 'health_center'],
-        description: 'Action to perform',
+        description: 'search=query audit logs, health_center=admin activity dashboard',
       },
       startDate: {
         type: 'string',
-        description: 'Start date for search (ISO 8601 UTC)',
+        description: 'Start of date range (required for search). ISO 8601 UTC: 2025-01-01T00:00:00Z',
       },
       endDate: {
         type: 'string',
-        description: 'End date for search (ISO 8601 UTC)',
+        description: 'End of date range (required for search). ISO 8601 UTC: 2025-01-31T23:59:59Z',
       },
       username: {
         type: 'string',
-        description: 'Filter by username (wildcards supported)',
+        description: 'Filter by admin username/email. Supports wildcards: "*@company.com"',
       },
       auditAction: {
         type: 'string',
         enum: ['Create', 'Delete', 'Logon', 'Modify', 'Read'],
-        description: 'Filter by audit action type',
+        description: 'Filter by action type: Create, Delete, Logon (portal access), Modify (changes), Read (views)',
       },
       ipAddress: {
         type: 'string',
-        description: 'Filter by IP address',
+        description: 'Filter by source IP address of the admin.',
       },
       effectiveAction: {
         type: 'string',
         enum: ['Denied', 'Permitted'],
-        description: 'Filter by effective action',
+        description: 'Filter by result: Denied (failed/blocked), Permitted (successful)',
       },
       details: {
         type: 'string',
-        description: 'Filter by details text (wildcards supported)',
+        description: 'Search in audit details text. Supports wildcards: "*policy*", "*application*"',
       },
       viewChildOrganizations: {
         type: 'boolean',
-        description: 'Include child organizations (default: false)',
+        description: 'Include audit logs from child organizations (MSP/enterprise view).',
       },
       objectId: {
         type: 'string',
-        description: 'Filter by specific object ID',
+        description: 'Filter to actions on a specific object (policy, application, etc.) by GUID.',
       },
       days: {
         type: 'number',
-        description: 'Number of days for health_center action (default: 7)',
+        description: 'Lookback period for health_center (default: 7 days).',
       },
       searchText: {
         type: 'string',
-        description: 'Search text for health_center action',
+        description: 'Search text for health_center. Supports location: "lat:X&long:Y"',
       },
       pageNumber: {
         type: 'number',
@@ -64,7 +78,7 @@ export const systemAuditToolSchema = {
       },
       pageSize: {
         type: 'number',
-        description: 'Page size (default: 25)',
+        description: 'Results per page (default: 25)',
       },
     },
     required: ['action'],

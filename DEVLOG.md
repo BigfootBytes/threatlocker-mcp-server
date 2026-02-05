@@ -2,6 +2,12 @@
 
 ## 2026-02-05
 
+- Enhanced all 12 tool descriptions with richer AI-friendly documentation:
+  - Added multi-line descriptions explaining what each tool does and why
+  - Added "Common workflows" sections with example parameter combinations
+  - Added "Related tools" references showing tool interconnections
+  - Improved parameter descriptions explaining when/why to use each option
+  - Tools enhanced: computers, computer_groups, applications, policies, action_log, approval_requests, organizations, reports, maintenance_mode, scheduled_actions, system_audit, tags
 - Added `searchBy` parameter to computers tool for searching by username, IP, etc.
   - 1=Computer/Asset Name, 2=Username, 3=Computer Group Name, 4=Last Check-in IP, 5=Organization Name
 - Added include parameters to computer_groups tool:

@@ -3,18 +3,28 @@ import { ApiResponse, errorResponse } from '../types/responses.js';
 
 export const reportsToolSchema = {
   name: 'reports',
-  description: 'Query ThreatLocker reports',
+  description: `Query ThreatLocker reports.
+
+ThreatLocker provides pre-built reports for compliance, security analysis, and operational insights. Reports are organization-specific and may include computer inventory, policy coverage, deny summaries, and more.
+
+Common workflows:
+- List available reports: action=list
+- Run a specific report: action=get_data, reportId="..."
+
+Reports are read-only and cannot be created or modified via API. The available reports depend on your ThreatLocker license and organization configuration.
+
+Related tools: action_log (raw audit data), computers (computer inventory), policies (policy coverage)`,
   inputSchema: {
     type: 'object' as const,
     properties: {
       action: {
         type: 'string',
         enum: ['list', 'get_data'],
-        description: 'Action to perform',
+        description: 'list=show available reports, get_data=run report and get results',
       },
       reportId: {
         type: 'string',
-        description: 'Report ID (required for get_data action)',
+        description: 'Report GUID (required for get_data). Get from list action.',
       },
     },
     required: ['action'],

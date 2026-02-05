@@ -3,61 +3,74 @@ import { ApiResponse, errorResponse } from '../types/responses.js';
 
 export const actionLogToolSchema = {
   name: 'action_log',
-  description: 'Query ThreatLocker unified audit logs',
+  description: `Query ThreatLocker unified audit logs.
+
+The action log records all application control events: permits, denies, network access, file operations, PowerShell execution, elevation requests, and more. This is your primary tool for investigating what happened on endpoints.
+
+Common workflows:
+- Find all denies in last 24 hours: action=search, startDate="...", endDate="...", actionId=99
+- Find denies on a specific computer: action=search, ..., hostname="COMPUTER-NAME"
+- Find network blocks: action=search, ..., actionType=network, actionId=2
+- Find PowerShell executions: action=search, ..., actionType=powershell
+- Get details of a specific event: action=get, actionLogId="..."
+- Track a file's history across all computers: action=file_history, fullPath="C:\\path\\to\\file.exe"
+- Aggregate by user to find who's triggering denies: action=search, ..., groupBys=[1]
+
+Related tools: computers (find computer IDs), applications (identify apps), approval_requests (handle denied software)`,
   inputSchema: {
     type: 'object' as const,
     properties: {
       action: {
         type: 'string',
         enum: ['search', 'get', 'file_history'],
-        description: 'Action to perform',
+        description: 'search=query logs with filters, get=single event details, file_history=all events for a file path',
       },
       startDate: {
         type: 'string',
-        description: 'Start date for search (ISO 8601 UTC, e.g., 2025-01-01T00:00:00Z)',
+        description: 'Start of date range (required for search). ISO 8601 UTC format: 2025-01-01T00:00:00Z',
       },
       endDate: {
         type: 'string',
-        description: 'End date for search (ISO 8601 UTC, e.g., 2025-01-31T23:59:59Z)',
+        description: 'End of date range (required for search). ISO 8601 UTC format: 2025-01-31T23:59:59Z',
       },
       actionId: {
         type: 'number',
         enum: [1, 2, 99],
-        description: 'Filter by action: 1=Permit, 2=Deny, 99=Any Deny',
+        description: 'Filter by result: 1=Permit only, 2=Deny only, 99=Any Deny (includes ringfence denies)',
       },
       actionType: {
         type: 'string',
         enum: ['execute', 'install', 'network', 'registry', 'read', 'write', 'move', 'delete', 'baseline', 'powershell', 'elevate', 'configuration', 'dns'],
-        description: 'Filter by action type',
+        description: 'Filter by event type: execute=app launch, install=MSI/setup, network=firewall, registry=reg access, read/write/move/delete=storage control, powershell=script execution, elevate=admin requests, dns=DNS queries',
       },
       hostname: {
         type: 'string',
-        description: 'Filter by hostname (wildcards supported)',
+        description: 'Filter by computer name. Supports wildcards: "*SERVER*", "WKS-*"',
       },
       actionLogId: {
         type: 'string',
-        description: 'Action log ID (required for get action)',
+        description: 'Event GUID (required for get action). Get from search results.',
       },
       fullPath: {
         type: 'string',
-        description: 'File path for search filter or file_history action (wildcards supported)',
+        description: 'Filter by file path. Supports wildcards: "*\\chrome.exe", "C:\\Users\\*\\Downloads\\*"',
       },
       computerId: {
         type: 'string',
-        description: 'Computer ID to scope file_history to specific computer',
+        description: 'Scope file_history to one computer. Get ID from computers tool.',
       },
       showChildOrganizations: {
         type: 'boolean',
-        description: 'Include child organization logs (default: false)',
+        description: 'Include logs from child organizations (MSP/enterprise view).',
       },
       onlyTrueDenies: {
         type: 'boolean',
-        description: 'Filter to actual denies only, not simulated (default: false)',
+        description: 'Exclude simulated denies (monitor mode). Shows only actual blocks.',
       },
       groupBys: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Group results by fields: 1=Username, 2=Process Path, 6=Policy Name, 8=Application Name, 9=Action Type, 17=Asset Name, 70=Risk Score',
+        description: 'Aggregate results by field(s): 1=Username, 2=Process Path, 6=Policy Name, 8=Application Name, 9=Action Type, 17=Asset Name (computer), 70=Risk Score. Useful for summarizing patterns.',
       },
       pageNumber: {
         type: 'number',
@@ -65,7 +78,7 @@ export const actionLogToolSchema = {
       },
       pageSize: {
         type: 'number',
-        description: 'Page size (default: 25)',
+        description: 'Results per page (default: 25)',
       },
     },
     required: ['action'],

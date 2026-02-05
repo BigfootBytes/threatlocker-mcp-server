@@ -3,67 +3,77 @@ import { ApiResponse, errorResponse } from '../types/responses.js';
 
 export const computerGroupsToolSchema = {
   name: 'computer_groups',
-  description: 'List and inspect ThreatLocker computer groups',
+  description: `List and inspect ThreatLocker computer groups.
+
+Computer groups organize computers and define policy scope. Policies are applied to groups, not individual computers.
+
+Common workflows:
+- Get all groups with computers: action=list, includeAllComputers=true
+- Get group dropdown for UI/selection: action=dropdown
+- Get groups across organizations (MSP): action=dropdown_with_org, includeAvailableOrganizations=true
+- Filter by OS type: osType=1 (Windows), 2 (macOS), 3 (Linux)
+
+Related tools: computers (list computers in groups), policies (policies applied to groups)`,
   inputSchema: {
     type: 'object' as const,
     properties: {
       action: {
         type: 'string',
         enum: ['list', 'dropdown', 'dropdown_with_org'],
-        description: 'Action to perform',
+        description: 'list=full details with computers, dropdown=simple list for selection, dropdown_with_org=includes parent/child orgs',
       },
       osType: {
         type: 'number',
         enum: [0, 1, 2, 3, 5],
-        description: 'OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP',
+        description: 'Filter by OS: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP (legacy)',
       },
       includeGlobal: {
         type: 'boolean',
-        description: 'Include global application-permitting group (list action)',
+        description: 'Include the global "All Computers" group that permits applications org-wide.',
       },
       includeAllComputers: {
         type: 'boolean',
-        description: 'Include all computers in response (list action)',
+        description: 'Include computer details in each group. Useful for seeing group membership.',
       },
       includeOrganizations: {
         type: 'boolean',
-        description: 'Include accessible organizations (list action)',
+        description: 'Include organization info. Needed for MSP/multi-org environments.',
       },
       includeParentGroups: {
         type: 'boolean',
-        description: 'Show parent computer groups (list action)',
+        description: 'Show group hierarchy/nesting relationships.',
       },
       includeLoggedInObjects: {
         type: 'boolean',
-        description: 'Add contextual path labels (list action)',
+        description: 'Add contextual breadcrumb labels showing full path.',
       },
       includeDnsServers: {
         type: 'boolean',
-        description: 'Include DNS servers (list action)',
+        description: 'Include DNS server appliances (if ThreatLocker DNS is deployed).',
       },
       includeIngestors: {
         type: 'boolean',
-        description: 'Include ingestors (list action)',
+        description: 'Include log ingestor appliances.',
       },
       includeAccessDevices: {
         type: 'boolean',
-        description: 'Include access devices (list action)',
+        description: 'Include network access control devices.',
       },
       includeRemovedComputers: {
         type: 'boolean',
-        description: 'Include removed computers (list action)',
+        description: 'Show computers that have been removed/uninstalled. Useful for cleanup audits.',
       },
       computerGroupId: {
         type: 'string',
-        description: 'Filter by specific computer group ID (list action)',
+        description: 'Get a specific group by GUID. Omit to get all groups.',
       },
       hideGlobals: {
         type: 'boolean',
-        description: 'Hide global groups (dropdown action)',
+        description: 'Exclude global groups from dropdown results.',
       },
       includeAvailableOrganizations: {
         type: 'boolean',
-        description: 'Include child and parent organizations (dropdown_with_org action)',
+        description: 'Include groups from parent and child organizations (MSP view).',
       },
     },
     required: ['action'],

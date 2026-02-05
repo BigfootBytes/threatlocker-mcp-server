@@ -3,34 +3,46 @@ import { ApiResponse, errorResponse } from '../types/responses.js';
 
 export const policiesToolSchema = {
   name: 'policies',
-  description: 'Inspect ThreatLocker policies',
+  description: `Inspect ThreatLocker policies.
+
+Policies define what applications can run on which computer groups. A policy links an application (set of file rules) to a computer group with an action (permit/deny/ringfence).
+
+Common workflows:
+- Get policy details by ID: action=get, policyId="..."
+- List all policies for an application: action=list_by_application, applicationId="...", organizationId="..."
+- Find policies for a specific group: action=list_by_application, applicationId="...", organizationId="...", appliesToId="group-id"
+- Include deny policies in results: action=list_by_application, ..., includeDenies=true
+
+Policy actions: Permit (allow), Deny (block), Ringfence (allow but restrict network/storage access)
+
+Related tools: applications (what the policy permits), computer_groups (where policy applies), action_log (see policy enforcement)`,
   inputSchema: {
     type: 'object' as const,
     properties: {
       action: {
         type: 'string',
         enum: ['get', 'list_by_application'],
-        description: 'Action to perform',
+        description: 'get=single policy by ID, list_by_application=all policies for an application',
       },
       policyId: {
         type: 'string',
-        description: 'Policy ID (required for get)',
+        description: 'Policy GUID (required for get). Find via list_by_application or action_log.',
       },
       applicationId: {
         type: 'string',
-        description: 'Application ID (required for list_by_application)',
+        description: 'Application GUID (required for list_by_application). Get from applications tool.',
       },
       organizationId: {
         type: 'string',
-        description: 'Organization ID (required for list_by_application)',
+        description: 'Organization GUID (required for list_by_application). Get from organizations tool.',
       },
       appliesToId: {
         type: 'string',
-        description: 'Computer group ID to filter by',
+        description: 'Filter to policies for a specific computer group. Get group IDs from computer_groups tool.',
       },
       includeDenies: {
         type: 'boolean',
-        description: 'Include deny policies',
+        description: 'Include deny policies in results. By default only permit/ringfence policies are shown.',
       },
       pageNumber: {
         type: 'number',
@@ -38,7 +50,7 @@ export const policiesToolSchema = {
       },
       pageSize: {
         type: 'number',
-        description: 'Page size (default: 25)',
+        description: 'Results per page (default: 25)',
       },
     },
     required: ['action'],

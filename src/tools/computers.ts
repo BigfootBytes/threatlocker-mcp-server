@@ -3,54 +3,64 @@ import { ApiResponse, errorResponse } from '../types/responses.js';
 
 export const computersToolSchema = {
   name: 'computers',
-  description: 'Query and inspect ThreatLocker computers',
+  description: `Query and inspect ThreatLocker computers.
+
+Common workflows:
+- Find computers by logged-in user: action=list, searchBy=2, searchText="username"
+- Find computers by IP: action=list, searchBy=4, searchText="192.168.1.100"
+- List computers needing review: action=list, kindOfAction="NeedsReview"
+- Get computer details by ID: action=get, computerId="..."
+- View check-in history: action=checkins, computerId="..."
+- Get installation info for new deployments: action=get_install_info
+
+Related tools: computer_groups (manage groups), maintenance_mode (maintenance history), action_log (audit events)`,
   inputSchema: {
     type: 'object' as const,
     properties: {
       action: {
         type: 'string',
         enum: ['list', 'get', 'checkins', 'get_install_info'],
-        description: 'Action to perform',
+        description: 'list=search computers, get=details by ID, checkins=connection history, get_install_info=deployment info',
       },
       computerId: {
         type: 'string',
-        description: 'Computer ID (required for get and checkins)',
+        description: 'Computer GUID (required for get and checkins). Find via list action first.',
       },
       searchText: {
         type: 'string',
-        description: 'Search text for list action',
+        description: 'Search text for list action. Supports wildcards (*). Example: "admin*" or "*DC*"',
       },
       searchBy: {
         type: 'number',
         enum: [1, 2, 3, 4, 5],
-        description: 'Field to search by: 1=Computer/Asset Name, 2=Username, 3=Computer Group Name, 4=Last Check-in IP, 5=Organization Name',
+        description: 'Search field: 1=Computer Name (default), 2=Username (find computers a user logged into), 3=Group Name, 4=Last Check-in IP (network troubleshooting), 5=Organization Name',
       },
       action_filter: {
         type: 'string',
         enum: ['Secure', 'Installation', 'Learning', 'MonitorOnly'],
-        description: 'Filter by computer mode for list action',
+        description: 'Filter by protection mode. Secure=fully protected, Installation=new installs, Learning=building baseline, MonitorOnly=audit mode',
       },
       computerGroup: {
         type: 'string',
-        description: 'Computer group ID for list action',
+        description: 'Filter by computer group GUID. Get group IDs from computer_groups tool.',
       },
       orderBy: {
         type: 'string',
         enum: ['computername', 'group', 'action', 'lastcheckin', 'computerinstalldate', 'deniedcountthreedays', 'updatechannel', 'threatlockerversion'],
-        description: 'Field to sort by (default: computername)',
+        description: 'Sort field. Use lastcheckin to find stale computers, deniedcountthreedays for problematic ones.',
       },
       isAscending: {
         type: 'boolean',
-        description: 'Sort ascending (default: true)',
+        description: 'Sort direction. false with lastcheckin shows recently active first.',
       },
       childOrganizations: {
         type: 'boolean',
-        description: 'Include child organizations (default: false)',
+        description: 'Include computers from child organizations (MSP/enterprise view).',
       },
       kindOfAction: {
         type: 'string',
         enum: ['Computer Mode', 'TamperProtectionDisabled', 'NeedsReview', 'ReadyToSecure', 'BaselineNotUploaded', 'Update Channel'],
-        description: 'Additional filter for computer state',
+        description: 'Special filters: NeedsReview=requires attention, ReadyToSecure=can move to secure mode, TamperProtectionDisabled=security risk',
       },
       pageNumber: {
         type: 'number',

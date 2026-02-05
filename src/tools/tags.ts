@@ -3,30 +3,46 @@ import { ApiResponse, errorResponse } from '../types/responses.js';
 
 export const tagsToolSchema = {
   name: 'tags',
-  description: 'Query ThreatLocker tags for network and policy management',
+  description: `Query ThreatLocker tags for network and policy management.
+
+Tags are reusable labels for IP addresses, domains, ports, or other network identifiers. They simplify policy management by letting you reference "CRM Servers" instead of listing individual IPs.
+
+Common workflows:
+- List all available tags: action=dropdown
+- Include ThreatLocker built-in tags: action=dropdown, includeBuiltIns=true
+- Get tag details by ID: action=get, tagId="..."
+
+Tags are used in:
+- Network Control policies (allow/deny traffic to tagged destinations)
+- Ringfencing (restrict app network access to tagged resources)
+- Storage Control (restrict file access to tagged paths)
+
+Parent organization tags appear as "parentOrgName\\tagName" format.
+
+Related tools: policies (use tags in policy rules), applications (ringfence with tags)`,
   inputSchema: {
     type: 'object' as const,
     properties: {
       action: {
         type: 'string',
         enum: ['get', 'dropdown'],
-        description: 'Action to perform',
+        description: 'get=single tag details, dropdown=list all available tags for selection',
       },
       tagId: {
         type: 'string',
-        description: 'Tag ID (required for get action)',
+        description: 'Tag GUID (required for get). Get from dropdown action.',
       },
       includeBuiltIns: {
         type: 'boolean',
-        description: 'Include ThreatLocker built-in tags (default: false)',
+        description: 'Include ThreatLocker-provided built-in tags (Microsoft, Google, etc.).',
       },
       tagType: {
         type: 'number',
-        description: 'Tag type filter (default: 1)',
+        description: 'Filter by tag type (default: 1). Type determines what the tag can label.',
       },
       includeNetworkTagInMaster: {
         type: 'boolean',
-        description: 'Include network tags in master (default: true)',
+        description: 'Include network tags when viewing from master/parent organization.',
       },
     },
     required: ['action'],
