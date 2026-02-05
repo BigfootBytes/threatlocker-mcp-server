@@ -19,6 +19,9 @@ describe('approval_requests tool', () => {
     expect(approvalRequestsToolSchema.inputSchema.properties.action.enum).toContain('list');
     expect(approvalRequestsToolSchema.inputSchema.properties.action.enum).toContain('get');
     expect(approvalRequestsToolSchema.inputSchema.properties.action.enum).toContain('count');
+    expect(approvalRequestsToolSchema.inputSchema.properties.action.enum).toContain('get_file_download_details');
+    expect(approvalRequestsToolSchema.inputSchema.properties.action.enum).toContain('get_permit_application');
+    expect(approvalRequestsToolSchema.inputSchema.properties.action.enum).toContain('get_storage_approval');
   });
 
   it('returns error for missing action', async () => {
@@ -59,6 +62,33 @@ describe('approval_requests tool', () => {
     expect(mockClient.get).toHaveBeenCalledWith(
       'ApprovalRequest/ApprovalRequestGetCount',
       {}
+    );
+  });
+
+  it('calls correct endpoint for get_file_download_details action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
+    await handleApprovalRequestsTool(mockClient, { action: 'get_file_download_details', approvalRequestId: 'req-123' });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'ApprovalRequest/ApprovalRequestGetFileDownloadDetailsById',
+      { approvalRequestId: 'req-123' }
+    );
+  });
+
+  it('calls correct endpoint for get_permit_application action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
+    await handleApprovalRequestsTool(mockClient, { action: 'get_permit_application', approvalRequestId: 'req-123' });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'ApprovalRequest/ApprovalRequestGetPermitApplicationById',
+      { approvalRequestId: 'req-123' }
+    );
+  });
+
+  it('calls correct endpoint for get_storage_approval action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
+    await handleApprovalRequestsTool(mockClient, { action: 'get_storage_approval', approvalRequestId: 'req-123' });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'ApprovalRequest/ApprovalRequestGetStorageApprovalById',
+      { approvalRequestId: 'req-123' }
     );
   });
 });

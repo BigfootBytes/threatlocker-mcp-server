@@ -8,6 +8,10 @@
   - `includeOrganizations` - Include accessible organizations
   - `includeParentGroups` - Show parent computer groups
   - `includeLoggedInObjects` - Add contextual path labels
+- Added read actions to approval_requests tool:
+  - `get_file_download_details` - Get file download details for a request
+  - `get_permit_application` - Get permit application details for approval
+  - `get_storage_approval` - Get storage approval details
 - Added `get_for_move_computers` action to organizations tool
   - Lists organizations available for moving computers to
 - Added advanced search parameters to action_log tool:

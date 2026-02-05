@@ -9,7 +9,7 @@ export const approvalRequestsToolSchema = {
     properties: {
       action: {
         type: 'string',
-        enum: ['list', 'get', 'count'],
+        enum: ['list', 'get', 'count', 'get_file_download_details', 'get_permit_application', 'get_storage_approval'],
         description: 'Action to perform',
       },
       approvalRequestId: {
@@ -52,7 +52,7 @@ export const approvalRequestsToolSchema = {
 };
 
 interface ApprovalRequestsInput {
-  action?: 'list' | 'get' | 'count';
+  action?: 'list' | 'get' | 'count' | 'get_file_download_details' | 'get_permit_application' | 'get_storage_approval';
   approvalRequestId?: string;
   statusId?: number;
   searchText?: string;
@@ -107,6 +107,24 @@ export async function handleApprovalRequestsTool(
 
     case 'count':
       return client.get('ApprovalRequest/ApprovalRequestGetCount', {});
+
+    case 'get_file_download_details':
+      if (!approvalRequestId) {
+        return errorResponse('BAD_REQUEST', 'approvalRequestId is required for get_file_download_details action');
+      }
+      return client.get('ApprovalRequest/ApprovalRequestGetFileDownloadDetailsById', { approvalRequestId });
+
+    case 'get_permit_application':
+      if (!approvalRequestId) {
+        return errorResponse('BAD_REQUEST', 'approvalRequestId is required for get_permit_application action');
+      }
+      return client.get('ApprovalRequest/ApprovalRequestGetPermitApplicationById', { approvalRequestId });
+
+    case 'get_storage_approval':
+      if (!approvalRequestId) {
+        return errorResponse('BAD_REQUEST', 'approvalRequestId is required for get_storage_approval action');
+      }
+      return client.get('ApprovalRequest/ApprovalRequestGetStorageApprovalById', { approvalRequestId });
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

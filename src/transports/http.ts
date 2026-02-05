@@ -139,7 +139,7 @@ const actionLogZodSchema = {
 };
 
 const approvalRequestsZodSchema = {
-  action: z.enum(['list', 'get', 'count']).describe('Action to perform'),
+  action: z.enum(['list', 'get', 'count', 'get_file_download_details', 'get_permit_application', 'get_storage_approval']).describe('Action to perform'),
   approvalRequestId: z.string().optional().describe('Approval request ID (required for get)'),
   statusId: z.union([z.literal(1), z.literal(4), z.literal(6), z.literal(10), z.literal(12), z.literal(13), z.literal(16)]).optional().describe('Filter by status'),
   searchText: z.string().optional().describe('Filter by text'),
