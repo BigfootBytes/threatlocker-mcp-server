@@ -8,6 +8,19 @@
   - `includeOrganizations` - Include accessible organizations
   - `includeParentGroups` - Show parent computer groups
   - `includeLoggedInObjects` - Add contextual path labels
+- Added `maintenance_mode` tool for querying computer maintenance history
+  - `get_history` action - Get paginated maintenance mode history for a computer
+- Added `scheduled_actions` tool for querying scheduled agent actions
+  - `list` action - List all scheduled actions
+  - `search` action - Search with filters (organizationIds, computerGroupIds, orderBy)
+  - `get` action - Get specific scheduled action details
+  - `get_applies_to` action - Get applies-to options
+- Added `system_audit` tool for querying portal audit logs
+  - `search` action - Search audit logs with filters (username, action, IP, effectiveAction, etc.)
+  - `health_center` action - Get health center audit data
+- Added `tags` tool for querying network and policy tags
+  - `get` action - Get tag by ID
+  - `dropdown` action - Get tag dropdown options
 - Enhanced computer_groups tool with new action and parameters:
   - `dropdown_with_org` action - Get dropdown with child/parent organizations
   - `includeDnsServers`, `includeIngestors`, `includeAccessDevices`, `includeRemovedComputers` - Additional include flags

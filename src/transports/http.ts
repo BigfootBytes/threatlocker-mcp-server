@@ -12,6 +12,10 @@ import { actionLogToolSchema, handleActionLogTool } from '../tools/action-log.js
 import { approvalRequestsToolSchema, handleApprovalRequestsTool } from '../tools/approval-requests.js';
 import { organizationsToolSchema, handleOrganizationsTool } from '../tools/organizations.js';
 import { reportsToolSchema, handleReportsTool } from '../tools/reports.js';
+import { maintenanceModeToolSchema, handleMaintenanceModeTool } from '../tools/maintenance-mode.js';
+import { scheduledActionsToolSchema, handleScheduledActionsTool } from '../tools/scheduled-actions.js';
+import { systemAuditToolSchema, handleSystemAuditTool } from '../tools/system-audit.js';
+import { tagsToolSchema, handleTagsTool } from '../tools/tags.js';
 import { VERSION } from '../version.js';
 
 interface ClientCredentials {
@@ -175,6 +179,49 @@ const reportsZodSchema = {
   reportId: z.string().optional().describe('Report ID (required for get_data action)'),
 };
 
+const maintenanceModeZodSchema = {
+  action: z.enum(['get_history']).describe('Action to perform'),
+  computerId: z.string().describe('Computer ID (required)'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Page size (default: 25)'),
+};
+
+const scheduledActionsZodSchema = {
+  action: z.enum(['list', 'search', 'get', 'get_applies_to']).describe('Action to perform'),
+  scheduledActionId: z.string().optional().describe('Scheduled action ID (required for get)'),
+  organizationIds: z.array(z.string()).optional().describe('Filter by organization IDs'),
+  computerGroupIds: z.array(z.string()).optional().describe('Filter by computer group IDs'),
+  orderBy: z.enum(['scheduleddatetime', 'computername', 'computergroupname', 'organizationname']).optional().describe('Field to sort by'),
+  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Page size (default: 25)'),
+};
+
+const systemAuditZodSchema = {
+  action: z.enum(['search', 'health_center']).describe('Action to perform'),
+  startDate: z.string().optional().describe('Start date (ISO 8601 UTC)'),
+  endDate: z.string().optional().describe('End date (ISO 8601 UTC)'),
+  username: z.string().optional().describe('Filter by username (wildcards supported)'),
+  auditAction: z.enum(['Create', 'Delete', 'Logon', 'Modify', 'Read']).optional().describe('Filter by audit action type'),
+  ipAddress: z.string().optional().describe('Filter by IP address'),
+  effectiveAction: z.enum(['Denied', 'Permitted']).optional().describe('Filter by effective action'),
+  details: z.string().optional().describe('Filter by details text (wildcards supported)'),
+  viewChildOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
+  objectId: z.string().optional().describe('Filter by specific object ID'),
+  days: z.number().optional().describe('Number of days for health_center (default: 7)'),
+  searchText: z.string().optional().describe('Search text for health_center'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Page size (default: 25)'),
+};
+
+const tagsZodSchema = {
+  action: z.enum(['get', 'dropdown']).describe('Action to perform'),
+  tagId: z.string().optional().describe('Tag ID (required for get)'),
+  includeBuiltIns: z.boolean().optional().describe('Include ThreatLocker built-in tags (default: false)'),
+  tagType: z.number().optional().describe('Tag type filter (default: 1)'),
+  includeNetworkTagInMaster: z.boolean().optional().describe('Include network tags in master (default: true)'),
+};
+
 // Log levels: ERROR=0, INFO=1, DEBUG=2
 const LOG_LEVELS = { ERROR: 0, INFO: 1, DEBUG: 2 } as const;
 type LogLevel = keyof typeof LOG_LEVELS;
@@ -334,6 +381,74 @@ function createMcpServer(client: ThreatLockerClient): McpServer {
     }
   );
 
+  server.tool(
+    maintenanceModeToolSchema.name,
+    maintenanceModeToolSchema.description,
+    maintenanceModeZodSchema,
+    async (args) => {
+      log('DEBUG', 'Tool call: maintenance_mode', { args, baseUrl: client.baseUrl });
+      const result = await handleMaintenanceModeTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: maintenance_mode', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: maintenance_mode', { resultCount: count });
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    scheduledActionsToolSchema.name,
+    scheduledActionsToolSchema.description,
+    scheduledActionsZodSchema,
+    async (args) => {
+      log('DEBUG', 'Tool call: scheduled_actions', { args, baseUrl: client.baseUrl });
+      const result = await handleScheduledActionsTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: scheduled_actions', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: scheduled_actions', { resultCount: count, pagination: result.pagination });
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    systemAuditToolSchema.name,
+    systemAuditToolSchema.description,
+    systemAuditZodSchema,
+    async (args) => {
+      log('DEBUG', 'Tool call: system_audit', { args, baseUrl: client.baseUrl });
+      const result = await handleSystemAuditTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: system_audit', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: system_audit', { resultCount: count, pagination: result.pagination });
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    tagsToolSchema.name,
+    tagsToolSchema.description,
+    tagsZodSchema,
+    async (args) => {
+      log('DEBUG', 'Tool call: tags', { args, baseUrl: client.baseUrl });
+      const result = await handleTagsTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: tags', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: tags', { resultCount: count });
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
   return server;
 }
 
@@ -431,6 +546,18 @@ export function createHttpServer(port: number): void {
           break;
         case 'reports':
           result = await handleReportsTool(client, args);
+          break;
+        case 'maintenance_mode':
+          result = await handleMaintenanceModeTool(client, args);
+          break;
+        case 'scheduled_actions':
+          result = await handleScheduledActionsTool(client, args);
+          break;
+        case 'system_audit':
+          result = await handleSystemAuditTool(client, args);
+          break;
+        case 'tags':
+          result = await handleTagsTool(client, args);
           break;
         default:
           log('DEBUG', 'REST API unknown tool', { tool: toolName });

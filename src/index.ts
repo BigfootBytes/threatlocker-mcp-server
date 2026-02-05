@@ -16,6 +16,10 @@ import { actionLogToolSchema, handleActionLogTool } from './tools/action-log.js'
 import { approvalRequestsToolSchema, handleApprovalRequestsTool } from './tools/approval-requests.js';
 import { organizationsToolSchema, handleOrganizationsTool } from './tools/organizations.js';
 import { reportsToolSchema, handleReportsTool } from './tools/reports.js';
+import { maintenanceModeToolSchema, handleMaintenanceModeTool } from './tools/maintenance-mode.js';
+import { scheduledActionsToolSchema, handleScheduledActionsTool } from './tools/scheduled-actions.js';
+import { systemAuditToolSchema, handleSystemAuditTool } from './tools/system-audit.js';
+import { tagsToolSchema, handleTagsTool } from './tools/tags.js';
 import { createHttpServer } from './transports/http.js';
 import { VERSION } from './version.js';
 
@@ -85,6 +89,10 @@ if (transportMode === 'http') {
       approvalRequestsToolSchema,
       organizationsToolSchema,
       reportsToolSchema,
+      maintenanceModeToolSchema,
+      scheduledActionsToolSchema,
+      systemAuditToolSchema,
+      tagsToolSchema,
     ],
   }));
 
@@ -116,6 +124,18 @@ if (transportMode === 'http') {
         break;
       case 'reports':
         result = await handleReportsTool(client, args || {});
+        break;
+      case 'maintenance_mode':
+        result = await handleMaintenanceModeTool(client, args || {});
+        break;
+      case 'scheduled_actions':
+        result = await handleScheduledActionsTool(client, args || {});
+        break;
+      case 'system_audit':
+        result = await handleSystemAuditTool(client, args || {});
+        break;
+      case 'tags':
+        result = await handleTagsTool(client, args || {});
         break;
       default:
         return {
