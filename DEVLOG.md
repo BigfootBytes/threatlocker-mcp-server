@@ -8,6 +8,8 @@
   - `includeOrganizations` - Include accessible organizations
   - `includeParentGroups` - Show parent computer groups
   - `includeLoggedInObjects` - Add contextual path labels
+- Added `get_for_move_computers` action to organizations tool
+  - Lists organizations available for moving computers to
 - Added advanced search parameters to action_log tool:
   - `fullPath` - Filter search by file path (wildcards supported)
   - `showChildOrganizations` - Include child organization logs

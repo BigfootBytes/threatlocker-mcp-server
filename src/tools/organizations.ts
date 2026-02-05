@@ -9,7 +9,7 @@ export const organizationsToolSchema = {
     properties: {
       action: {
         type: 'string',
-        enum: ['list_children', 'get_auth_key'],
+        enum: ['list_children', 'get_auth_key', 'get_for_move_computers'],
         description: 'Action to perform',
       },
       searchText: {
@@ -43,7 +43,7 @@ export const organizationsToolSchema = {
 };
 
 interface OrganizationsInput {
-  action?: 'list_children' | 'get_auth_key';
+  action?: 'list_children' | 'get_auth_key' | 'get_for_move_computers';
   searchText?: string;
   includeAllChildren?: boolean;
   orderBy?: string;
@@ -87,6 +87,9 @@ export async function handleOrganizationsTool(
 
     case 'get_auth_key':
       return client.get('Organization/OrganizationGetAuthKeyById', {});
+
+    case 'get_for_move_computers':
+      return client.get('Organization/OrganizationGetForMoveComputers', {});
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

@@ -18,6 +18,7 @@ describe('organizations tool', () => {
     expect(organizationsToolSchema.name).toBe('organizations');
     expect(organizationsToolSchema.inputSchema.properties.action.enum).toContain('list_children');
     expect(organizationsToolSchema.inputSchema.properties.action.enum).toContain('get_auth_key');
+    expect(organizationsToolSchema.inputSchema.properties.action.enum).toContain('get_for_move_computers');
   });
 
   it('returns error for missing action', async () => {
@@ -43,6 +44,15 @@ describe('organizations tool', () => {
     await handleOrganizationsTool(mockClient, { action: 'get_auth_key' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'Organization/OrganizationGetAuthKeyById',
+      {}
+    );
+  });
+
+  it('calls correct endpoint for get_for_move_computers action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
+    await handleOrganizationsTool(mockClient, { action: 'get_for_move_computers' });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'Organization/OrganizationGetForMoveComputers',
       {}
     );
   });

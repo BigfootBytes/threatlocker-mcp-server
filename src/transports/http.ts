@@ -151,7 +151,7 @@ const approvalRequestsZodSchema = {
 };
 
 const organizationsZodSchema = {
-  action: z.enum(['list_children', 'get_auth_key']).describe('Action to perform'),
+  action: z.enum(['list_children', 'get_auth_key', 'get_for_move_computers']).describe('Action to perform'),
   searchText: z.string().optional().describe('Filter by name (for list_children)'),
   includeAllChildren: z.boolean().optional().describe('Include nested children (default: false)'),
   orderBy: z.enum(['billingMethod', 'businessClassificationName', 'dateAdded', 'name']).optional().describe('Field to order by'),
