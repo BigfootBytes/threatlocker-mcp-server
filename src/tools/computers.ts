@@ -20,6 +20,11 @@ export const computersToolSchema = {
         type: 'string',
         description: 'Search text for list action',
       },
+      searchBy: {
+        type: 'number',
+        enum: [1, 2, 3, 4, 5],
+        description: 'Field to search by: 1=Computer/Asset Name, 2=Username, 3=Computer Group Name, 4=Last Check-in IP, 5=Organization Name',
+      },
       action_filter: {
         type: 'string',
         enum: ['Secure', 'Installation', 'Learning', 'MonitorOnly'],
@@ -50,6 +55,7 @@ interface ComputersInput {
   action?: 'list' | 'get' | 'checkins';
   computerId?: string;
   searchText?: string;
+  searchBy?: number;
   action_filter?: string;
   computerGroup?: string;
   pageNumber?: number;
@@ -61,7 +67,7 @@ export async function handleComputersTool(
   client: ThreatLockerClient,
   input: ComputersInput
 ): Promise<ApiResponse<unknown>> {
-  const { action, computerId, searchText, action_filter, computerGroup, pageNumber = 1, pageSize = 25, hideHeartbeat = false } = input;
+  const { action, computerId, searchText, searchBy = 1, action_filter, computerGroup, pageNumber = 1, pageSize = 25, hideHeartbeat = false } = input;
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');
@@ -75,6 +81,7 @@ export async function handleComputersTool(
           pageNumber,
           pageSize,
           searchText: searchText || '',
+          searchBy,
           action: action_filter || '',
           computerGroup: computerGroup || '',
           isAscending: true,

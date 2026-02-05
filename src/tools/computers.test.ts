@@ -42,7 +42,17 @@ describe('computers tool', () => {
     await handleComputersTool(mockClient, { action: 'list', pageNumber: 1, pageSize: 25 });
     expect(mockClient.post).toHaveBeenCalledWith(
       'Computer/ComputerGetByAllParameters',
-      expect.objectContaining({ pageNumber: 1, pageSize: 25 }),
+      expect.objectContaining({ pageNumber: 1, pageSize: 25, searchBy: 1 }),
+      expect.any(Function)
+    );
+  });
+
+  it('passes searchBy parameter for list action', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: [] });
+    await handleComputersTool(mockClient, { action: 'list', searchText: 'jsmith', searchBy: 2 });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'Computer/ComputerGetByAllParameters',
+      expect.objectContaining({ searchText: 'jsmith', searchBy: 2 }),
       expect.any(Function)
     );
   });

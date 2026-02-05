@@ -2,6 +2,8 @@
 
 ## 2026-02-05
 
+- Added `searchBy` parameter to computers tool for searching by username, IP, etc.
+  - 1=Computer/Asset Name, 2=Username, 3=Computer Group Name, 4=Last Check-in IP, 5=Organization Name
 - Added four new read-only tools:
   - `action_log` - Query unified audit logs (search, get, file_history)
   - `approval_requests` - Query approval requests (list, get, count)

@@ -74,6 +74,7 @@ const computersZodSchema = {
   action: z.enum(['list', 'get', 'checkins']).describe('Action to perform'),
   computerId: z.string().optional().describe('Computer ID (required for get and checkins)'),
   searchText: z.string().optional().describe('Search text for list action'),
+  searchBy: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional().describe('Field to search by: 1=Computer/Asset Name, 2=Username, 3=Computer Group Name, 4=Last Check-in IP, 5=Organization Name'),
   action_filter: z.enum(['Secure', 'Installation', 'Learning', 'MonitorOnly']).optional().describe('Filter by computer mode for list action'),
   computerGroup: z.string().optional().describe('Computer group ID for list action'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
