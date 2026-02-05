@@ -131,6 +131,7 @@ curl -X POST https://your-server.example.com/tools/computers \
 |----------|---------|-------------|
 | `TRANSPORT` | `stdio` | Transport: `stdio` or `http` |
 | `PORT` | `8080` | HTTP port |
+| `LOG_LEVEL` | `INFO` | Log verbosity: `ERROR`, `INFO`, or `DEBUG` |
 | `THREATLOCKER_API_KEY` | - | API key (stdio mode) |
 | `THREATLOCKER_BASE_URL` | - | Base URL (stdio mode) |
 | `THREATLOCKER_ORG_ID` | - | Org ID (stdio mode) |

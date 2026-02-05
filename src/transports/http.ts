@@ -101,6 +101,23 @@ const policiesZodSchema = {
   pageSize: z.number().optional().describe('Page size (default: 25)'),
 };
 
+// Log levels: ERROR=0, INFO=1, DEBUG=2
+const LOG_LEVELS = { ERROR: 0, INFO: 1, DEBUG: 2 } as const;
+type LogLevel = keyof typeof LOG_LEVELS;
+
+function getLogLevel(): number {
+  const level = (process.env.LOG_LEVEL || 'INFO').toUpperCase() as LogLevel;
+  return LOG_LEVELS[level] ?? LOG_LEVELS.INFO;
+}
+
+// Simple logger with timestamps
+function log(level: LogLevel, message: string, data?: Record<string, unknown>): void {
+  if (LOG_LEVELS[level] > getLogLevel()) return;
+  const timestamp = new Date().toISOString();
+  const dataStr = data ? ` ${JSON.stringify(data)}` : '';
+  console.error(`[${timestamp}] [${level}] ${message}${dataStr}`);
+}
+
 function createMcpServer(client: ThreatLockerClient): McpServer {
   const server = new McpServer({
     name: 'threatlocker-mcp',
@@ -112,7 +129,14 @@ function createMcpServer(client: ThreatLockerClient): McpServer {
     computersToolSchema.description,
     computersZodSchema,
     async (args) => {
+      log('DEBUG', 'Tool call: computers', { args, baseUrl: client.baseUrl });
       const result = await handleComputersTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: computers', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: computers', { resultCount: count, pagination: result.pagination });
+      }
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
     }
   );
@@ -122,7 +146,14 @@ function createMcpServer(client: ThreatLockerClient): McpServer {
     computerGroupsToolSchema.description,
     computerGroupsZodSchema,
     async (args) => {
+      log('DEBUG', 'Tool call: computer_groups', { args, baseUrl: client.baseUrl });
       const result = await handleComputerGroupsTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: computer_groups', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: computer_groups', { resultCount: count });
+      }
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
     }
   );
@@ -132,7 +163,14 @@ function createMcpServer(client: ThreatLockerClient): McpServer {
     applicationsToolSchema.description,
     applicationsZodSchema,
     async (args) => {
+      log('DEBUG', 'Tool call: applications', { args, baseUrl: client.baseUrl });
       const result = await handleApplicationsTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: applications', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: applications', { resultCount: count, pagination: result.pagination });
+      }
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
     }
   );
@@ -142,19 +180,19 @@ function createMcpServer(client: ThreatLockerClient): McpServer {
     policiesToolSchema.description,
     policiesZodSchema,
     async (args) => {
+      log('DEBUG', 'Tool call: policies', { args, baseUrl: client.baseUrl });
       const result = await handlePoliciesTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: policies', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: policies', { resultCount: count, pagination: result.pagination });
+      }
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
     }
   );
 
   return server;
-}
-
-// Simple logger with timestamps
-function log(level: 'INFO' | 'DEBUG' | 'ERROR', message: string, data?: Record<string, unknown>): void {
-  const timestamp = new Date().toISOString();
-  const dataStr = data ? ` ${JSON.stringify(data)}` : '';
-  console.error(`[${timestamp}] [${level}] ${message}${dataStr}`);
 }
 
 export function createHttpServer(port: number): void {

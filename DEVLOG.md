@@ -1,23 +1,13 @@
 # ThreatLocker MCP Server - Development Log
 
-## 2026-02-03
+## 2026-02-05
 
-- Built initial MCP server with 4 tools: computers, computer_groups, applications, policies
-- Added `.env` file support via dotenv
-- Fixed authentication headers (`Authorization` instead of `APIKey`, case-sensitive `ManagedOrganizationId`)
-- Discovered undocumented `ApplicationFile/ApplicationFileGetByApplicationId` endpoint via DynamicIT PowerShell module
-- Added `files` action to applications tool
-- Added multi-stage Dockerfile for in-container TypeScript builds
-- Added GitHub Actions workflow for GHCR publishing on version tags
-- Added docker-compose.yml and .env.example
-- Security: enforce HTTPS for base URL, run container as non-root user
-- Released v0.1.0 to GHCR
-- Updated docker-compose to use published image
-- Added dual-mode transport: stdio (default) and HTTP with per-request auth
-- HTTP mode uses pass-through credentials (no secrets stored on server)
-- Rewrote README with Docker and Claude configuration instructions
-- Added SSE transport for Claude Desktop/Code remote server support
-- Added config file paths to README
+- Enhanced debug logging with detailed tool and API tracing:
+  - Tool call logging with arguments and base URL
+  - Tool result logging with success/error status and result counts
+  - API request/response logging with endpoint, status, and error body
+  - Network error logging for connection failures
+  - Added `LOG_LEVEL` environment variable (ERROR, INFO, DEBUG)
 
 ## 2026-02-04
 
@@ -30,7 +20,7 @@
   - Both transports now available on same server
 - Added Origin header validation for DNS rebinding protection
 - Added `ALLOWED_ORIGINS` environment variable for browser request allowlist
-- Bumped version to 0.4.0, then 0.4.1
+- Bumped version to 0.4.0, then 0.4.1, then 0.4.2
 - Updated README documentation for Streamable HTTP transport
 - Added debug logging for HTTP server:
   - Request logging middleware with org ID and auth status
@@ -53,3 +43,22 @@
 - Added whitespace trimming to ALLOWED_ORIGINS parsing for better config file handling
 - Bumped version to 0.4.0 in package.json, http.ts, and index.ts for Streamable HTTP release
 - Updated /health endpoint to report transport as 'streamable-http' and include protocolVersion '2025-03-26'
+
+## 2026-02-03
+
+- Built initial MCP server with 4 tools: computers, computer_groups, applications, policies
+- Added `.env` file support via dotenv
+- Fixed authentication headers (`Authorization` instead of `APIKey`, case-sensitive `ManagedOrganizationId`)
+- Discovered undocumented `ApplicationFile/ApplicationFileGetByApplicationId` endpoint via DynamicIT PowerShell module
+- Added `files` action to applications tool
+- Added multi-stage Dockerfile for in-container TypeScript builds
+- Added GitHub Actions workflow for GHCR publishing on version tags
+- Added docker-compose.yml and .env.example
+- Security: enforce HTTPS for base URL, run container as non-root user
+- Released v0.1.0 to GHCR
+- Updated docker-compose to use published image
+- Added dual-mode transport: stdio (default) and HTTP with per-request auth
+- HTTP mode uses pass-through credentials (no secrets stored on server)
+- Rewrote README with Docker and Claude configuration instructions
+- Added SSE transport for Claude Desktop/Code remote server support
+- Added config file paths to README

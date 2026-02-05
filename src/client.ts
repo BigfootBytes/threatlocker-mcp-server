@@ -6,6 +6,23 @@ import {
   successResponse,
 } from './types/responses.js';
 
+// Log levels: ERROR=0, INFO=1, DEBUG=2
+const LOG_LEVELS = { ERROR: 0, INFO: 1, DEBUG: 2 } as const;
+type LogLevel = keyof typeof LOG_LEVELS;
+
+function getLogLevel(): number {
+  const level = (process.env.LOG_LEVEL || 'INFO').toUpperCase() as LogLevel;
+  return LOG_LEVELS[level] ?? LOG_LEVELS.INFO;
+}
+
+// Simple logger for client operations
+function log(level: LogLevel, message: string, data?: Record<string, unknown>): void {
+  if (LOG_LEVELS[level] > getLogLevel()) return;
+  const timestamp = new Date().toISOString();
+  const dataStr = data ? ` ${JSON.stringify(data)}` : '';
+  console.error(`[${timestamp}] [${level}] ${message}${dataStr}`);
+}
+
 export interface ClientConfig {
   apiKey: string;
   baseUrl: string;
@@ -56,6 +73,8 @@ export class ThreatLockerClient {
       });
     }
 
+    log('DEBUG', 'API GET', { endpoint, params });
+
     try {
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -64,13 +83,25 @@ export class ThreatLockerClient {
 
       if (!response.ok) {
         const code = mapHttpStatusToErrorCode(response.status);
+        let errorBody: string | undefined;
+        try {
+          errorBody = await response.text();
+        } catch { /* ignore */ }
+        log('ERROR', 'API GET failed', {
+          endpoint,
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody?.substring(0, 500)
+        });
         return errorResponse(code, response.statusText, response.status);
       }
 
       const data = await response.json();
+      log('DEBUG', 'API GET success', { endpoint, status: response.status });
       return successResponse<T>(data);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
+      log('ERROR', 'API GET network error', { endpoint, error: message });
       return errorResponse('NETWORK_ERROR', message);
     }
   }
@@ -80,6 +111,8 @@ export class ThreatLockerClient {
     body: unknown,
     extractPagination?: (headers: Headers) => Pagination | undefined
   ): Promise<ApiResponse<T>> {
+    log('DEBUG', 'API POST', { endpoint, body });
+
     try {
       const response = await fetch(`${this.baseUrl}/${endpoint}`, {
         method: 'POST',
@@ -89,14 +122,26 @@ export class ThreatLockerClient {
 
       if (!response.ok) {
         const code = mapHttpStatusToErrorCode(response.status);
+        let errorBody: string | undefined;
+        try {
+          errorBody = await response.text();
+        } catch { /* ignore */ }
+        log('ERROR', 'API POST failed', {
+          endpoint,
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody?.substring(0, 500)
+        });
         return errorResponse(code, response.statusText, response.status);
       }
 
       const data = await response.json();
       const pagination = extractPagination?.(response.headers);
+      log('DEBUG', 'API POST success', { endpoint, status: response.status, hasPagination: !!pagination });
       return successResponse<T>(data, pagination);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
+      log('ERROR', 'API POST network error', { endpoint, error: message });
       return errorResponse('NETWORK_ERROR', message);
     }
   }
