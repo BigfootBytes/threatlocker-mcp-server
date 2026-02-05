@@ -25,6 +25,18 @@ export const computerGroupsToolSchema = {
         type: 'boolean',
         description: 'Include all computers in response (list action)',
       },
+      includeOrganizations: {
+        type: 'boolean',
+        description: 'Include accessible organizations (list action)',
+      },
+      includeParentGroups: {
+        type: 'boolean',
+        description: 'Show parent computer groups (list action)',
+      },
+      includeLoggedInObjects: {
+        type: 'boolean',
+        description: 'Add contextual path labels (list action)',
+      },
       hideGlobals: {
         type: 'boolean',
         description: 'Hide global groups (dropdown action)',
@@ -39,6 +51,9 @@ interface ComputerGroupsInput {
   osType?: number;
   includeGlobal?: boolean;
   includeAllComputers?: boolean;
+  includeOrganizations?: boolean;
+  includeParentGroups?: boolean;
+  includeLoggedInObjects?: boolean;
   hideGlobals?: boolean;
 }
 
@@ -46,7 +61,16 @@ export async function handleComputerGroupsTool(
   client: ThreatLockerClient,
   input: ComputerGroupsInput
 ): Promise<ApiResponse<unknown>> {
-  const { action, osType = 0, includeGlobal = false, includeAllComputers = false, hideGlobals = false } = input;
+  const {
+    action,
+    osType = 0,
+    includeGlobal = false,
+    includeAllComputers = false,
+    includeOrganizations = false,
+    includeParentGroups = false,
+    includeLoggedInObjects = false,
+    hideGlobals = false
+  } = input;
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');
@@ -58,9 +82,10 @@ export async function handleComputerGroupsTool(
         osType: String(osType),
         includeGlobal: String(includeGlobal),
         includeAllComputers: String(includeAllComputers),
-        includeOrganizations: 'false',
+        includeOrganizations: String(includeOrganizations),
+        includeParentGroups: String(includeParentGroups),
+        includeLoggedInObjects: String(includeLoggedInObjects),
         includeAllPolicies: 'false',
-        includeParentGroups: 'false',
       });
 
     case 'dropdown':

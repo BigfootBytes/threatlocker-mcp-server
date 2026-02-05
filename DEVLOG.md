@@ -4,6 +4,10 @@
 
 - Added `searchBy` parameter to computers tool for searching by username, IP, etc.
   - 1=Computer/Asset Name, 2=Username, 3=Computer Group Name, 4=Last Check-in IP, 5=Organization Name
+- Added include parameters to computer_groups tool:
+  - `includeOrganizations` - Include accessible organizations
+  - `includeParentGroups` - Show parent computer groups
+  - `includeLoggedInObjects` - Add contextual path labels
 - Added four new read-only tools:
   - `action_log` - Query unified audit logs (search, get, file_history)
   - `approval_requests` - Query approval requests (list, get, count)

@@ -33,6 +33,24 @@ describe('computer_groups tool', () => {
     );
   });
 
+  it('passes include parameters for list action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
+    await handleComputerGroupsTool(mockClient, {
+      action: 'list',
+      includeOrganizations: true,
+      includeParentGroups: true,
+      includeLoggedInObjects: true,
+    });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'ComputerGroup/ComputerGroupGetGroupAndComputer',
+      expect.objectContaining({
+        includeOrganizations: 'true',
+        includeParentGroups: 'true',
+        includeLoggedInObjects: 'true',
+      })
+    );
+  });
+
   it('calls correct endpoint for dropdown action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
     await handleComputerGroupsTool(mockClient, { action: 'dropdown', osType: 1 });
