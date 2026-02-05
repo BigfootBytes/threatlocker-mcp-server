@@ -61,7 +61,7 @@ if (transportMode === 'http') {
   const server = new Server(
     {
       name: 'threatlocker-mcp',
-      version: '0.4.3',
+      version: '0.4.4',
     },
     {
       capabilities: {
