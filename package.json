@@ -1,6 +1,6 @@
 {
   "name": "threatlocker-mcp",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "MCP server for ThreatLocker API",
   "type": "module",
   "main": "dist/index.js",
