@@ -15,12 +15,35 @@ function getLogLevel(): number {
   return LOG_LEVELS[level] ?? LOG_LEVELS.INFO;
 }
 
-// Simple logger for client operations
-function log(level: LogLevel, message: string, data?: Record<string, unknown>): void {
-  if (LOG_LEVELS[level] > getLogLevel()) return;
-  const timestamp = new Date().toISOString();
-  const dataStr = data ? ` ${JSON.stringify(data)}` : '';
-  console.error(`[${timestamp}] [${level}] ${message}${dataStr}`);
+// Mask an API key to show only first 4 and last 4 characters
+function maskApiKey(key: string): string {
+  if (key.length <= 8) {
+    return '****';
+  }
+  return `${key.substring(0, 4)}${'*'.repeat(key.length - 8)}${key.substring(key.length - 4)}`;
+}
+
+// Recursively sanitize data by replacing API key occurrences
+function sanitizeLogData(data: unknown, apiKey: string): unknown {
+  if (!apiKey || !data) return data;
+
+  if (typeof data === 'string') {
+    return data.split(apiKey).join(maskApiKey(apiKey));
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(item => sanitizeLogData(item, apiKey));
+  }
+
+  if (typeof data === 'object' && data !== null) {
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      sanitized[key] = sanitizeLogData(value, apiKey);
+    }
+    return sanitized;
+  }
+
+  return data;
 }
 
 export interface ClientConfig {
@@ -51,6 +74,15 @@ export class ThreatLockerClient {
     this.baseUrl = config.baseUrl.replace(/\/+$/, '');
   }
 
+  // Logger that sanitizes API keys from output
+  private log(level: LogLevel, message: string, data?: Record<string, unknown>): void {
+    if (LOG_LEVELS[level] > getLogLevel()) return;
+    const timestamp = new Date().toISOString();
+    const sanitizedData = data ? sanitizeLogData(data, this.apiKey) : undefined;
+    const dataStr = sanitizedData ? ` ${JSON.stringify(sanitizedData)}` : '';
+    console.error(`[${timestamp}] [${level}] ${message}${dataStr}`);
+  }
+
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -73,7 +105,7 @@ export class ThreatLockerClient {
       });
     }
 
-    log('DEBUG', 'API GET', { endpoint, params });
+    this.log('DEBUG', 'API GET', { endpoint, params });
 
     try {
       const response = await fetch(url.toString(), {
@@ -87,7 +119,7 @@ export class ThreatLockerClient {
         try {
           errorBody = await response.text();
         } catch { /* ignore */ }
-        log('ERROR', 'API GET failed', {
+        this.log('ERROR', 'API GET failed', {
           endpoint,
           status: response.status,
           statusText: response.statusText,
@@ -97,11 +129,11 @@ export class ThreatLockerClient {
       }
 
       const data = await response.json();
-      log('DEBUG', 'API GET success', { endpoint, status: response.status });
+      this.log('DEBUG', 'API GET success', { endpoint, status: response.status });
       return successResponse<T>(data);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      log('ERROR', 'API GET network error', { endpoint, error: message });
+      this.log('ERROR', 'API GET network error', { endpoint, error: message });
       return errorResponse('NETWORK_ERROR', message);
     }
   }
@@ -111,7 +143,7 @@ export class ThreatLockerClient {
     body: unknown,
     extractPagination?: (headers: Headers) => Pagination | undefined
   ): Promise<ApiResponse<T>> {
-    log('DEBUG', 'API POST', { endpoint, body });
+    this.log('DEBUG', 'API POST', { endpoint, body });
 
     try {
       const response = await fetch(`${this.baseUrl}/${endpoint}`, {
@@ -126,7 +158,7 @@ export class ThreatLockerClient {
         try {
           errorBody = await response.text();
         } catch { /* ignore */ }
-        log('ERROR', 'API POST failed', {
+        this.log('ERROR', 'API POST failed', {
           endpoint,
           status: response.status,
           statusText: response.statusText,
@@ -137,11 +169,11 @@ export class ThreatLockerClient {
 
       const data = await response.json();
       const pagination = extractPagination?.(response.headers);
-      log('DEBUG', 'API POST success', { endpoint, status: response.status, hasPagination: !!pagination });
+      this.log('DEBUG', 'API POST success', { endpoint, status: response.status, hasPagination: !!pagination });
       return successResponse<T>(data, pagination);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      log('ERROR', 'API POST network error', { endpoint, error: message });
+      this.log('ERROR', 'API POST network error', { endpoint, error: message });
       return errorResponse('NETWORK_ERROR', message);
     }
   }

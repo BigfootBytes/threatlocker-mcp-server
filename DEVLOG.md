@@ -2,6 +2,10 @@
 
 ## 2026-02-05
 
+- Added API key masking in logs - shows first 4 and last 4 characters only (e.g., `ABCD**********WXYZ`)
+  - Sanitizes all log data recursively to catch API keys in error response bodies
+  - Prevents accidental credential exposure from ThreatLocker API error messages
+- Centralized version to single source (`src/version.ts` reads from `package.json`)
 - Fixed "Bearer " prefix issue - Claude Desktop auto-adds it to Authorization header
 - Enhanced debug logging with detailed tool and API tracing:
   - Tool call logging with arguments and base URL

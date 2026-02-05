@@ -13,6 +13,7 @@ import { computerGroupsToolSchema, handleComputerGroupsTool } from './tools/comp
 import { applicationsToolSchema, handleApplicationsTool } from './tools/applications.js';
 import { policiesToolSchema, handlePoliciesTool } from './tools/policies.js';
 import { createHttpServer } from './transports/http.js';
+import { VERSION } from './version.js';
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
@@ -61,7 +62,7 @@ if (transportMode === 'http') {
   const server = new Server(
     {
       name: 'threatlocker-mcp',
-      version: '0.4.4',
+      version: VERSION,
     },
     {
       capabilities: {

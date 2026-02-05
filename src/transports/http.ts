@@ -8,6 +8,7 @@ import { computersToolSchema, handleComputersTool } from '../tools/computers.js'
 import { computerGroupsToolSchema, handleComputerGroupsTool } from '../tools/computer-groups.js';
 import { applicationsToolSchema, handleApplicationsTool } from '../tools/applications.js';
 import { policiesToolSchema, handlePoliciesTool } from '../tools/policies.js';
+import { VERSION } from '../version.js';
 
 interface ClientCredentials {
   apiKey: string;
@@ -126,7 +127,7 @@ function log(level: LogLevel, message: string, data?: Record<string, unknown>): 
 function createMcpServer(client: ThreatLockerClient): McpServer {
   const server = new McpServer({
     name: 'threatlocker-mcp',
-    version: '0.4.4',
+    version: VERSION,
   });
 
   server.tool(
@@ -220,7 +221,7 @@ export function createHttpServer(port: number): void {
       status: 'ok',
       transports: ['sse', 'streamable-http'],
       protocolVersion: '2025-03-26',
-      version: '0.4.4'
+      version: VERSION
     });
   });
 
