@@ -8,6 +8,11 @@
   - `includeOrganizations` - Include accessible organizations
   - `includeParentGroups` - Show parent computer groups
   - `includeLoggedInObjects` - Add contextual path labels
+- Enhanced computer_groups tool with new action and parameters:
+  - `dropdown_with_org` action - Get dropdown with child/parent organizations
+  - `includeDnsServers`, `includeIngestors`, `includeAccessDevices`, `includeRemovedComputers` - Additional include flags
+  - `computerGroupId` - Filter by specific group
+  - `includeAvailableOrganizations` - For dropdown_with_org action
 - Enhanced computers tool with sort/filter parameters and new action:
   - `orderBy` - Sort by computername, group, action, lastcheckin, etc.
   - `isAscending` - Sort direction

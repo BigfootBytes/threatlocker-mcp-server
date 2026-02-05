@@ -9,7 +9,7 @@ export const computerGroupsToolSchema = {
     properties: {
       action: {
         type: 'string',
-        enum: ['list', 'dropdown'],
+        enum: ['list', 'dropdown', 'dropdown_with_org'],
         description: 'Action to perform',
       },
       osType: {
@@ -37,9 +37,33 @@ export const computerGroupsToolSchema = {
         type: 'boolean',
         description: 'Add contextual path labels (list action)',
       },
+      includeDnsServers: {
+        type: 'boolean',
+        description: 'Include DNS servers (list action)',
+      },
+      includeIngestors: {
+        type: 'boolean',
+        description: 'Include ingestors (list action)',
+      },
+      includeAccessDevices: {
+        type: 'boolean',
+        description: 'Include access devices (list action)',
+      },
+      includeRemovedComputers: {
+        type: 'boolean',
+        description: 'Include removed computers (list action)',
+      },
+      computerGroupId: {
+        type: 'string',
+        description: 'Filter by specific computer group ID (list action)',
+      },
       hideGlobals: {
         type: 'boolean',
         description: 'Hide global groups (dropdown action)',
+      },
+      includeAvailableOrganizations: {
+        type: 'boolean',
+        description: 'Include child and parent organizations (dropdown_with_org action)',
       },
     },
     required: ['action'],
@@ -47,14 +71,20 @@ export const computerGroupsToolSchema = {
 };
 
 interface ComputerGroupsInput {
-  action?: 'list' | 'dropdown';
+  action?: 'list' | 'dropdown' | 'dropdown_with_org';
   osType?: number;
   includeGlobal?: boolean;
   includeAllComputers?: boolean;
   includeOrganizations?: boolean;
   includeParentGroups?: boolean;
   includeLoggedInObjects?: boolean;
+  includeDnsServers?: boolean;
+  includeIngestors?: boolean;
+  includeAccessDevices?: boolean;
+  includeRemovedComputers?: boolean;
+  computerGroupId?: string;
   hideGlobals?: boolean;
+  includeAvailableOrganizations?: boolean;
 }
 
 export async function handleComputerGroupsTool(
@@ -69,7 +99,13 @@ export async function handleComputerGroupsTool(
     includeOrganizations = false,
     includeParentGroups = false,
     includeLoggedInObjects = false,
-    hideGlobals = false
+    includeDnsServers = false,
+    includeIngestors = false,
+    includeAccessDevices = false,
+    includeRemovedComputers = false,
+    computerGroupId,
+    hideGlobals = false,
+    includeAvailableOrganizations = false,
   } = input;
 
   if (!action) {
@@ -77,21 +113,35 @@ export async function handleComputerGroupsTool(
   }
 
   switch (action) {
-    case 'list':
-      return client.get('ComputerGroup/ComputerGroupGetGroupAndComputer', {
+    case 'list': {
+      const params: Record<string, string> = {
         osType: String(osType),
         includeGlobal: String(includeGlobal),
         includeAllComputers: String(includeAllComputers),
         includeOrganizations: String(includeOrganizations),
         includeParentGroups: String(includeParentGroups),
         includeLoggedInObjects: String(includeLoggedInObjects),
+        includeDnsServers: String(includeDnsServers),
+        includeIngestors: String(includeIngestors),
+        includeAccessDevices: String(includeAccessDevices),
+        includeRemovedComputers: String(includeRemovedComputers),
         includeAllPolicies: 'false',
-      });
+      };
+      if (computerGroupId) {
+        params.computerGroupId = computerGroupId;
+      }
+      return client.get('ComputerGroup/ComputerGroupGetGroupAndComputer', params);
+    }
 
     case 'dropdown':
       return client.get('ComputerGroup/ComputerGroupGetDropdownByOrganizationId', {
         computerGroupOSTypeId: String(osType),
         hideGlobals: String(hideGlobals),
+      });
+
+    case 'dropdown_with_org':
+      return client.get('ComputerGroup/ComputerGroupGetDropdownWithOrganization', {
+        includeAvailableOrganizations: String(includeAvailableOrganizations),
       });
 
     default:

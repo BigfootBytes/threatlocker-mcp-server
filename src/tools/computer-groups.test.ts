@@ -17,6 +17,7 @@ describe('computer_groups tool', () => {
     expect(computerGroupsToolSchema.name).toBe('computer_groups');
     expect(computerGroupsToolSchema.inputSchema.properties.action.enum).toContain('list');
     expect(computerGroupsToolSchema.inputSchema.properties.action.enum).toContain('dropdown');
+    expect(computerGroupsToolSchema.inputSchema.properties.action.enum).toContain('dropdown_with_org');
   });
 
   it('returns error for missing action', async () => {
@@ -57,6 +58,37 @@ describe('computer_groups tool', () => {
     expect(mockClient.get).toHaveBeenCalledWith(
       'ComputerGroup/ComputerGroupGetDropdownByOrganizationId',
       expect.objectContaining({ computerGroupOSTypeId: '1' })
+    );
+  });
+
+  it('passes additional include parameters for list action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
+    await handleComputerGroupsTool(mockClient, {
+      action: 'list',
+      includeDnsServers: true,
+      includeIngestors: true,
+      includeAccessDevices: true,
+      includeRemovedComputers: true,
+      computerGroupId: 'group-123',
+    });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'ComputerGroup/ComputerGroupGetGroupAndComputer',
+      expect.objectContaining({
+        includeDnsServers: 'true',
+        includeIngestors: 'true',
+        includeAccessDevices: 'true',
+        includeRemovedComputers: 'true',
+        computerGroupId: 'group-123',
+      })
+    );
+  });
+
+  it('calls correct endpoint for dropdown_with_org action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
+    await handleComputerGroupsTool(mockClient, { action: 'dropdown_with_org', includeAvailableOrganizations: true });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'ComputerGroup/ComputerGroupGetDropdownWithOrganization',
+      { includeAvailableOrganizations: 'true' }
     );
   });
 });
