@@ -141,14 +141,15 @@ export class ThreatLockerClient {
   async post<T>(
     endpoint: string,
     body: unknown,
-    extractPagination?: (headers: Headers) => Pagination | undefined
+    extractPagination?: (headers: Headers) => Pagination | undefined,
+    customHeaders?: Record<string, string>
   ): Promise<ApiResponse<T>> {
     this.log('DEBUG', 'API POST', { endpoint, body });
 
     try {
       const response = await fetch(`${this.baseUrl}/${endpoint}`, {
         method: 'POST',
-        headers: this.getHeaders(),
+        headers: { ...this.getHeaders(), ...customHeaders },
         body: JSON.stringify(body),
       });
 

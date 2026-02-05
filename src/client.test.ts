@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ThreatLockerClient } from './client.js';
 
 describe('ThreatLockerClient', () => {
@@ -22,5 +22,24 @@ describe('ThreatLockerClient', () => {
   it('removes trailing slash from base URL', () => {
     const client = new ThreatLockerClient({ apiKey: 'test', baseUrl: 'https://portalapi.g.threatlocker.com/portalapi/' });
     expect(client.baseUrl).toBe('https://portalapi.g.threatlocker.com/portalapi');
+  });
+
+  it('passes custom headers to POST requests', async () => {
+    const client = new ThreatLockerClient({ apiKey: 'test-api-key', baseUrl: 'https://portalapi.g.threatlocker.com/portalapi' });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ result: 'ok' }),
+      headers: new Headers(),
+    });
+
+    await client.post('TestEndpoint', { data: 'test' }, undefined, { 'X-Custom': 'value' });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'X-Custom': 'value' }),
+      })
+    );
   });
 });
