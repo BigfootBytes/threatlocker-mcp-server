@@ -150,9 +150,26 @@ function createMcpServer(client: ThreatLockerClient): McpServer {
   return server;
 }
 
+// Simple logger with timestamps
+function log(level: 'INFO' | 'DEBUG' | 'ERROR', message: string, data?: Record<string, unknown>): void {
+  const timestamp = new Date().toISOString();
+  const dataStr = data ? ` ${JSON.stringify(data)}` : '';
+  console.error(`[${timestamp}] [${level}] ${message}${dataStr}`);
+}
+
 export function createHttpServer(port: number): void {
   const app = express();
   app.use(express.json());
+
+  // Request logging middleware
+  app.use((req, _res, next) => {
+    const org = req.headers['x-threatlocker-org-id'] as string | undefined;
+    log('INFO', `${req.method} ${req.path}`, {
+      org: org ? org.substring(0, 8) + '...' : undefined,
+      hasAuth: !!req.headers['authorization'],
+    });
+    next();
+  });
 
   // Health check - no auth required
   app.get('/health', (_req, res) => {
@@ -199,9 +216,10 @@ export function createHttpServer(port: number): void {
       return;
     }
 
+    const toolName = Array.isArray(req.params.toolName) ? req.params.toolName[0] : req.params.toolName;
+
     try {
       const client = new ThreatLockerClient(credentials);
-      const toolName = Array.isArray(req.params.toolName) ? req.params.toolName[0] : req.params.toolName;
       const args = req.body || {};
 
       let result: unknown;
@@ -219,6 +237,7 @@ export function createHttpServer(port: number): void {
           result = await handlePoliciesTool(client, args);
           break;
         default:
+          log('DEBUG', 'REST API unknown tool', { tool: toolName });
           res.status(400).json({
             success: false,
             error: { code: 'BAD_REQUEST', message: `Unknown tool: ${toolName}` },
@@ -228,6 +247,7 @@ export function createHttpServer(port: number): void {
       res.json(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
+      log('ERROR', 'REST API tool failed', { tool: toolName, error: message });
       res.status(500).json({
         success: false,
         error: { code: 'SERVER_ERROR', message },
@@ -261,15 +281,18 @@ export function createHttpServer(port: number): void {
       // Generate session ID from transport
       const sessionId = Math.random().toString(36).substring(2, 15);
       sseSessions.set(sessionId, { transport, server });
+      log('INFO', 'SSE session connected', { sessionId, activeSessions: sseSessions.size });
 
       // Clean up on disconnect
       res.on('close', () => {
         sseSessions.delete(sessionId);
+        log('INFO', 'SSE session disconnected', { sessionId, activeSessions: sseSessions.size });
       });
 
       await server.connect(transport);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
+      log('ERROR', 'SSE connection failed', { error: message });
       if (!res.headersSent) {
         res.status(500).json({ error: message });
       }
@@ -291,6 +314,7 @@ export function createHttpServer(port: number): void {
     }
 
     if (!session) {
+      log('DEBUG', 'SSE message rejected - no session', { sessionId });
       res.status(400).json({
         jsonrpc: '2.0',
         error: { code: -32600, message: 'Invalid or expired session. Connect to /sse first.' },
@@ -299,10 +323,15 @@ export function createHttpServer(port: number): void {
       return;
     }
 
+    const method = req.body?.method;
+    const toolName = req.body?.params?.name;
+    log('DEBUG', 'SSE message', { sessionId, method, tool: toolName });
+
     try {
       await session.transport.handlePostMessage(req, res);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
+      log('ERROR', 'SSE message failed', { sessionId, method, error: message });
       if (!res.headersSent) {
         res.status(500).json({
           jsonrpc: '2.0',
@@ -335,6 +364,10 @@ export function createHttpServer(port: number): void {
       return;
     }
 
+    const method = req.body?.method;
+    const toolName = req.body?.params?.name;
+    log('DEBUG', 'MCP request', { method, tool: toolName });
+
     try {
       const client = new ThreatLockerClient(credentials);
       const server = createMcpServer(client);
@@ -346,6 +379,7 @@ export function createHttpServer(port: number): void {
       await transport.handleRequest(req, res, req.body);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
+      log('ERROR', 'MCP request failed', { method, tool: toolName, error: message });
       if (!res.headersSent) {
         res.status(500).json({
           jsonrpc: '2.0',

@@ -30,8 +30,13 @@
   - Both transports now available on same server
 - Added Origin header validation for DNS rebinding protection
 - Added `ALLOWED_ORIGINS` environment variable for browser request allowlist
-- Bumped version to 0.4.0
+- Bumped version to 0.4.0, then 0.4.1
 - Updated README documentation for Streamable HTTP transport
+- Added debug logging for HTTP server:
+  - Request logging middleware with org ID and auth status
+  - SSE session connect/disconnect logging
+  - MCP request logging with method and tool name
+  - Error logging for all transport failures
 
 ### Detailed Changes
 
