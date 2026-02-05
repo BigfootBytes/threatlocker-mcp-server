@@ -71,12 +71,16 @@ function validateOrigin(req: Request): boolean {
 
 // Zod schemas for McpServer tool registration
 const computersZodSchema = {
-  action: z.enum(['list', 'get', 'checkins']).describe('Action to perform'),
+  action: z.enum(['list', 'get', 'checkins', 'get_install_info']).describe('Action to perform'),
   computerId: z.string().optional().describe('Computer ID (required for get and checkins)'),
   searchText: z.string().optional().describe('Search text for list action'),
   searchBy: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional().describe('Field to search by: 1=Computer/Asset Name, 2=Username, 3=Computer Group Name, 4=Last Check-in IP, 5=Organization Name'),
   action_filter: z.enum(['Secure', 'Installation', 'Learning', 'MonitorOnly']).optional().describe('Filter by computer mode for list action'),
   computerGroup: z.string().optional().describe('Computer group ID for list action'),
+  orderBy: z.enum(['computername', 'group', 'action', 'lastcheckin', 'computerinstalldate', 'deniedcountthreedays', 'updatechannel', 'threatlockerversion']).optional().describe('Field to sort by (default: computername)'),
+  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
+  childOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
+  kindOfAction: z.enum(['Computer Mode', 'TamperProtectionDisabled', 'NeedsReview', 'ReadyToSecure', 'BaselineNotUploaded', 'Update Channel']).optional().describe('Additional filter for computer state'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Page size (default: 25)'),
   hideHeartbeat: z.boolean().optional().describe('Hide heartbeat entries for checkins action'),

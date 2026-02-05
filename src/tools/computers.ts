@@ -9,7 +9,7 @@ export const computersToolSchema = {
     properties: {
       action: {
         type: 'string',
-        enum: ['list', 'get', 'checkins'],
+        enum: ['list', 'get', 'checkins', 'get_install_info'],
         description: 'Action to perform',
       },
       computerId: {
@@ -34,6 +34,24 @@ export const computersToolSchema = {
         type: 'string',
         description: 'Computer group ID for list action',
       },
+      orderBy: {
+        type: 'string',
+        enum: ['computername', 'group', 'action', 'lastcheckin', 'computerinstalldate', 'deniedcountthreedays', 'updatechannel', 'threatlockerversion'],
+        description: 'Field to sort by (default: computername)',
+      },
+      isAscending: {
+        type: 'boolean',
+        description: 'Sort ascending (default: true)',
+      },
+      childOrganizations: {
+        type: 'boolean',
+        description: 'Include child organizations (default: false)',
+      },
+      kindOfAction: {
+        type: 'string',
+        enum: ['Computer Mode', 'TamperProtectionDisabled', 'NeedsReview', 'ReadyToSecure', 'BaselineNotUploaded', 'Update Channel'],
+        description: 'Additional filter for computer state',
+      },
       pageNumber: {
         type: 'number',
         description: 'Page number (default: 1)',
@@ -52,12 +70,16 @@ export const computersToolSchema = {
 };
 
 interface ComputersInput {
-  action?: 'list' | 'get' | 'checkins';
+  action?: 'list' | 'get' | 'checkins' | 'get_install_info';
   computerId?: string;
   searchText?: string;
   searchBy?: number;
   action_filter?: string;
   computerGroup?: string;
+  orderBy?: string;
+  isAscending?: boolean;
+  childOrganizations?: boolean;
+  kindOfAction?: string;
   pageNumber?: number;
   pageSize?: number;
   hideHeartbeat?: boolean;
@@ -67,7 +89,21 @@ export async function handleComputersTool(
   client: ThreatLockerClient,
   input: ComputersInput
 ): Promise<ApiResponse<unknown>> {
-  const { action, computerId, searchText, searchBy = 1, action_filter, computerGroup, pageNumber = 1, pageSize = 25, hideHeartbeat = false } = input;
+  const {
+    action,
+    computerId,
+    searchText,
+    searchBy = 1,
+    action_filter,
+    computerGroup,
+    orderBy = 'computername',
+    isAscending = true,
+    childOrganizations = false,
+    kindOfAction,
+    pageNumber = 1,
+    pageSize = 25,
+    hideHeartbeat = false,
+  } = input;
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');
@@ -84,9 +120,10 @@ export async function handleComputersTool(
           searchBy,
           action: action_filter || '',
           computerGroup: computerGroup || '',
-          isAscending: true,
-          orderBy: 'computername',
-          childOrganizations: false,
+          orderBy,
+          isAscending,
+          childOrganizations,
+          kindOfAction: kindOfAction || '',
         },
         extractPaginationFromHeaders
       );
@@ -111,6 +148,9 @@ export async function handleComputersTool(
         },
         extractPaginationFromHeaders
       );
+
+    case 'get_install_info':
+      return client.get('Computer/ComputerGetForNewComputer', {});
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

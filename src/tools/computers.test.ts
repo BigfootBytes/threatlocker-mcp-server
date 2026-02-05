@@ -19,6 +19,7 @@ describe('computers tool', () => {
     expect(computersToolSchema.inputSchema.properties.action.enum).toContain('list');
     expect(computersToolSchema.inputSchema.properties.action.enum).toContain('get');
     expect(computersToolSchema.inputSchema.properties.action.enum).toContain('checkins');
+    expect(computersToolSchema.inputSchema.properties.action.enum).toContain('get_install_info');
   });
 
   it('returns error for missing action', async () => {
@@ -73,6 +74,36 @@ describe('computers tool', () => {
       'ComputerCheckin/ComputerCheckinGetByParameters',
       expect.objectContaining({ computerId: 'abc-123' }),
       expect.any(Function)
+    );
+  });
+
+  it('passes sort and filter parameters for list action', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: [] });
+    await handleComputersTool(mockClient, {
+      action: 'list',
+      orderBy: 'lastcheckin',
+      isAscending: false,
+      childOrganizations: true,
+      kindOfAction: 'NeedsReview',
+    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'Computer/ComputerGetByAllParameters',
+      expect.objectContaining({
+        orderBy: 'lastcheckin',
+        isAscending: false,
+        childOrganizations: true,
+        kindOfAction: 'NeedsReview',
+      }),
+      expect.any(Function)
+    );
+  });
+
+  it('calls correct endpoint for get_install_info action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
+    await handleComputersTool(mockClient, { action: 'get_install_info' });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'Computer/ComputerGetForNewComputer',
+      {}
     );
   });
 });

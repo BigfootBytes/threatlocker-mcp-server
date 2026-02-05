@@ -8,6 +8,12 @@
   - `includeOrganizations` - Include accessible organizations
   - `includeParentGroups` - Show parent computer groups
   - `includeLoggedInObjects` - Add contextual path labels
+- Enhanced computers tool with sort/filter parameters and new action:
+  - `orderBy` - Sort by computername, group, action, lastcheckin, etc.
+  - `isAscending` - Sort direction
+  - `childOrganizations` - Include child organizations
+  - `kindOfAction` - Filter by Computer Mode, NeedsReview, ReadyToSecure, etc.
+  - `get_install_info` action - Get installation info for new computers
 - Added read actions to approval_requests tool:
   - `get_file_download_details` - Get file download details for a request
   - `get_permit_application` - Get permit application details for approval
