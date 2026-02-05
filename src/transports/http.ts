@@ -24,12 +24,17 @@ interface SSESession {
 const sseSessions = new Map<string, SSESession>();
 
 function extractCredentials(req: Request): ClientCredentials | null {
-  const apiKey = req.headers['authorization'] as string;
+  let apiKey = req.headers['authorization'] as string;
   const baseUrl = req.headers['x-threatlocker-base-url'] as string;
   const organizationId = req.headers['x-threatlocker-org-id'] as string | undefined;
 
   if (!apiKey || !baseUrl) {
     return null;
+  }
+
+  // Strip "Bearer " prefix if present (Claude Desktop may add it automatically)
+  if (apiKey.toLowerCase().startsWith('bearer ')) {
+    apiKey = apiKey.substring(7);
   }
 
   return { apiKey, baseUrl, organizationId };

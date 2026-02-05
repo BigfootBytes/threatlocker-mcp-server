@@ -2,6 +2,7 @@
 
 ## 2026-02-05
 
+- Fixed "Bearer " prefix issue - Claude Desktop auto-adds it to Authorization header
 - Enhanced debug logging with detailed tool and API tracing:
   - Tool call logging with arguments and base URL
   - Tool result logging with success/error status and result counts
