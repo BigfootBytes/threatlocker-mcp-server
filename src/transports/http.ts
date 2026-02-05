@@ -8,6 +8,10 @@ import { computersToolSchema, handleComputersTool } from '../tools/computers.js'
 import { computerGroupsToolSchema, handleComputerGroupsTool } from '../tools/computer-groups.js';
 import { applicationsToolSchema, handleApplicationsTool } from '../tools/applications.js';
 import { policiesToolSchema, handlePoliciesTool } from '../tools/policies.js';
+import { actionLogToolSchema, handleActionLogTool } from '../tools/action-log.js';
+import { approvalRequestsToolSchema, handleApprovalRequestsTool } from '../tools/approval-requests.js';
+import { organizationsToolSchema, handleOrganizationsTool } from '../tools/organizations.js';
+import { reportsToolSchema, handleReportsTool } from '../tools/reports.js';
 import { VERSION } from '../version.js';
 
 interface ClientCredentials {
@@ -107,6 +111,47 @@ const policiesZodSchema = {
   pageSize: z.number().optional().describe('Page size (default: 25)'),
 };
 
+const actionLogZodSchema = {
+  action: z.enum(['search', 'get', 'file_history']).describe('Action to perform'),
+  startDate: z.string().optional().describe('Start date for search (ISO 8601 UTC)'),
+  endDate: z.string().optional().describe('End date for search (ISO 8601 UTC)'),
+  actionId: z.union([z.literal(1), z.literal(2), z.literal(99)]).optional().describe('Filter by action: 1=Permit, 2=Deny, 99=Any Deny'),
+  actionType: z.enum(['execute', 'install', 'network', 'registry', 'read', 'write', 'move', 'delete', 'baseline', 'powershell', 'elevate', 'configuration', 'dns']).optional().describe('Filter by action type'),
+  hostname: z.string().optional().describe('Filter by hostname (wildcards supported)'),
+  actionLogId: z.string().optional().describe('Action log ID (required for get action)'),
+  fullPath: z.string().optional().describe('File path (required for file_history action)'),
+  computerId: z.string().optional().describe('Computer ID to scope file_history'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Page size (default: 25)'),
+};
+
+const approvalRequestsZodSchema = {
+  action: z.enum(['list', 'get', 'count']).describe('Action to perform'),
+  approvalRequestId: z.string().optional().describe('Approval request ID (required for get)'),
+  statusId: z.union([z.literal(1), z.literal(4), z.literal(6), z.literal(10), z.literal(12), z.literal(13), z.literal(16)]).optional().describe('Filter by status'),
+  searchText: z.string().optional().describe('Filter by text'),
+  orderBy: z.enum(['username', 'devicetype', 'actiontype', 'path', 'actiondate', 'datetime']).optional().describe('Field to order by'),
+  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
+  showChildOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Page size (default: 25)'),
+};
+
+const organizationsZodSchema = {
+  action: z.enum(['list_children', 'get_auth_key']).describe('Action to perform'),
+  searchText: z.string().optional().describe('Filter by name (for list_children)'),
+  includeAllChildren: z.boolean().optional().describe('Include nested children (default: false)'),
+  orderBy: z.enum(['billingMethod', 'businessClassificationName', 'dateAdded', 'name']).optional().describe('Field to order by'),
+  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Page size (default: 25)'),
+};
+
+const reportsZodSchema = {
+  action: z.enum(['list', 'get_data']).describe('Action to perform'),
+  reportId: z.string().optional().describe('Report ID (required for get_data action)'),
+};
+
 // Log levels: ERROR=0, INFO=1, DEBUG=2
 const LOG_LEVELS = { ERROR: 0, INFO: 1, DEBUG: 2 } as const;
 type LogLevel = keyof typeof LOG_LEVELS;
@@ -198,6 +243,74 @@ function createMcpServer(client: ThreatLockerClient): McpServer {
     }
   );
 
+  server.tool(
+    actionLogToolSchema.name,
+    actionLogToolSchema.description,
+    actionLogZodSchema,
+    async (args) => {
+      log('DEBUG', 'Tool call: action_log', { args, baseUrl: client.baseUrl });
+      const result = await handleActionLogTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: action_log', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: action_log', { resultCount: count, pagination: result.pagination });
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    approvalRequestsToolSchema.name,
+    approvalRequestsToolSchema.description,
+    approvalRequestsZodSchema,
+    async (args) => {
+      log('DEBUG', 'Tool call: approval_requests', { args, baseUrl: client.baseUrl });
+      const result = await handleApprovalRequestsTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: approval_requests', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: approval_requests', { resultCount: count, pagination: result.pagination });
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    organizationsToolSchema.name,
+    organizationsToolSchema.description,
+    organizationsZodSchema,
+    async (args) => {
+      log('DEBUG', 'Tool call: organizations', { args, baseUrl: client.baseUrl });
+      const result = await handleOrganizationsTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: organizations', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: organizations', { resultCount: count, pagination: result.pagination });
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    reportsToolSchema.name,
+    reportsToolSchema.description,
+    reportsZodSchema,
+    async (args) => {
+      log('DEBUG', 'Tool call: reports', { args, baseUrl: client.baseUrl });
+      const result = await handleReportsTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: reports', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: reports', { resultCount: count });
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
   return server;
 }
 
@@ -233,6 +346,10 @@ export function createHttpServer(port: number): void {
         computerGroupsToolSchema,
         applicationsToolSchema,
         policiesToolSchema,
+        actionLogToolSchema,
+        approvalRequestsToolSchema,
+        organizationsToolSchema,
+        reportsToolSchema,
       ],
     });
   });
@@ -279,6 +396,18 @@ export function createHttpServer(port: number): void {
           break;
         case 'policies':
           result = await handlePoliciesTool(client, args);
+          break;
+        case 'action_log':
+          result = await handleActionLogTool(client, args);
+          break;
+        case 'approval_requests':
+          result = await handleApprovalRequestsTool(client, args);
+          break;
+        case 'organizations':
+          result = await handleOrganizationsTool(client, args);
+          break;
+        case 'reports':
+          result = await handleReportsTool(client, args);
           break;
         default:
           log('DEBUG', 'REST API unknown tool', { tool: toolName });
