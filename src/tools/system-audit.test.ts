@@ -1,0 +1,75 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { handleSystemAuditTool, systemAuditToolSchema } from './system-audit.js';
+import { ThreatLockerClient } from '../client.js';
+
+vi.mock('../client.js');
+
+describe('system_audit tool', () => {
+  let mockClient: ThreatLockerClient;
+
+  beforeEach(() => {
+    mockClient = {
+      post: vi.fn(),
+    } as unknown as ThreatLockerClient;
+  });
+
+  it('has correct schema', () => {
+    expect(systemAuditToolSchema.name).toBe('system_audit');
+    expect(systemAuditToolSchema.inputSchema.properties.action.enum).toContain('search');
+    expect(systemAuditToolSchema.inputSchema.properties.action.enum).toContain('health_center');
+  });
+
+  it('returns error for missing action', async () => {
+    const result = await handleSystemAuditTool(mockClient, {});
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+    }
+  });
+
+  it('returns error for search without dates', async () => {
+    const result = await handleSystemAuditTool(mockClient, { action: 'search' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('startDate');
+    }
+  });
+
+  it('calls correct endpoint for search action', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: [] });
+    await handleSystemAuditTool(mockClient, {
+      action: 'search',
+      startDate: '2025-01-01T00:00:00Z',
+      endDate: '2025-01-31T23:59:59Z',
+      username: 'admin*',
+      auditAction: 'Logon',
+    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'SystemAudit/SystemAuditGetByParameters',
+      expect.objectContaining({
+        startDate: '2025-01-01T00:00:00Z',
+        endDate: '2025-01-31T23:59:59Z',
+        username: 'admin*',
+        action: 'Logon',
+      }),
+      expect.any(Function)
+    );
+  });
+
+  it('calls correct endpoint for health_center action', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: [] });
+    await handleSystemAuditTool(mockClient, {
+      action: 'health_center',
+      days: 14,
+      searchText: 'policy',
+    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'SystemAudit/SystemAuditGetForHealthCenter',
+      expect.objectContaining({
+        days: 14,
+        searchText: 'policy',
+      }),
+      expect.any(Function)
+    );
+  });
+});
