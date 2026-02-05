@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ThreatLockerClient } from '../client.js';
 import { computersToolSchema, handleComputersTool } from '../tools/computers.js';
@@ -13,6 +14,14 @@ interface ClientCredentials {
   baseUrl: string;
   organizationId?: string;
 }
+
+interface SSESession {
+  transport: SSEServerTransport;
+  server: McpServer;
+}
+
+// Active SSE sessions by session ID
+const sseSessions = new Map<string, SSESession>();
 
 function extractCredentials(req: Request): ClientCredentials | null {
   const apiKey = req.headers['authorization'] as string;
@@ -149,7 +158,7 @@ export function createHttpServer(port: number): void {
   app.get('/health', (_req, res) => {
     res.json({
       status: 'ok',
-      transport: 'streamable-http',
+      transports: ['sse', 'streamable-http'],
       protocolVersion: '2025-03-26',
       version: '0.4.0'
     });
@@ -226,6 +235,84 @@ export function createHttpServer(port: number): void {
     }
   });
 
+  // SSE endpoint for Claude Desktop/Code remote connections (legacy)
+  app.get('/sse', async (req: Request, res: Response) => {
+    // DNS rebinding protection
+    if (!validateOrigin(req)) {
+      res.status(403).json({
+        error: 'Origin not allowed',
+      });
+      return;
+    }
+
+    const credentials = extractCredentials(req);
+    if (!credentials) {
+      res.status(401).json({
+        error: 'Missing required headers: Authorization and X-ThreatLocker-Base-URL',
+      });
+      return;
+    }
+
+    try {
+      const client = new ThreatLockerClient(credentials);
+      const server = createMcpServer(client);
+      const transport = new SSEServerTransport('/messages', res);
+
+      // Generate session ID from transport
+      const sessionId = Math.random().toString(36).substring(2, 15);
+      sseSessions.set(sessionId, { transport, server });
+
+      // Clean up on disconnect
+      res.on('close', () => {
+        sseSessions.delete(sessionId);
+      });
+
+      await server.connect(transport);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (!res.headersSent) {
+        res.status(500).json({ error: message });
+      }
+    }
+  });
+
+  // Messages endpoint for SSE clients
+  app.post('/messages', async (req: Request, res: Response) => {
+    // Find the session - SSEServerTransport sends sessionId as query param
+    const sessionId = req.query.sessionId as string;
+
+    // If no sessionId provided, try to find a session (backwards compatibility)
+    let session: SSESession | undefined;
+    if (sessionId) {
+      session = sseSessions.get(sessionId);
+    } else if (sseSessions.size === 1) {
+      // If only one session, use it (simple case)
+      session = sseSessions.values().next().value;
+    }
+
+    if (!session) {
+      res.status(400).json({
+        jsonrpc: '2.0',
+        error: { code: -32600, message: 'Invalid or expired session. Connect to /sse first.' },
+        id: req.body?.id || null,
+      });
+      return;
+    }
+
+    try {
+      await session.transport.handlePostMessage(req, res);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: '2.0',
+          error: { code: -32603, message },
+          id: req.body?.id || null,
+        });
+      }
+    }
+  });
+
   // Streamable HTTP MCP endpoint
   app.post('/mcp', async (req: Request, res: Response) => {
     // DNS rebinding protection
@@ -290,7 +377,11 @@ export function createHttpServer(port: number): void {
   app.listen(port, () => {
     console.error(`ThreatLocker MCP server running on http://localhost:${port}`);
     console.error('');
-    console.error('Streamable HTTP Transport (for Claude Desktop/Code):');
+    console.error('SSE Transport (for Claude Desktop):');
+    console.error('  GET  /sse          - SSE connection (requires auth headers)');
+    console.error('  POST /messages     - Messages from SSE clients');
+    console.error('');
+    console.error('Streamable HTTP Transport:');
     console.error('  POST /mcp          - MCP JSON-RPC endpoint');
     console.error('');
     console.error('REST API (direct calls):');

@@ -56,7 +56,7 @@ Run the server locally on the same machine as Claude Desktop/Code.
 }
 ```
 
-### Option 2: Remote Server (Streamable HTTP)
+### Option 2: Remote Server (SSE)
 
 Connect Claude Desktop/Code to a remote MCP server over HTTPS.
 
@@ -70,7 +70,7 @@ docker run -d -p 8080:8080 -e TRANSPORT=http ghcr.io/applied-motion-systems/thre
 {
   "mcpServers": {
     "threatlocker": {
-      "url": "https://your-server.example.com/mcp",
+      "url": "https://your-server.example.com/sse",
       "headers": {
         "Authorization": "your-threatlocker-api-key",
         "X-ThreatLocker-Base-URL": "https://portalapi.g.threatlocker.com/portalapi",
@@ -81,7 +81,7 @@ docker run -d -p 8080:8080 -e TRANSPORT=http ghcr.io/applied-motion-systems/thre
 }
 ```
 
-**Note:** This implementation is stateless - each request is independent. For production, deploy behind a reverse proxy (nginx, Caddy) with HTTPS.
+**Note:** For production, deploy behind a reverse proxy (nginx, Caddy) with HTTPS.
 
 ## HTTP Mode
 
@@ -91,6 +91,8 @@ docker run -d -p 8080:8080 -e TRANSPORT=http ghcr.io/applied-motion-systems/thre
 |--------|----------|------|-------------|
 | GET | `/health` | No | Health check |
 | GET | `/tools` | No | List available tools |
+| GET | `/sse` | Yes | SSE stream for Claude Desktop |
+| POST | `/messages` | Session | Messages from SSE clients |
 | POST | `/mcp` | Yes | Streamable HTTP MCP endpoint |
 | POST | `/tools/:name` | Yes | Direct tool call (REST API) |
 

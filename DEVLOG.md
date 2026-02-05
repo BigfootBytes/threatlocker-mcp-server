@@ -21,11 +21,13 @@
 
 ## 2026-02-04
 
-- **Migrated HTTP transport from SSE to Streamable HTTP** (MCP spec 2025-03-26)
-  - Replaced `/sse` + `/messages` endpoints with single `/mcp` endpoint
+- **Added Streamable HTTP transport** (MCP spec 2025-03-26)
+  - New `/mcp` endpoint using `StreamableHTTPServerTransport` in stateless mode
   - Updated @modelcontextprotocol/sdk to v1.26.0
-  - Uses `StreamableHTTPServerTransport` in stateless mode
-  - Removed SSE session management (~143 lines removed)
+- **Re-added SSE transport** for Claude Desktop compatibility
+  - Uses SDK's `SSEServerTransport` class
+  - `/sse` + `/messages` endpoints restored
+  - Both transports now available on same server
 - Added Origin header validation for DNS rebinding protection
 - Added `ALLOWED_ORIGINS` environment variable for browser request allowlist
 - Bumped version to 0.4.0
