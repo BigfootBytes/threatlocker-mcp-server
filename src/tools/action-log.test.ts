@@ -52,6 +52,30 @@ describe('action_log tool', () => {
     );
   });
 
+  it('passes advanced filter parameters for search action', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: [] });
+    await handleActionLogTool(mockClient, {
+      action: 'search',
+      startDate: '2025-01-01T00:00:00Z',
+      endDate: '2025-01-31T23:59:59Z',
+      fullPath: '*chrome*',
+      showChildOrganizations: true,
+      onlyTrueDenies: true,
+      groupBys: [1, 2],
+    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'ActionLog/ActionLogGetByParametersV2',
+      expect.objectContaining({
+        fullPath: '*chrome*',
+        showChildOrganizations: true,
+        onlyTrueDenies: true,
+        groupBys: [1, 2],
+      }),
+      expect.any(Function),
+      { usenewsearch: 'true' }
+    );
+  });
+
   it('returns error for get without actionLogId', async () => {
     const result = await handleActionLogTool(mockClient, { action: 'get' });
     expect(result.success).toBe(false);

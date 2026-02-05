@@ -129,8 +129,11 @@ const actionLogZodSchema = {
   actionType: z.enum(['execute', 'install', 'network', 'registry', 'read', 'write', 'move', 'delete', 'baseline', 'powershell', 'elevate', 'configuration', 'dns']).optional().describe('Filter by action type'),
   hostname: z.string().optional().describe('Filter by hostname (wildcards supported)'),
   actionLogId: z.string().optional().describe('Action log ID (required for get action)'),
-  fullPath: z.string().optional().describe('File path (required for file_history action)'),
+  fullPath: z.string().optional().describe('File path for search filter or file_history (wildcards supported)'),
   computerId: z.string().optional().describe('Computer ID to scope file_history'),
+  showChildOrganizations: z.boolean().optional().describe('Include child organization logs (default: false)'),
+  onlyTrueDenies: z.boolean().optional().describe('Filter to actual denies only (default: false)'),
+  groupBys: z.array(z.number()).optional().describe('Group by: 1=Username, 2=Process Path, 6=Policy Name, 8=App Name, 9=Action Type, 17=Asset Name, 70=Risk Score'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Page size (default: 25)'),
 };

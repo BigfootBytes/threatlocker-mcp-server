@@ -8,6 +8,11 @@
   - `includeOrganizations` - Include accessible organizations
   - `includeParentGroups` - Show parent computer groups
   - `includeLoggedInObjects` - Add contextual path labels
+- Added advanced search parameters to action_log tool:
+  - `fullPath` - Filter search by file path (wildcards supported)
+  - `showChildOrganizations` - Include child organization logs
+  - `onlyTrueDenies` - Filter to actual denies only (not simulated)
+  - `groupBys` - Aggregate by Username(1), Process Path(2), Policy Name(6), App Name(8), Action Type(9), Asset Name(17), Risk Score(70)
 - Added search/filter parameters to applications tool:
   - `orderBy` - Sort by name, date-created, review-rating, computer-count, policy
   - `isAscending` - Sort direction (default: true)

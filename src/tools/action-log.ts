@@ -40,11 +40,24 @@ export const actionLogToolSchema = {
       },
       fullPath: {
         type: 'string',
-        description: 'File path (required for file_history action)',
+        description: 'File path for search filter or file_history action (wildcards supported)',
       },
       computerId: {
         type: 'string',
         description: 'Computer ID to scope file_history to specific computer',
+      },
+      showChildOrganizations: {
+        type: 'boolean',
+        description: 'Include child organization logs (default: false)',
+      },
+      onlyTrueDenies: {
+        type: 'boolean',
+        description: 'Filter to actual denies only, not simulated (default: false)',
+      },
+      groupBys: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Group results by fields: 1=Username, 2=Process Path, 6=Policy Name, 8=Application Name, 9=Action Type, 17=Asset Name, 70=Risk Score',
       },
       pageNumber: {
         type: 'number',
@@ -69,6 +82,9 @@ interface ActionLogInput {
   actionLogId?: string;
   fullPath?: string;
   computerId?: string;
+  showChildOrganizations?: boolean;
+  onlyTrueDenies?: boolean;
+  groupBys?: number[];
   pageNumber?: number;
   pageSize?: number;
 }
@@ -87,6 +103,9 @@ export async function handleActionLogTool(
     actionLogId,
     fullPath,
     computerId,
+    showChildOrganizations = false,
+    onlyTrueDenies = false,
+    groupBys = [],
     pageNumber = 1,
     pageSize = 25,
   } = input;
@@ -110,12 +129,13 @@ export async function handleActionLogTool(
           actionId,
           actionType,
           hostname,
+          fullPath,
           paramsFieldsDto: [],
-          groupBys: [],
+          groupBys,
           exportMode: false,
           showTotalCount: true,
-          showChildOrganizations: false,
-          onlyTrueDenies: false,
+          showChildOrganizations,
+          onlyTrueDenies,
           simulateDeny: false,
         },
         extractPaginationFromHeaders,
