@@ -103,4 +103,49 @@ describe('action_log tool', () => {
       { fullPath: 'C:\\test.exe' }
     );
   });
+
+  it('calls correct endpoint for get_file_download action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
+    await handleActionLogTool(mockClient, { action: 'get_file_download', actionLogId: 'log-123' });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'ActionLog/ActionLogGetFileDownloadDetailsById',
+      { actionLogId: 'log-123' }
+    );
+  });
+
+  it('returns error for get_file_download without actionLogId', async () => {
+    const result = await handleActionLogTool(mockClient, { action: 'get_file_download' });
+    expect(result.success).toBe(false);
+    expect(result.error?.message).toContain('actionLogId');
+  });
+
+  it('calls correct endpoint for get_policy_conditions action', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleActionLogTool(mockClient, { action: 'get_policy_conditions', actionLogId: 'log-123' });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'ActionLog/ActionLogGetPolicyConditionsForPermitApplication',
+      { actionLogId: 'log-123' }
+    );
+  });
+
+  it('returns error for get_policy_conditions without actionLogId', async () => {
+    const result = await handleActionLogTool(mockClient, { action: 'get_policy_conditions' });
+    expect(result.success).toBe(false);
+    expect(result.error?.message).toContain('actionLogId');
+  });
+
+  it('calls correct endpoint for get_testing_details action', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleActionLogTool(mockClient, { action: 'get_testing_details', actionLogId: 'log-123' });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'ActionLog/ActionLogGetTestingEnvironmentDetailsById',
+      { actionLogId: 'log-123' }
+    );
+  });
+
+  it('returns error for get_testing_details without actionLogId', async () => {
+    const result = await handleActionLogTool(mockClient, { action: 'get_testing_details' });
+    expect(result.success).toBe(false);
+    expect(result.error?.message).toContain('actionLogId');
+  });
 });

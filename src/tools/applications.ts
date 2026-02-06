@@ -15,6 +15,9 @@ Common workflows:
 - List files in an application: action=files, applicationId="..."
 - Find apps actively permitted: action=search, permittedApplications=true
 - Find recently created custom apps: action=search, category=1, orderBy=date-created
+- Find matching apps by file properties: action=match, hash="...", path="...", cert="..."
+- Get apps for maintenance mode: action=get_for_maintenance
+- Get app for network policy: action=get_for_network_policy, applicationId="..."
 
 Related tools: policies (see policies using this app), action_log (see app activity), approval_requests (pending approvals for this app)`,
   inputSchema: {
@@ -22,8 +25,8 @@ Related tools: policies (see policies using this app), action_log (see app activ
     properties: {
       action: {
         type: 'string',
-        enum: ['search', 'get', 'research', 'files'],
-        description: 'search=find applications, get=details by ID, research=ThreatLocker security analysis, files=list file rules in app',
+        enum: ['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy'],
+        description: 'search=find applications, get=details by ID, research=ThreatLocker security analysis, files=list file rules in app, match=find apps by file hash/cert/path, get_for_maintenance=apps for maintenance mode, get_for_network_policy=app for network policy',
       },
       applicationId: {
         type: 'string',
@@ -82,13 +85,37 @@ Related tools: policies (see policies using this app), action_log (see app activ
         type: 'number',
         description: 'Results per page (default: 25)',
       },
+      hash: {
+        type: 'string',
+        description: 'SHA256 hash for match action.',
+      },
+      path: {
+        type: 'string',
+        description: 'Full file path for match action.',
+      },
+      processPath: {
+        type: 'string',
+        description: 'Process path for match action.',
+      },
+      cert: {
+        type: 'string',
+        description: 'Certificate subject for match action.',
+      },
+      certSha: {
+        type: 'string',
+        description: 'Certificate SHA for match action.',
+      },
+      createdBy: {
+        type: 'string',
+        description: 'Created by path (e.g., msiexec.exe) for match action.',
+      },
     },
     required: ['action'],
   },
 };
 
 interface ApplicationsInput {
-  action?: 'search' | 'get' | 'research' | 'files';
+  action?: 'search' | 'get' | 'research' | 'files' | 'match' | 'get_for_maintenance' | 'get_for_network_policy';
   applicationId?: string;
   searchText?: string;
   searchBy?: string;
@@ -102,6 +129,12 @@ interface ApplicationsInput {
   countries?: string[];
   pageNumber?: number;
   pageSize?: number;
+  hash?: string;
+  path?: string;
+  processPath?: string;
+  cert?: string;
+  certSha?: string;
+  createdBy?: string;
 }
 
 export async function handleApplicationsTool(
@@ -123,6 +156,12 @@ export async function handleApplicationsTool(
     countries,
     pageNumber = 1,
     pageSize = 25,
+    hash,
+    path,
+    processPath,
+    cert,
+    certSha,
+    createdBy,
   } = input;
 
   if (!action) {
@@ -172,6 +211,26 @@ export async function handleApplicationsTool(
         pageNumber: String(pageNumber),
         pageSize: String(pageSize),
       });
+
+    case 'match':
+      return client.post('Application/ApplicationGetMatchingList', {
+        osType,
+        hash: hash || '',
+        path: path || '',
+        processPath: processPath || '',
+        sha256: hash || '',
+        certs: certSha || cert ? [{ sha: certSha || '', subject: cert || '', validCert: true }] : [],
+        createdBys: createdBy ? [createdBy] : [],
+      });
+
+    case 'get_for_maintenance':
+      return client.get('Application/ApplicationGetForMaintenanceMode', {});
+
+    case 'get_for_network_policy':
+      if (!applicationId) {
+        return errorResponse('BAD_REQUEST', 'applicationId is required for get_for_network_policy action');
+      }
+      return client.get('Application/ApplicationGetForNetworkPolicyProcessById', { applicationId });
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

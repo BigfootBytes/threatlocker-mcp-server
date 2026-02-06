@@ -134,10 +134,10 @@ Add to your MCP config file:
 | Tool | Actions |
 |------|---------|
 | `computers` | `list`, `get`, `checkins`, `get_install_info` |
-| `computer_groups` | `list`, `dropdown`, `dropdown_with_org` |
-| `applications` | `search`, `get`, `research`, `files` |
+| `computer_groups` | `list`, `dropdown`, `dropdown_with_org`, `get_for_permit`, `get_by_install_key` |
+| `applications` | `search`, `get`, `research`, `files`, `match`, `get_for_maintenance`, `get_for_network_policy` |
 | `policies` | `get`, `list_by_application` |
-| `action_log` | `search`, `get`, `file_history` |
+| `action_log` | `search`, `get`, `file_history`, `get_file_download`, `get_policy_conditions`, `get_testing_details` |
 | `approval_requests` | `list`, `get`, `count`, `get_file_download_details`, `get_permit_application`, `get_storage_approval` |
 | `organizations` | `list_children`, `get_auth_key`, `get_for_move_computers` |
 | `reports` | `list`, `get_data` |

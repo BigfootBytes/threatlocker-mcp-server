@@ -12,6 +12,8 @@ Common workflows:
 - Get group dropdown for UI/selection: action=dropdown
 - Get groups across organizations (MSP): action=dropdown_with_org, includeAvailableOrganizations=true
 - Filter by OS type: osType=1 (Windows), 2 (macOS), 3 (Linux)
+- Get groups for approval workflow: action=get_for_permit
+- Get group by install key: action=get_by_install_key, installKey="..."
 
 Related tools: computers (list computers in groups), policies (policies applied to groups)`,
   inputSchema: {
@@ -19,8 +21,8 @@ Related tools: computers (list computers in groups), policies (policies applied 
     properties: {
       action: {
         type: 'string',
-        enum: ['list', 'dropdown', 'dropdown_with_org'],
-        description: 'list=full details with computers, dropdown=simple list for selection, dropdown_with_org=includes parent/child orgs',
+        enum: ['list', 'dropdown', 'dropdown_with_org', 'get_for_permit', 'get_by_install_key'],
+        description: 'list=full details with computers, dropdown=simple list for selection, dropdown_with_org=includes parent/child orgs, get_for_permit=groups for approval workflow, get_by_install_key=get group by 24-char install key',
       },
       osType: {
         type: 'number',
@@ -75,13 +77,21 @@ Related tools: computers (list computers in groups), policies (policies applied 
         type: 'boolean',
         description: 'Include groups from parent and child organizations (MSP view).',
       },
+      includeAllPolicies: {
+        type: 'boolean',
+        description: 'Include all policies attached to each group.',
+      },
+      installKey: {
+        type: 'string',
+        description: '24-character install key from Computer Groups page (required for get_by_install_key).',
+      },
     },
     required: ['action'],
   },
 };
 
 interface ComputerGroupsInput {
-  action?: 'list' | 'dropdown' | 'dropdown_with_org';
+  action?: 'list' | 'dropdown' | 'dropdown_with_org' | 'get_for_permit' | 'get_by_install_key';
   osType?: number;
   includeGlobal?: boolean;
   includeAllComputers?: boolean;
@@ -95,6 +105,8 @@ interface ComputerGroupsInput {
   computerGroupId?: string;
   hideGlobals?: boolean;
   includeAvailableOrganizations?: boolean;
+  includeAllPolicies?: boolean;
+  installKey?: string;
 }
 
 export async function handleComputerGroupsTool(
@@ -116,6 +128,8 @@ export async function handleComputerGroupsTool(
     computerGroupId,
     hideGlobals = false,
     includeAvailableOrganizations = false,
+    includeAllPolicies = false,
+    installKey,
   } = input;
 
   if (!action) {
@@ -135,7 +149,7 @@ export async function handleComputerGroupsTool(
         includeIngestors: String(includeIngestors),
         includeAccessDevices: String(includeAccessDevices),
         includeRemovedComputers: String(includeRemovedComputers),
-        includeAllPolicies: 'false',
+        includeAllPolicies: String(includeAllPolicies),
       };
       if (computerGroupId) {
         params.computerGroupId = computerGroupId;
@@ -153,6 +167,15 @@ export async function handleComputerGroupsTool(
       return client.get('ComputerGroup/ComputerGroupGetDropdownWithOrganization', {
         includeAvailableOrganizations: String(includeAvailableOrganizations),
       });
+
+    case 'get_for_permit':
+      return client.get('ComputerGroup/ComputerGroupGetForPermitApplication', {});
+
+    case 'get_by_install_key':
+      if (!installKey) {
+        return errorResponse('BAD_REQUEST', 'installKey is required for get_by_install_key action');
+      }
+      return client.get('ComputerGroup/ComputerGroupGetForDownload', { installKey });
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

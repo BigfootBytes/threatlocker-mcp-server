@@ -15,6 +15,9 @@ Common workflows:
 - Get details of a specific event: action=get, actionLogId="..."
 - Track a file's history across all computers: action=file_history, fullPath="C:\\path\\to\\file.exe"
 - Aggregate by user to find who's triggering denies: action=search, ..., groupBys=[1]
+- Get file download details: action=get_file_download, actionLogId="..."
+- Get policy conditions for permit: action=get_policy_conditions, actionLogId="..."
+- Get testing environment details: action=get_testing_details, actionLogId="..."
 
 Related tools: computers (find computer IDs), applications (identify apps), approval_requests (handle denied software)`,
   inputSchema: {
@@ -22,8 +25,8 @@ Related tools: computers (find computer IDs), applications (identify apps), appr
     properties: {
       action: {
         type: 'string',
-        enum: ['search', 'get', 'file_history'],
-        description: 'search=query logs with filters, get=single event details, file_history=all events for a file path',
+        enum: ['search', 'get', 'file_history', 'get_file_download', 'get_policy_conditions', 'get_testing_details'],
+        description: 'search=query logs with filters, get=single event details, file_history=all events for a file path, get_file_download=file download info, get_policy_conditions=policy conditions for permit, get_testing_details=testing environment details',
       },
       startDate: {
         type: 'string',
@@ -86,7 +89,7 @@ Related tools: computers (find computer IDs), applications (identify apps), appr
 };
 
 interface ActionLogInput {
-  action?: 'search' | 'get' | 'file_history';
+  action?: 'search' | 'get' | 'file_history' | 'get_file_download' | 'get_policy_conditions' | 'get_testing_details';
   startDate?: string;
   endDate?: string;
   actionId?: number;
@@ -161,7 +164,7 @@ export async function handleActionLogTool(
       }
       return client.get('ActionLog/ActionLogGetByIdV2', { actionLogId });
 
-    case 'file_history':
+    case 'file_history': {
       if (!fullPath) {
         return errorResponse('BAD_REQUEST', 'fullPath is required for file_history action');
       }
@@ -170,6 +173,25 @@ export async function handleActionLogTool(
         params.computerId = computerId;
       }
       return client.get('ActionLog/ActionLogGetAllForFileHistoryV2', params);
+    }
+
+    case 'get_file_download':
+      if (!actionLogId) {
+        return errorResponse('BAD_REQUEST', 'actionLogId is required for get_file_download action');
+      }
+      return client.get('ActionLog/ActionLogGetFileDownloadDetailsById', { actionLogId });
+
+    case 'get_policy_conditions':
+      if (!actionLogId) {
+        return errorResponse('BAD_REQUEST', 'actionLogId is required for get_policy_conditions action');
+      }
+      return client.post('ActionLog/ActionLogGetPolicyConditionsForPermitApplication', { actionLogId });
+
+    case 'get_testing_details':
+      if (!actionLogId) {
+        return errorResponse('BAD_REQUEST', 'actionLogId is required for get_testing_details action');
+      }
+      return client.post('ActionLog/ActionLogGetTestingEnvironmentDetailsById', { actionLogId });
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

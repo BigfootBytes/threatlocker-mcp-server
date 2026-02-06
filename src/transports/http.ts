@@ -91,7 +91,7 @@ const computersZodSchema = {
 };
 
 const computerGroupsZodSchema = {
-  action: z.enum(['list', 'dropdown', 'dropdown_with_org']).describe('Action to perform'),
+  action: z.enum(['list', 'dropdown', 'dropdown_with_org', 'get_for_permit', 'get_by_install_key']).describe('Action to perform'),
   osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
   includeGlobal: z.boolean().optional().describe('Include global application-permitting group (list action)'),
   includeAllComputers: z.boolean().optional().describe('Include all computers in response (list action)'),
@@ -105,11 +105,13 @@ const computerGroupsZodSchema = {
   computerGroupId: z.string().optional().describe('Filter by specific computer group ID (list action)'),
   hideGlobals: z.boolean().optional().describe('Hide global groups (dropdown action)'),
   includeAvailableOrganizations: z.boolean().optional().describe('Include child and parent organizations (dropdown_with_org action)'),
+  includeAllPolicies: z.boolean().optional().describe('Include all policies attached to groups (list action)'),
+  installKey: z.string().optional().describe('24-character install key (required for get_by_install_key)'),
 };
 
 const applicationsZodSchema = {
-  action: z.enum(['search', 'get', 'research', 'files']).describe('Action to perform'),
-  applicationId: z.string().optional().describe('Application ID (required for get, research, and files)'),
+  action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy']).describe('Action to perform'),
+  applicationId: z.string().optional().describe('Application ID (required for get, research, files, get_for_network_policy)'),
   searchText: z.string().optional().describe('Search text for search and files actions'),
   searchBy: z.enum(['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries']).optional().describe('Field to search by (default: app)'),
   osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
@@ -122,6 +124,12 @@ const applicationsZodSchema = {
   countries: z.array(z.string()).optional().describe('ISO country codes to filter by (use with searchBy=countries)'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Page size (default: 25)'),
+  hash: z.string().optional().describe('SHA256 hash for match action'),
+  path: z.string().optional().describe('Full file path for match action'),
+  processPath: z.string().optional().describe('Process path for match action'),
+  cert: z.string().optional().describe('Certificate subject for match action'),
+  certSha: z.string().optional().describe('Certificate SHA for match action'),
+  createdBy: z.string().optional().describe('Created by path for match action'),
 };
 
 const policiesZodSchema = {
@@ -136,13 +144,13 @@ const policiesZodSchema = {
 };
 
 const actionLogZodSchema = {
-  action: z.enum(['search', 'get', 'file_history']).describe('Action to perform'),
+  action: z.enum(['search', 'get', 'file_history', 'get_file_download', 'get_policy_conditions', 'get_testing_details']).describe('Action to perform'),
   startDate: z.string().optional().describe('Start date for search (ISO 8601 UTC)'),
   endDate: z.string().optional().describe('End date for search (ISO 8601 UTC)'),
   actionId: z.union([z.literal(1), z.literal(2), z.literal(99)]).optional().describe('Filter by action: 1=Permit, 2=Deny, 99=Any Deny'),
   actionType: z.enum(['execute', 'install', 'network', 'registry', 'read', 'write', 'move', 'delete', 'baseline', 'powershell', 'elevate', 'configuration', 'dns']).optional().describe('Filter by action type'),
   hostname: z.string().optional().describe('Filter by hostname (wildcards supported)'),
-  actionLogId: z.string().optional().describe('Action log ID (required for get action)'),
+  actionLogId: z.string().optional().describe('Action log ID (required for get, get_file_download, get_policy_conditions, get_testing_details)'),
   fullPath: z.string().optional().describe('File path for search filter or file_history (wildcards supported)'),
   computerId: z.string().optional().describe('Computer ID to scope file_history'),
   showChildOrganizations: z.boolean().optional().describe('Include child organization logs (default: false)'),

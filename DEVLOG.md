@@ -2,6 +2,10 @@
 
 ## 2026-02-05
 
+- Added missing read endpoints to complete API coverage:
+  - **computer_groups**: `get_for_permit` (groups for approval workflow), `get_by_install_key` (group by install key), `includeAllPolicies` parameter
+  - **applications**: `match` (find apps by hash/cert/path), `get_for_maintenance` (apps for maintenance mode), `get_for_network_policy` (app for network policy)
+  - **action_log**: `get_file_download` (file download details), `get_policy_conditions` (policy conditions for permit), `get_testing_details` (testing environment details)
 - Enhanced all 12 tool descriptions with richer AI-friendly documentation:
   - Added multi-line descriptions explaining what each tool does and why
   - Added "Common workflows" sections with example parameter combinations

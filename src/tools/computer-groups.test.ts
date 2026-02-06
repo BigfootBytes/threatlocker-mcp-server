@@ -91,4 +91,28 @@ describe('computer_groups tool', () => {
       { includeAvailableOrganizations: 'true' }
     );
   });
+
+  it('calls correct endpoint for get_for_permit action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
+    await handleComputerGroupsTool(mockClient, { action: 'get_for_permit' });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'ComputerGroup/ComputerGroupGetForPermitApplication',
+      {}
+    );
+  });
+
+  it('calls correct endpoint for get_by_install_key action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
+    await handleComputerGroupsTool(mockClient, { action: 'get_by_install_key', installKey: 'ABC123DEF456GHI789JKL012' });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'ComputerGroup/ComputerGroupGetForDownload',
+      { installKey: 'ABC123DEF456GHI789JKL012' }
+    );
+  });
+
+  it('returns error for get_by_install_key without installKey', async () => {
+    const result = await handleComputerGroupsTool(mockClient, { action: 'get_by_install_key' });
+    expect(result.success).toBe(false);
+    expect(result.error?.message).toContain('installKey');
+  });
 });

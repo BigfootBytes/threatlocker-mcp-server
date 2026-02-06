@@ -125,4 +125,37 @@ describe('applications tool', () => {
       expect.objectContaining({ applicationId: 'app-123' })
     );
   });
+
+  it('calls correct endpoint for match action', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: [] });
+    await handleApplicationsTool(mockClient, { action: 'match', hash: 'abc123', osType: 1 });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'Application/ApplicationGetMatchingList',
+      expect.objectContaining({ osType: 1, hash: 'abc123' })
+    );
+  });
+
+  it('calls correct endpoint for get_for_maintenance action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
+    await handleApplicationsTool(mockClient, { action: 'get_for_maintenance' });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'Application/ApplicationGetForMaintenanceMode',
+      {}
+    );
+  });
+
+  it('calls correct endpoint for get_for_network_policy action', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
+    await handleApplicationsTool(mockClient, { action: 'get_for_network_policy', applicationId: 'app-123' });
+    expect(mockClient.get).toHaveBeenCalledWith(
+      'Application/ApplicationGetForNetworkPolicyProcessById',
+      { applicationId: 'app-123' }
+    );
+  });
+
+  it('returns error for get_for_network_policy without applicationId', async () => {
+    const result = await handleApplicationsTool(mockClient, { action: 'get_for_network_policy' });
+    expect(result.success).toBe(false);
+    expect(result.error?.message).toContain('applicationId');
+  });
 });
