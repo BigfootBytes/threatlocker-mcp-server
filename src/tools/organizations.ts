@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
 
 export const organizationsToolSchema = {
   name: 'organizations',
@@ -75,9 +75,8 @@ export async function handleOrganizationsTool(
     includeAllChildren = false,
     orderBy = 'name',
     isAscending = true,
-    pageNumber = 1,
-    pageSize = 25,
   } = input;
+  const { pageNumber, pageSize } = clampPagination(input.pageNumber, input.pageSize);
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');

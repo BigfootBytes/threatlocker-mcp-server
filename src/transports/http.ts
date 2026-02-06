@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import express, { Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
@@ -33,7 +34,7 @@ interface SSESession {
 // Active SSE sessions by session ID
 const sseSessions = new Map<string, SSESession>();
 
-function extractCredentials(req: Request): ClientCredentials | null {
+export function extractCredentials(req: Request): ClientCredentials | null {
   let apiKey = req.headers['authorization'] as string;
   const baseUrl = req.headers['x-threatlocker-base-url'] as string;
   const organizationId = req.headers['x-threatlocker-org-id'] as string | undefined;
@@ -43,14 +44,15 @@ function extractCredentials(req: Request): ClientCredentials | null {
   }
 
   // Strip "Bearer " prefix if present (Claude Desktop may add it automatically)
-  if (apiKey.toLowerCase().startsWith('bearer ')) {
-    apiKey = apiKey.substring(7);
+  const bearerMatch = apiKey.match(/^Bearer\s+(.+)$/i);
+  if (bearerMatch) {
+    apiKey = bearerMatch[1];
   }
 
   return { apiKey, baseUrl, organizationId };
 }
 
-function validateOrigin(req: Request): boolean {
+export function validateOrigin(req: Request): boolean {
   const origin = req.headers['origin'];
 
   // No origin header (non-browser clients) - allow
@@ -456,7 +458,7 @@ function createMcpServer(client: ThreatLockerClient): McpServer {
   return server;
 }
 
-export function createHttpServer(port: number): void {
+export function createApp(): ReturnType<typeof express> {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
 
@@ -475,6 +477,30 @@ export function createHttpServer(port: number): void {
   app.use('/mcp', apiLimiter);
   app.use('/sse', apiLimiter);
   app.use('/messages', apiLimiter);
+
+  // Rate limiting for unauthenticated metadata endpoints
+  const metadataLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 200,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+  });
+  app.use('/health', metadataLimiter);
+
+  // CORS response headers for allowed browser origins
+  app.use((req, res, next) => {
+    const origin = req.headers['origin'];
+    if (origin && validateOrigin(req)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Headers', 'Authorization, X-ThreatLocker-Base-URL, X-ThreatLocker-Org-ID, Content-Type');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    }
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+    next();
+  });
 
   // Request logging middleware
   app.use((req, _res, next) => {
@@ -621,8 +647,8 @@ export function createHttpServer(port: number): void {
       const server = createMcpServer(client);
       const transport = new SSEServerTransport('/messages', res);
 
-      // Generate session ID from transport
-      const sessionId = Math.random().toString(36).substring(2, 15);
+      // Generate cryptographically secure session ID
+      const sessionId = randomUUID();
       sseSessions.set(sessionId, { transport, server });
       log('INFO', 'SSE session connected', { sessionId, activeSessions: sseSessions.size });
 
@@ -751,6 +777,11 @@ export function createHttpServer(port: number): void {
     });
   });
 
+  return app;
+}
+
+export function createHttpServer(port: number): void {
+  const app = createApp();
   app.listen(port, () => {
     console.error(`ThreatLocker MCP server running on http://localhost:${port}`);
     console.error('');

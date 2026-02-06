@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
 
 export const policiesToolSchema = {
   name: 'policies',
@@ -79,9 +79,8 @@ export async function handlePoliciesTool(
     organizationId,
     appliesToId,
     includeDenies = false,
-    pageNumber = 1,
-    pageSize = 25,
   } = input;
+  const { pageNumber, pageSize } = clampPagination(input.pageNumber, input.pageSize);
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');

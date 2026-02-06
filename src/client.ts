@@ -23,22 +23,22 @@ function maskApiKey(key: string): string {
   return `${key.substring(0, 4)}${'*'.repeat(key.length - 8)}${key.substring(key.length - 4)}`;
 }
 
-// Recursively sanitize data by replacing API key occurrences
-function sanitizeLogData(data: unknown, apiKey: string): unknown {
-  if (!apiKey || !data) return data;
+// Recursively sanitize data by replacing API key occurrences (depth-limited to prevent stack overflow)
+function sanitizeLogData(data: unknown, apiKey: string, depth = 0): unknown {
+  if (!apiKey || !data || depth > 10) return data;
 
   if (typeof data === 'string') {
     return data.split(apiKey).join(maskApiKey(apiKey));
   }
 
   if (Array.isArray(data)) {
-    return data.map(item => sanitizeLogData(item, apiKey));
+    return data.map(item => sanitizeLogData(item, apiKey, depth + 1));
   }
 
   if (typeof data === 'object' && data !== null) {
     const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
-      sanitized[key] = sanitizeLogData(value, apiKey);
+      sanitized[key] = sanitizeLogData(value, apiKey, depth + 1);
     }
     return sanitized;
   }

@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
 
 export const computersToolSchema = {
   name: 'computers',
@@ -110,10 +110,9 @@ export async function handleComputersTool(
     isAscending = true,
     childOrganizations = false,
     kindOfAction,
-    pageNumber = 1,
-    pageSize = 25,
     hideHeartbeat = false,
   } = input;
+  const { pageNumber, pageSize } = clampPagination(input.pageNumber, input.pageSize);
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');

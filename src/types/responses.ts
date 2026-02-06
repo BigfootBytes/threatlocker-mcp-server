@@ -41,6 +41,13 @@ export function errorResponse(code: ErrorCode, message: string, statusCode?: num
   };
 }
 
+export function clampPagination(pageNumber?: number, pageSize?: number): { pageNumber: number; pageSize: number } {
+  return {
+    pageNumber: Math.max(1, Math.floor(pageNumber ?? 1)),
+    pageSize: Math.max(1, Math.min(Math.floor(pageSize ?? 25), 500)),
+  };
+}
+
 export function mapHttpStatusToErrorCode(status: number): ErrorCode {
   switch (status) {
     case 400:

@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
 
 export const systemAuditToolSchema = {
   name: 'system_audit',
@@ -119,9 +119,8 @@ export async function handleSystemAuditTool(
     objectId,
     days = 7,
     searchText = '',
-    pageNumber = 1,
-    pageSize = 25,
   } = input;
+  const { pageNumber, pageSize } = clampPagination(input.pageNumber, input.pageSize);
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');

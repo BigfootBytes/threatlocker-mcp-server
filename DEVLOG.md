@@ -1,5 +1,15 @@
 # ThreatLocker MCP Server - Development Log
 
+## 0.10.1 (2026-02-06)
+
+- Security hardening from codebase audit (6 fixes):
+  - **HIGH**: Replaced `Math.random()` SSE session IDs with `crypto.randomUUID()` for cryptographic security
+  - **MEDIUM**: Added depth limit (max 10) to recursive `sanitizeLogData()` to prevent stack overflow on deeply nested API responses
+  - **MEDIUM**: Added `clampPagination()` helper to enforce pageSize bounds (1-500) and pageNumber minimum (1) across all 9 paginated tools
+  - **LOW**: Added rate limiting (200 req/15min) to `/health` metadata endpoint
+  - **LOW**: Added CORS response headers (`Access-Control-Allow-Origin/Headers/Methods`) and `OPTIONS` preflight handling for allowed browser origins
+  - **LOW**: Improved Bearer token prefix stripping with regex to avoid edge-case key corruption
+
 ## 0.10.0 (2026-02-06)
 
 - Added Streamable HTTP via `mcp-remote` configuration example to README for Claude Desktop users
