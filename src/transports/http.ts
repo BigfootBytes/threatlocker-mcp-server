@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
@@ -54,11 +55,6 @@ function validateOrigin(req: Request): boolean {
 
   // No origin header (non-browser clients) - allow
   if (origin === undefined) {
-    return true;
-  }
-
-  // Null origin (local files, sandboxed iframes) - allow
-  if (origin === 'null') {
     return true;
   }
 
@@ -462,7 +458,23 @@ function createMcpServer(client: ThreatLockerClient): McpServer {
 
 export function createHttpServer(port: number): void {
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '1mb' }));
+
+  // Rate limiting for authenticated endpoints
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 100, // 100 requests per window per IP
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: {
+      success: false,
+      error: { code: 'RATE_LIMITED', message: 'Too many requests, please try again later' },
+    },
+  });
+  app.use('/tools', apiLimiter);
+  app.use('/mcp', apiLimiter);
+  app.use('/sse', apiLimiter);
+  app.use('/messages', apiLimiter);
 
   // Request logging middleware
   app.use((req, _res, next) => {

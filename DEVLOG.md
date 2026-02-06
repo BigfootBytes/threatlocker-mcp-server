@@ -1,5 +1,12 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-05 (Security Hardening)
+
+- Removed CORS `origin === 'null'` bypass to prevent sandboxed iframe attacks
+- Added rate limiting (100 req/15min per IP) on all authenticated endpoints via express-rate-limit
+- Added 1MB request body size limit to prevent memory exhaustion
+- Fixed README license to match LICENSE file (GPL-3.0, was incorrectly listed as MIT)
+
 ## 2026-02-05
 
 - Added missing read endpoints to complete API coverage:

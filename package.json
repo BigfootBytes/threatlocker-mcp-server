@@ -1,6 +1,6 @@
 {
   "name": "threatlocker-mcp",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "MCP server for ThreatLocker API",
   "type": "module",
   "main": "dist/index.js",
@@ -14,7 +14,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
     "dotenv": "^17.2.3",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
