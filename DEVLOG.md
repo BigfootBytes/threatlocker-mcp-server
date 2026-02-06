@@ -1,5 +1,11 @@
 # ThreatLocker MCP Server - Development Log
 
+## 0.9.1 (2026-02-05)
+
+- Replaced placeholder SECURITY.md with proper security policy (reporting via GitHub Security Advisories, supported versions, security considerations)
+- Fixed scheduled_actions `list` action: added missing `scheduledType` and `includeChildren` query parameters required by the API (was returning 417)
+- Added `scheduledType` and `includeChildren` as configurable tool inputs
+
 ## 2026-02-05 (CI)
 
 - Added automatic GitHub Releases to tag publish workflow (via softprops/action-gh-release)

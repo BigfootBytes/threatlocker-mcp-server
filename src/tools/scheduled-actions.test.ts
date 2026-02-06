@@ -33,7 +33,10 @@ describe('scheduled_actions tool', () => {
   it('calls correct endpoint for list action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
     await handleScheduledActionsTool(mockClient, { action: 'list' });
-    expect(mockClient.get).toHaveBeenCalledWith('ScheduledAgentAction/List', {});
+    expect(mockClient.get).toHaveBeenCalledWith('ScheduledAgentAction/List', {
+      scheduledType: '1',
+      includeChildren: 'false',
+    });
   });
 
   it('calls correct endpoint for search action', async () => {

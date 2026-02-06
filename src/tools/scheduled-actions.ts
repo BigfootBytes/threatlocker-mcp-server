@@ -28,6 +28,14 @@ Related tools: computers (see current versions), computer_groups (target groups 
         type: 'string',
         description: 'Scheduled action GUID (required for get). Get from list or search.',
       },
+      scheduledType: {
+        type: 'number',
+        description: 'Scheduled type identifier (default: 1 for Version Update). Used by list action.',
+      },
+      includeChildren: {
+        type: 'boolean',
+        description: 'Include child organizations (list action only).',
+      },
       organizationIds: {
         type: 'array',
         items: { type: 'string' },
@@ -63,6 +71,8 @@ Related tools: computers (see current versions), computer_groups (target groups 
 interface ScheduledActionsInput {
   action?: 'list' | 'search' | 'get' | 'get_applies_to';
   scheduledActionId?: string;
+  scheduledType?: number;
+  includeChildren?: boolean;
   organizationIds?: string[];
   computerGroupIds?: string[];
   orderBy?: string;
@@ -78,6 +88,8 @@ export async function handleScheduledActionsTool(
   const {
     action,
     scheduledActionId,
+    scheduledType = 1,
+    includeChildren = false,
     organizationIds = [],
     computerGroupIds = [],
     orderBy = 'scheduleddatetime',
@@ -92,7 +104,10 @@ export async function handleScheduledActionsTool(
 
   switch (action) {
     case 'list':
-      return client.get('ScheduledAgentAction/List', {});
+      return client.get('ScheduledAgentAction/List', {
+        scheduledType: String(scheduledType),
+        includeChildren: String(includeChildren),
+      });
 
     case 'search':
       return client.post(
