@@ -3,6 +3,8 @@
 ## 0.9.2 (2026-02-06)
 
 - Added Streamable HTTP via `mcp-remote` configuration example to README for Claude Desktop users
+- Upgraded vitest 2.1.9 → 4.0.18 to resolve moderate esbuild dev server vulnerability (CVE in esbuild ≤ 0.24.2)
+- Updated dotenv 17.2.3 → 17.2.4 (patch)
 
 ## 0.9.1 (2026-02-05)
 
