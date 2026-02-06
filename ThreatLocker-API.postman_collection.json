@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "ThreatLocker API",
-    "description": "Collection for testing ThreatLocker Portal API endpoints",
+    "description": "Collection for testing ThreatLocker Portal API endpoints. Covers all read-only operations available in the ThreatLocker MCP Server.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -64,7 +64,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pageNumber\": 1,\n  \"pageSize\": 25,\n  \"isAscending\": true,\n  \"orderBy\": \"computername\"\n}"
+              "raw": "{\n  \"pageNumber\": 1,\n  \"pageSize\": 25,\n  \"isAscending\": true,\n  \"orderBy\": \"computername\",\n  \"searchText\": \"\",\n  \"searchBy\": 1,\n  \"action\": \"\",\n  \"computerGroup\": \"\",\n  \"childOrganizations\": false,\n  \"kindOfAction\": \"\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/Computer/ComputerGetByAllParameters",
@@ -111,6 +111,18 @@
               "path": ["ComputerCheckin", "ComputerCheckinGetByParameters"]
             }
           }
+        },
+        {
+          "name": "Get Install Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Computer/ComputerGetForNewComputer",
+              "host": ["{{baseUrl}}"],
+              "path": ["Computer", "ComputerGetForNewComputer"]
+            }
+          }
         }
       ]
     },
@@ -123,40 +135,74 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/ComputerGroup/ComputerGroupGetGroupAndComputer?osType=0&includeAllComputers=true&includeGlobal=false",
+              "raw": "{{baseUrl}}/ComputerGroup/ComputerGroupGetGroupAndComputer?osType=0&includeAllComputers=true&includeGlobal=false&includeAllPolicies=false&includeOrganizations=false&includeParentGroups=false",
               "host": ["{{baseUrl}}"],
               "path": ["ComputerGroup", "ComputerGroupGetGroupAndComputer"],
               "query": [
-                {
-                  "key": "osType",
-                  "value": "0"
-                },
-                {
-                  "key": "includeAllComputers",
-                  "value": "true"
-                },
-                {
-                  "key": "includeGlobal",
-                  "value": "false"
-                }
+                { "key": "osType", "value": "0" },
+                { "key": "includeAllComputers", "value": "true" },
+                { "key": "includeGlobal", "value": "false" },
+                { "key": "includeAllPolicies", "value": "false" },
+                { "key": "includeOrganizations", "value": "false" },
+                { "key": "includeParentGroups", "value": "false" }
               ]
             }
           }
         },
         {
-          "name": "Get Computer Groups Dropdown",
+          "name": "Get Dropdown by Org",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/ComputerGroup/ComputerGroupGetDropdownWithOrganization?hideGlobals=false",
+              "raw": "{{baseUrl}}/ComputerGroup/ComputerGroupGetDropdownByOrganizationId?computerGroupOSTypeId=0&hideGlobals=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["ComputerGroup", "ComputerGroupGetDropdownByOrganizationId"],
+              "query": [
+                { "key": "computerGroupOSTypeId", "value": "0" },
+                { "key": "hideGlobals", "value": "false" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Dropdown with Organizations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ComputerGroup/ComputerGroupGetDropdownWithOrganization?includeAvailableOrganizations=true",
               "host": ["{{baseUrl}}"],
               "path": ["ComputerGroup", "ComputerGroupGetDropdownWithOrganization"],
               "query": [
-                {
-                  "key": "hideGlobals",
-                  "value": "false"
-                }
+                { "key": "includeAvailableOrganizations", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Groups for Permit Application",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ComputerGroup/ComputerGroupGetForPermitApplication",
+              "host": ["{{baseUrl}}"],
+              "path": ["ComputerGroup", "ComputerGroupGetForPermitApplication"]
+            }
+          }
+        },
+        {
+          "name": "Get Group by Install Key",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ComputerGroup/ComputerGroupGetForDownload?installKey={{installKey}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ComputerGroup", "ComputerGroupGetForDownload"],
+              "query": [
+                { "key": "installKey", "value": "{{installKey}}" }
               ]
             }
           }
@@ -171,14 +217,11 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pageNumber\": 1,\n  \"pageSize\": 25,\n  \"searchBy\": \"app\",\n  \"searchText\": \"\",\n  \"osType\": 0,\n  \"isAscending\": true,\n  \"orderBy\": \"name\"\n}"
+              "raw": "{\n  \"pageNumber\": 1,\n  \"pageSize\": 25,\n  \"searchBy\": \"app\",\n  \"searchText\": \"\",\n  \"osType\": 0,\n  \"category\": 0,\n  \"isAscending\": true,\n  \"orderBy\": \"name\",\n  \"includeChildOrganizations\": false,\n  \"isHidden\": false,\n  \"permittedApplications\": false\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/Application/ApplicationGetByParameters",
@@ -197,10 +240,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["Application", "ApplicationGetById"],
               "query": [
-                {
-                  "key": "applicationId",
-                  "value": "{{applicationId}}"
-                }
+                { "key": "applicationId", "value": "{{applicationId}}" }
               ]
             }
           }
@@ -215,10 +255,69 @@
               "host": ["{{baseUrl}}"],
               "path": ["Application", "ApplicationGetResearchDetailsById"],
               "query": [
-                {
-                  "key": "applicationId",
-                  "value": "{{applicationId}}"
-                }
+                { "key": "applicationId", "value": "{{applicationId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Application Files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ApplicationFile/ApplicationFileGetByApplicationId?applicationId={{applicationId}}&pageNumber=1&pageSize=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["ApplicationFile", "ApplicationFileGetByApplicationId"],
+              "query": [
+                { "key": "applicationId", "value": "{{applicationId}}" },
+                { "key": "pageNumber", "value": "1" },
+                { "key": "pageSize", "value": "25" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Find Matching Applications",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"osType\": 1,\n  \"hash\": \"\",\n  \"path\": \"\",\n  \"processPath\": \"\",\n  \"sha256\": \"\",\n  \"certs\": [],\n  \"createdBys\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Application/ApplicationGetMatchingList",
+              "host": ["{{baseUrl}}"],
+              "path": ["Application", "ApplicationGetMatchingList"]
+            }
+          }
+        },
+        {
+          "name": "Get Apps for Maintenance Mode",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Application/ApplicationGetForMaintenanceMode",
+              "host": ["{{baseUrl}}"],
+              "path": ["Application", "ApplicationGetForMaintenanceMode"]
+            }
+          }
+        },
+        {
+          "name": "Get App for Network Policy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Application/ApplicationGetForNetworkPolicyProcessById?applicationId={{applicationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Application", "ApplicationGetForNetworkPolicyProcessById"],
+              "query": [
+                { "key": "applicationId", "value": "{{applicationId}}" }
               ]
             }
           }
@@ -238,10 +337,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["Policy", "PolicyGetById"],
               "query": [
-                {
-                  "key": "policyId",
-                  "value": "{{policyId}}"
-                }
+                { "key": "policyId", "value": "{{policyId}}" }
               ]
             }
           }
@@ -251,14 +347,11 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"applicationId\": \"{{applicationId}}\",\n  \"organizationId\": \"{{orgId}}\",\n  \"pageNumber\": 1,\n  \"pageSize\": 25,\n  \"includeDenies\": false\n}"
+              "raw": "{\n  \"applicationId\": \"{{applicationId}}\",\n  \"organizationId\": \"{{orgId}}\",\n  \"pageNumber\": 1,\n  \"pageSize\": 25,\n  \"appliesToId\": \"\",\n  \"includeDenies\": false\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/Policy/PolicyGetForViewPoliciesByApplicationId",
@@ -270,30 +363,444 @@
       ]
     },
     {
-      "name": "Unified Audit",
+      "name": "Unified Audit (Action Log)",
       "item": [
         {
-          "name": "Get Action Logs",
+          "name": "Search Action Logs",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "usenewsearch",
-                "value": "true"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "usenewsearch", "value": "true" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00Z\",\n  \"endDate\": \"2025-01-31T23:59:59Z\",\n  \"pageNumber\": 1,\n  \"pageSize\": 100,\n  \"paramsFieldsDto\": [],\n  \"showTotalCount\": true,\n  \"showChildOrganizations\": false\n}"
+              "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00Z\",\n  \"endDate\": \"2025-01-31T23:59:59Z\",\n  \"pageNumber\": 1,\n  \"pageSize\": 100,\n  \"paramsFieldsDto\": [],\n  \"groupBys\": [],\n  \"exportMode\": false,\n  \"showTotalCount\": true,\n  \"showChildOrganizations\": false,\n  \"onlyTrueDenies\": false,\n  \"simulateDeny\": false\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/ActionLog/ActionLogGetByParametersV2",
               "host": ["{{baseUrl}}"],
               "path": ["ActionLog", "ActionLogGetByParametersV2"]
+            }
+          }
+        },
+        {
+          "name": "Get Action Log by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ActionLog/ActionLogGetByIdV2?actionLogId={{actionLogId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ActionLog", "ActionLogGetByIdV2"],
+              "query": [
+                { "key": "actionLogId", "value": "{{actionLogId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get File History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ActionLog/ActionLogGetAllForFileHistoryV2?fullPath={{fullPath}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ActionLog", "ActionLogGetAllForFileHistoryV2"],
+              "query": [
+                { "key": "fullPath", "value": "{{fullPath}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get File Download Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ActionLog/ActionLogGetFileDownloadDetailsById?actionLogId={{actionLogId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ActionLog", "ActionLogGetFileDownloadDetailsById"],
+              "query": [
+                { "key": "actionLogId", "value": "{{actionLogId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Policy Conditions for Permit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"actionLogId\": \"{{actionLogId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ActionLog/ActionLogGetPolicyConditionsForPermitApplication",
+              "host": ["{{baseUrl}}"],
+              "path": ["ActionLog", "ActionLogGetPolicyConditionsForPermitApplication"]
+            }
+          }
+        },
+        {
+          "name": "Get Testing Environment Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"actionLogId\": \"{{actionLogId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ActionLog/ActionLogGetTestingEnvironmentDetailsById",
+              "host": ["{{baseUrl}}"],
+              "path": ["ActionLog", "ActionLogGetTestingEnvironmentDetailsById"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Approval Requests",
+      "item": [
+        {
+          "name": "List Approval Requests",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statusId\": 1,\n  \"pageNumber\": 1,\n  \"pageSize\": 25,\n  \"searchText\": \"\",\n  \"showChildOrganizations\": false,\n  \"orderBy\": \"datetime\",\n  \"isAscending\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ApprovalRequest/ApprovalRequestGetByParameters",
+              "host": ["{{baseUrl}}"],
+              "path": ["ApprovalRequest", "ApprovalRequestGetByParameters"]
+            }
+          }
+        },
+        {
+          "name": "Get Approval Request by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ApprovalRequest/ApprovalRequestGetById?approvalRequestId={{approvalRequestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ApprovalRequest", "ApprovalRequestGetById"],
+              "query": [
+                { "key": "approvalRequestId", "value": "{{approvalRequestId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Pending Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ApprovalRequest/ApprovalRequestGetCount",
+              "host": ["{{baseUrl}}"],
+              "path": ["ApprovalRequest", "ApprovalRequestGetCount"]
+            }
+          }
+        },
+        {
+          "name": "Get File Download Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ApprovalRequest/ApprovalRequestGetFileDownloadDetailsById?approvalRequestId={{approvalRequestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ApprovalRequest", "ApprovalRequestGetFileDownloadDetailsById"],
+              "query": [
+                { "key": "approvalRequestId", "value": "{{approvalRequestId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Permit Application Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ApprovalRequest/ApprovalRequestGetPermitApplicationById?approvalRequestId={{approvalRequestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ApprovalRequest", "ApprovalRequestGetPermitApplicationById"],
+              "query": [
+                { "key": "approvalRequestId", "value": "{{approvalRequestId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Storage Approval Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ApprovalRequest/ApprovalRequestGetStorageApprovalById?approvalRequestId={{approvalRequestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ApprovalRequest", "ApprovalRequestGetStorageApprovalById"],
+              "query": [
+                { "key": "approvalRequestId", "value": "{{approvalRequestId}}" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Organizations",
+      "item": [
+        {
+          "name": "List Child Organizations",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pageNumber\": 1,\n  \"pageSize\": 25,\n  \"includeAllChildren\": false,\n  \"isAscending\": true,\n  \"orderBy\": \"name\",\n  \"searchText\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Organization/OrganizationGetChildOrganizationsByParameters",
+              "host": ["{{baseUrl}}"],
+              "path": ["Organization", "OrganizationGetChildOrganizationsByParameters"]
+            }
+          }
+        },
+        {
+          "name": "Get Auth Key",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Organization/OrganizationGetAuthKeyById",
+              "host": ["{{baseUrl}}"],
+              "path": ["Organization", "OrganizationGetAuthKeyById"]
+            }
+          }
+        },
+        {
+          "name": "Get Orgs for Move Computers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Organization/OrganizationGetForMoveComputers",
+              "host": ["{{baseUrl}}"],
+              "path": ["Organization", "OrganizationGetForMoveComputers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "List Reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Report/ReportGetByOrganizationId",
+              "host": ["{{baseUrl}}"],
+              "path": ["Report", "ReportGetByOrganizationId"]
+            }
+          }
+        },
+        {
+          "name": "Get Report Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reportId\": \"{{reportId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Report/ReportGetDynamicData",
+              "host": ["{{baseUrl}}"],
+              "path": ["Report", "ReportGetDynamicData"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Maintenance Mode",
+      "item": [
+        {
+          "name": "Get Maintenance Mode History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/MaintenanceMode/MaintenanceModeGetByComputerIdV2?computerId={{computerId}}&pageNumber=1&pageSize=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["MaintenanceMode", "MaintenanceModeGetByComputerIdV2"],
+              "query": [
+                { "key": "computerId", "value": "{{computerId}}" },
+                { "key": "pageNumber", "value": "1" },
+                { "key": "pageSize", "value": "25" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Scheduled Actions",
+      "item": [
+        {
+          "name": "List Scheduled Actions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ScheduledAgentAction/List",
+              "host": ["{{baseUrl}}"],
+              "path": ["ScheduledAgentAction", "List"]
+            }
+          }
+        },
+        {
+          "name": "Search Scheduled Actions",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderBy\": \"scheduleddatetime\",\n  \"isAscending\": true,\n  \"pageSize\": 25,\n  \"pageNumber\": 1,\n  \"organizationIds\": [],\n  \"computerGroupIds\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ScheduledAgentAction/GetByParameters",
+              "host": ["{{baseUrl}}"],
+              "path": ["ScheduledAgentAction", "GetByParameters"]
+            }
+          }
+        },
+        {
+          "name": "Get Scheduled Action Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ScheduledAgentAction/GetForHydration?scheduledActionId={{scheduledActionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ScheduledAgentAction", "GetForHydration"],
+              "query": [
+                { "key": "scheduledActionId", "value": "{{scheduledActionId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Applies To Options",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ScheduledAgentAction/AppliesTo",
+              "host": ["{{baseUrl}}"],
+              "path": ["ScheduledAgentAction", "AppliesTo"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "System Audit",
+      "item": [
+        {
+          "name": "Search System Audit Logs",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00Z\",\n  \"endDate\": \"2025-01-31T23:59:59Z\",\n  \"pageSize\": 25,\n  \"pageNumber\": 1,\n  \"username\": \"\",\n  \"action\": \"\",\n  \"ipAddress\": \"\",\n  \"effectiveAction\": \"\",\n  \"details\": \"\",\n  \"viewChildOrganizations\": false,\n  \"objectId\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/SystemAudit/SystemAuditGetByParameters",
+              "host": ["{{baseUrl}}"],
+              "path": ["SystemAudit", "SystemAuditGetByParameters"]
+            }
+          }
+        },
+        {
+          "name": "Get Health Center Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"days\": 7,\n  \"isLoggedIn\": true,\n  \"pageSize\": 25,\n  \"pageNumber\": 1,\n  \"searchText\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/SystemAudit/SystemAuditGetForHealthCenter",
+              "host": ["{{baseUrl}}"],
+              "path": ["SystemAudit", "SystemAuditGetForHealthCenter"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tags",
+      "item": [
+        {
+          "name": "Get Tag by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Tag/TagGetById?tagId={{tagId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Tag", "TagGetById"],
+              "query": [
+                { "key": "tagId", "value": "{{tagId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Tags Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Tag/TagGetDowndownOptionsByOrganizationId?includeBuiltIns=false&tagType=1&includeNetworkTagInMaster=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["Tag", "TagGetDowndownOptionsByOrganizationId"],
+              "query": [
+                { "key": "includeBuiltIns", "value": "false" },
+                { "key": "tagType", "value": "1" },
+                { "key": "includeNetworkTagInMaster", "value": "true" }
+              ]
             }
           }
         }
