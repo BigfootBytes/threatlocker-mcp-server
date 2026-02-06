@@ -5,6 +5,10 @@
 - Added Streamable HTTP via `mcp-remote` configuration example to README for Claude Desktop users
 - Upgraded vitest 2.1.9 → 4.0.18 to resolve moderate esbuild dev server vulnerability (CVE in esbuild ≤ 0.24.2)
 - Updated dotenv 17.2.3 → 17.2.4 (patch)
+- Upgraded Node.js requirement from 20 to 24 LTS (Krypton, supported through April 2028)
+  - Updated Dockerfile base images to `node:24-alpine`
+  - Updated `@types/node` from ^20.0.0 to ^24.0.0
+  - Bumped TypeScript target from ES2022 to ES2024
 
 ## 0.9.1 (2026-02-05)
 
