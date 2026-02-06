@@ -175,6 +175,34 @@ docker run -d -p 8080:8080 -e TRANSPORT=http ghcr.io/applied-motion-systems/thre
 
 ### Claude Remote Configuration
 
+**Streamable HTTP via mcp-remote (Claude Desktop):**
+
+Claude Desktop does not yet support Streamable HTTP natively. Use [mcp-remote](https://www.npmjs.com/package/mcp-remote) as a proxy:
+
+```json
+{
+  "mcpServers": {
+    "threatlocker": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://your-server.example.com/mcp",
+        "--header",
+        "Authorization:${THREATLOCKER_API_KEY}",
+        "--header",
+        "X-ThreatLocker-Base-URL:${THREATLOCKER_BASE_URL}"
+      ],
+      "env": {
+        "THREATLOCKER_API_KEY": "your-api-key",
+        "THREATLOCKER_BASE_URL": "https://portalapi.g.threatlocker.com/portalapi"
+      }
+    }
+  }
+}
+```
+
+**SSE (legacy):**
+
 ```json
 {
   "mcpServers": {

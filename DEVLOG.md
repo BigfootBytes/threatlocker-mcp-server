@@ -1,5 +1,9 @@
 # ThreatLocker MCP Server - Development Log
 
+## 0.9.2 (2026-02-06)
+
+- Added Streamable HTTP via `mcp-remote` configuration example to README for Claude Desktop users
+
 ## 0.9.1 (2026-02-05)
 
 - Replaced placeholder SECURITY.md with proper security policy (reporting via GitHub Security Advisories, supported versions, security considerations)
