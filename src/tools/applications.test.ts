@@ -156,6 +156,8 @@ describe('applications tool', () => {
   it('returns error for get_for_network_policy without applicationId', async () => {
     const result = await handleApplicationsTool(mockClient, { action: 'get_for_network_policy' });
     expect(result.success).toBe(false);
-    expect(result.error?.message).toContain('applicationId');
+    if (!result.success) {
+      expect(result.error.message).toContain('applicationId');
+    }
   });
 });

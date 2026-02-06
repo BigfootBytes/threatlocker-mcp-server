@@ -113,6 +113,8 @@ describe('computer_groups tool', () => {
   it('returns error for get_by_install_key without installKey', async () => {
     const result = await handleComputerGroupsTool(mockClient, { action: 'get_by_install_key' });
     expect(result.success).toBe(false);
-    expect(result.error?.message).toContain('installKey');
+    if (!result.success) {
+      expect(result.error.message).toContain('installKey');
+    }
   });
 });

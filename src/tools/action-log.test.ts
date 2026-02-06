@@ -116,7 +116,9 @@ describe('action_log tool', () => {
   it('returns error for get_file_download without actionLogId', async () => {
     const result = await handleActionLogTool(mockClient, { action: 'get_file_download' });
     expect(result.success).toBe(false);
-    expect(result.error?.message).toContain('actionLogId');
+    if (!result.success) {
+      expect(result.error.message).toContain('actionLogId');
+    }
   });
 
   it('calls correct endpoint for get_policy_conditions action', async () => {
@@ -131,7 +133,9 @@ describe('action_log tool', () => {
   it('returns error for get_policy_conditions without actionLogId', async () => {
     const result = await handleActionLogTool(mockClient, { action: 'get_policy_conditions' });
     expect(result.success).toBe(false);
-    expect(result.error?.message).toContain('actionLogId');
+    if (!result.success) {
+      expect(result.error.message).toContain('actionLogId');
+    }
   });
 
   it('calls correct endpoint for get_testing_details action', async () => {
@@ -146,6 +150,8 @@ describe('action_log tool', () => {
   it('returns error for get_testing_details without actionLogId', async () => {
     const result = await handleActionLogTool(mockClient, { action: 'get_testing_details' });
     expect(result.success).toBe(false);
-    expect(result.error?.message).toContain('actionLogId');
+    if (!result.success) {
+      expect(result.error.message).toContain('actionLogId');
+    }
   });
 });
