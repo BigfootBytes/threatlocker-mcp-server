@@ -1,5 +1,9 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-05 (CI)
+
+- Added automatic GitHub Releases to tag publish workflow (via softprops/action-gh-release)
+
 ## 2026-02-05 (Security Hardening)
 
 - Removed CORS `origin === 'null'` bypass to prevent sandboxed iframe attacks
