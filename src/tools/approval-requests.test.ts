@@ -91,4 +91,31 @@ describe('approval_requests tool', () => {
       { approvalRequestId: 'req-123' }
     );
   });
+
+  it('returns error for get_file_download_details without approvalRequestId', async () => {
+    const result = await handleApprovalRequestsTool(mockClient, { action: 'get_file_download_details' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+      expect(result.error.message).toContain('approvalRequestId');
+    }
+  });
+
+  it('returns error for get_permit_application without approvalRequestId', async () => {
+    const result = await handleApprovalRequestsTool(mockClient, { action: 'get_permit_application' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+      expect(result.error.message).toContain('approvalRequestId');
+    }
+  });
+
+  it('returns error for get_storage_approval without approvalRequestId', async () => {
+    const result = await handleApprovalRequestsTool(mockClient, { action: 'get_storage_approval' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+      expect(result.error.message).toContain('approvalRequestId');
+    }
+  });
 });

@@ -49,4 +49,12 @@ describe('tags tool', () => {
       expect.objectContaining({ includeBuiltIns: 'true' })
     );
   });
+
+  it('passes through client error for dropdown action', async () => {
+    const apiError = { success: false as const, error: { code: 'NETWORK_ERROR' as const, message: 'ECONNREFUSED' } };
+    vi.mocked(mockClient.get).mockResolvedValue(apiError);
+
+    const result = await handleTagsTool(mockClient, { action: 'dropdown' });
+    expect(result).toEqual(apiError);
+  });
 });

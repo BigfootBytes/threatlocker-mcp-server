@@ -1,5 +1,14 @@
 # ThreatLocker MCP Server - Development Log
 
+## 0.10.2 (2026-02-06)
+
+- Added 38 new tests covering high-value gaps (336 → 376 total):
+  - Unit tests for `successResponse`, `errorResponse`, `mapHttpStatusToErrorCode` response helpers
+  - Client `GET`/`POST` error-path tests (401/403/500 mapping, network failures, query params, headers, org headers)
+  - `extractPaginationFromHeaders` branch coverage (page computation, missing headers, defaults)
+  - Missing validation tests for `approval-requests` (3 actions) and `computers` (checkins)
+  - Client error passthrough verification for representative tools
+
 ## 0.10.1 (2026-02-06)
 
 - Security hardening from codebase audit (6 fixes):

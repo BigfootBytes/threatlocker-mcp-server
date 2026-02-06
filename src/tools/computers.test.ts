@@ -106,4 +106,29 @@ describe('computers tool', () => {
       {}
     );
   });
+
+  it('returns error for checkins without computerId', async () => {
+    const result = await handleComputersTool(mockClient, { action: 'checkins' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+      expect(result.error.message).toContain('computerId');
+    }
+  });
+
+  it('passes through client error for list action', async () => {
+    const apiError = { success: false as const, error: { code: 'UNAUTHORIZED' as const, message: 'Bad API key', statusCode: 401 } };
+    vi.mocked(mockClient.post).mockResolvedValue(apiError);
+
+    const result = await handleComputersTool(mockClient, { action: 'list' });
+    expect(result).toEqual(apiError);
+  });
+
+  it('passes through client error for get action', async () => {
+    const apiError = { success: false as const, error: { code: 'SERVER_ERROR' as const, message: 'Internal error', statusCode: 500 } };
+    vi.mocked(mockClient.get).mockResolvedValue(apiError);
+
+    const result = await handleComputersTool(mockClient, { action: 'get', computerId: 'abc-123' });
+    expect(result).toEqual(apiError);
+  });
 });

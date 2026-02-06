@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { ThreatLockerClient } from './client.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ThreatLockerClient, extractPaginationFromHeaders } from './client.js';
 import { clampPagination } from './types/responses.js';
 
 describe('ThreatLockerClient', () => {
@@ -95,5 +95,326 @@ describe('clampPagination', () => {
 
   it('floors fractional values', () => {
     expect(clampPagination(2.7, 30.9)).toEqual({ pageNumber: 2, pageSize: 30 });
+  });
+});
+
+describe('ThreatLockerClient.get', () => {
+  let client: ThreatLockerClient;
+
+  beforeEach(() => {
+    client = new ThreatLockerClient({
+      apiKey: 'test-api-key',
+      baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+    });
+  });
+
+  it('returns success response for 200', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: '123', name: 'test' }),
+    });
+
+    const result = await client.get('Test/Endpoint');
+    expect(result).toEqual({ success: true, data: { id: '123', name: 'test' } });
+  });
+
+  it('returns UNAUTHORIZED error for 401', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      text: async () => 'Invalid API key',
+    });
+
+    const result = await client.get('Test/Endpoint');
+    expect(result).toEqual({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'Unauthorized', statusCode: 401 },
+    });
+  });
+
+  it('returns FORBIDDEN error for 403', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      text: async () => 'Insufficient permissions',
+    });
+
+    const result = await client.get('Test/Endpoint');
+    expect(result).toEqual({
+      success: false,
+      error: { code: 'FORBIDDEN', message: 'Forbidden', statusCode: 403 },
+    });
+  });
+
+  it('returns SERVER_ERROR for 500', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      text: async () => 'Something broke',
+    });
+
+    const result = await client.get('Test/Endpoint');
+    expect(result).toEqual({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Internal Server Error', statusCode: 500 },
+    });
+  });
+
+  it('returns NETWORK_ERROR when fetch throws', async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
+
+    const result = await client.get('Test/Endpoint');
+    expect(result).toEqual({
+      success: false,
+      error: { code: 'NETWORK_ERROR', message: 'ECONNREFUSED' },
+    });
+  });
+
+  it('returns NETWORK_ERROR with "Unknown error" for non-Error throws', async () => {
+    global.fetch = vi.fn().mockRejectedValue('string error');
+
+    const result = await client.get('Test/Endpoint');
+    expect(result).toEqual({
+      success: false,
+      error: { code: 'NETWORK_ERROR', message: 'Unknown error' },
+    });
+  });
+
+  it('appends query params to URL', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    await client.get('Test/Endpoint', { computerId: 'abc', extra: '' });
+
+    const calledUrl = (global.fetch as any).mock.calls[0][0];
+    expect(calledUrl).toContain('computerId=abc');
+    expect(calledUrl).not.toContain('extra=');
+  });
+
+  it('sets Authorization and Content-Type headers', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    await client.get('Test/Endpoint');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'Authorization': 'test-api-key',
+          'Content-Type': 'application/json',
+        }),
+      })
+    );
+  });
+
+  it('includes organization headers when organizationId is set', async () => {
+    const orgClient = new ThreatLockerClient({
+      apiKey: 'test-api-key',
+      baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+      organizationId: 'org-123',
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    await orgClient.get('Test/Endpoint');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'ManagedOrganizationId': 'org-123',
+          'OverrideManagedOrganizationId': 'org-123',
+        }),
+      })
+    );
+  });
+});
+
+describe('ThreatLockerClient.post', () => {
+  let client: ThreatLockerClient;
+
+  beforeEach(() => {
+    client = new ThreatLockerClient({
+      apiKey: 'test-api-key',
+      baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+    });
+  });
+
+  it('returns success response for 200', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: 1 }],
+      headers: new Headers(),
+    });
+
+    const result = await client.post('Test/Endpoint', { filter: 'x' });
+    expect(result).toEqual({ success: true, data: [{ id: 1 }] });
+  });
+
+  it('returns UNAUTHORIZED error for 401', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      text: async () => '',
+    });
+
+    const result = await client.post('Test/Endpoint', {});
+    expect(result).toEqual({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'Unauthorized', statusCode: 401 },
+    });
+  });
+
+  it('returns NETWORK_ERROR when fetch throws', async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error('ETIMEDOUT'));
+
+    const result = await client.post('Test/Endpoint', {});
+    expect(result).toEqual({
+      success: false,
+      error: { code: 'NETWORK_ERROR', message: 'ETIMEDOUT' },
+    });
+  });
+
+  it('extracts pagination when callback is provided', async () => {
+    const mockHeaders = new Headers({
+      totalItems: '100',
+      totalPages: '4',
+      firstItem: '26',
+      lastItem: '50',
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+      headers: mockHeaders,
+    });
+
+    const extractPagination = (headers: Headers) => ({
+      page: 2,
+      pageSize: 25,
+      totalItems: parseInt(headers.get('totalItems')!, 10),
+      totalPages: parseInt(headers.get('totalPages')!, 10),
+    });
+
+    const result = await client.post('Test/Endpoint', {}, extractPagination);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.pagination).toEqual({
+        page: 2,
+        pageSize: 25,
+        totalItems: 100,
+        totalPages: 4,
+      });
+    }
+  });
+
+  it('omits pagination when callback returns undefined', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+      headers: new Headers(),
+    });
+
+    const result = await client.post('Test/Endpoint', {}, () => undefined);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.pagination).toBeUndefined();
+    }
+  });
+
+  it('sends JSON body', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+      headers: new Headers(),
+    });
+
+    await client.post('Test/Endpoint', { searchText: 'hello', pageSize: 10 });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        body: JSON.stringify({ searchText: 'hello', pageSize: 10 }),
+      })
+    );
+  });
+});
+
+describe('extractPaginationFromHeaders', () => {
+  it('returns pagination when totalItems and totalPages are present', () => {
+    const headers = new Headers({
+      totalItems: '100',
+      totalPages: '4',
+      firstItem: '1',
+      lastItem: '25',
+    });
+
+    const result = extractPaginationFromHeaders(headers);
+    expect(result).toEqual({
+      page: 1,
+      pageSize: 25,
+      totalItems: 100,
+      totalPages: 4,
+    });
+  });
+
+  it('computes correct page for non-first pages', () => {
+    const headers = new Headers({
+      totalItems: '100',
+      totalPages: '4',
+      firstItem: '26',
+      lastItem: '50',
+    });
+
+    const result = extractPaginationFromHeaders(headers);
+    expect(result).toEqual({
+      page: 2,
+      pageSize: 25,
+      totalItems: 100,
+      totalPages: 4,
+    });
+  });
+
+  it('returns undefined when totalItems header is missing', () => {
+    const headers = new Headers({ totalPages: '4' });
+    expect(extractPaginationFromHeaders(headers)).toBeUndefined();
+  });
+
+  it('returns undefined when totalPages header is missing', () => {
+    const headers = new Headers({ totalItems: '100' });
+    expect(extractPaginationFromHeaders(headers)).toBeUndefined();
+  });
+
+  it('returns undefined for empty headers', () => {
+    const headers = new Headers();
+    expect(extractPaginationFromHeaders(headers)).toBeUndefined();
+  });
+
+  it('defaults firstItem and lastItem to 1 when missing', () => {
+    const headers = new Headers({
+      totalItems: '50',
+      totalPages: '2',
+    });
+
+    const result = extractPaginationFromHeaders(headers);
+    // When both default to 1: pageSize = 1-1+1 = 1, page = floor(1/1)+1 = 2
+    expect(result).toEqual({
+      page: 2,
+      pageSize: 1,
+      totalItems: 50,
+      totalPages: 2,
+    });
   });
 });

@@ -154,4 +154,16 @@ describe('action_log tool', () => {
       expect(result.error.message).toContain('actionLogId');
     }
   });
+
+  it('passes through client error for search action', async () => {
+    const apiError = { success: false as const, error: { code: 'FORBIDDEN' as const, message: 'No permission', statusCode: 403 } };
+    vi.mocked(mockClient.post).mockResolvedValue(apiError);
+
+    const result = await handleActionLogTool(mockClient, {
+      action: 'search',
+      startDate: '2025-01-01T00:00:00Z',
+      endDate: '2025-01-31T23:59:59Z',
+    });
+    expect(result).toEqual(apiError);
+  });
 });
