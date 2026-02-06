@@ -1,6 +1,6 @@
 # ThreatLocker MCP Server - Development Log
 
-## 0.9.2 (2026-02-06)
+## 0.10.0 (2026-02-06)
 
 - Added Streamable HTTP via `mcp-remote` configuration example to README for Claude Desktop users
 - Upgraded vitest 2.1.9 → 4.0.18 to resolve moderate esbuild dev server vulnerability (CVE in esbuild ≤ 0.24.2)
