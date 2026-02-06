@@ -50,12 +50,24 @@ export interface ClientConfig {
   apiKey: string;
   baseUrl: string;
   organizationId?: string;
+  maxRetries?: number;
+}
+
+const RETRYABLE_STATUS_CODES = [408, 417, 429];
+
+function isRetryableStatus(status: number): boolean {
+  return status >= 500 || RETRYABLE_STATUS_CODES.includes(status);
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 export class ThreatLockerClient {
   readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly organizationId?: string;
+  private readonly maxRetries: number;
 
   constructor(config: ClientConfig) {
     if (!config.apiKey) {
@@ -72,6 +84,9 @@ export class ThreatLockerClient {
     this.organizationId = config.organizationId;
     // Remove trailing slash if present
     this.baseUrl = config.baseUrl.replace(/\/+$/, '');
+    const envRetries = parseInt(process.env.THREATLOCKER_MAX_RETRIES ?? '', 10);
+    const rawRetries = config.maxRetries ?? (Number.isFinite(envRetries) ? envRetries : 1);
+    this.maxRetries = Math.max(0, rawRetries);
   }
 
   // Logger that sanitizes API keys from output
@@ -95,6 +110,32 @@ export class ThreatLockerClient {
     return headers;
   }
 
+  private async fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+    let lastError: Error | undefined;
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        const response = await fetch(url, options);
+        if (response.ok || attempt >= this.maxRetries || !isRetryableStatus(response.status)) {
+          return response;
+        }
+        this.log('INFO', `Retryable HTTP ${response.status}, attempt ${attempt + 1}/${this.maxRetries + 1}`, {
+          url, status: response.status,
+        });
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        if (attempt >= this.maxRetries) {
+          throw lastError;
+        }
+        this.log('INFO', `Network error, attempt ${attempt + 1}/${this.maxRetries + 1}`, {
+          url, error: lastError.message,
+        });
+      }
+      await delay(500 * Math.pow(2, attempt));
+    }
+    // Should not reach here, but satisfy TypeScript
+    throw lastError ?? new Error('Retry exhausted');
+  }
+
   async get<T>(endpoint: string, params?: Record<string, string>): Promise<ApiResponse<T>> {
     const url = new URL(`${this.baseUrl}/${endpoint}`);
     if (params) {
@@ -108,7 +149,7 @@ export class ThreatLockerClient {
     this.log('DEBUG', 'API GET', { endpoint, params });
 
     try {
-      const response = await fetch(url.toString(), {
+      const response = await this.fetchWithRetry(url.toString(), {
         method: 'GET',
         headers: this.getHeaders(),
       });
@@ -147,7 +188,7 @@ export class ThreatLockerClient {
     this.log('DEBUG', 'API POST', { endpoint, body });
 
     try {
-      const response = await fetch(`${this.baseUrl}/${endpoint}`, {
+      const response = await this.fetchWithRetry(`${this.baseUrl}/${endpoint}`, {
         method: 'POST',
         headers: { ...this.getHeaders(), ...customHeaders },
         body: JSON.stringify(body),

@@ -1,5 +1,14 @@
 # ThreatLocker MCP Server - Development Log
 
+## 0.10.3 (2026-02-06)
+
+- Added configurable retry logic with exponential backoff to `ThreatLockerClient` for transient API failures
+  - Retries on network errors, HTTP 5xx, 408 (Request Timeout), 417 (Expectation Failed), and 429 (Too Many Requests)
+  - Does not retry on non-transient 4xx errors (400, 401, 403, 404)
+  - Configurable via `THREATLOCKER_MAX_RETRIES` env var or `ClientConfig.maxRetries` (default: 1 retry)
+  - Exponential backoff: 500ms, 1000ms, 2000ms (`500 * 2^attempt`)
+  - Added 7 tests for retry behavior
+
 ## 0.10.2 (2026-02-06)
 
 - Added 38 new tests covering high-value gaps (336 → 376 total):

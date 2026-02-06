@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ThreatLockerClient, extractPaginationFromHeaders } from './client.js';
 import { clampPagination } from './types/responses.js';
 
@@ -45,7 +45,7 @@ describe('ThreatLockerClient', () => {
   });
 
   it('sanitizes API key from error logs without stack overflow on deep objects', async () => {
-    const client = new ThreatLockerClient({ apiKey: 'test-api-key-12345678', baseUrl: 'https://portalapi.g.threatlocker.com/portalapi' });
+    const client = new ThreatLockerClient({ apiKey: 'test-api-key-12345678', baseUrl: 'https://portalapi.g.threatlocker.com/portalapi', maxRetries: 0 });
 
     // Build a deeply nested object (15 levels, beyond the depth limit of 10)
     let deep: Record<string, unknown> = { key: 'test-api-key-12345678' };
@@ -105,6 +105,7 @@ describe('ThreatLockerClient.get', () => {
     client = new ThreatLockerClient({
       apiKey: 'test-api-key',
       baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+      maxRetries: 0,
     });
   });
 
@@ -248,6 +249,7 @@ describe('ThreatLockerClient.post', () => {
     client = new ThreatLockerClient({
       apiKey: 'test-api-key',
       baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+      maxRetries: 0,
     });
   });
 
@@ -416,5 +418,141 @@ describe('extractPaginationFromHeaders', () => {
       totalItems: 50,
       totalPages: 2,
     });
+  });
+});
+
+describe('ThreatLockerClient retry', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function createClient(maxRetries: number) {
+    return new ThreatLockerClient({
+      apiKey: 'test-api-key',
+      baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+      maxRetries,
+    });
+  }
+
+  it('retries on 500 and succeeds on second attempt', async () => {
+    const client = createClient(1);
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Internal Server Error', text: async () => '' })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'ok' }) });
+
+    const promise = client.get('Test/Endpoint');
+    await vi.advanceTimersByTimeAsync(500);
+    const result = await promise;
+
+    expect(result).toEqual({ success: true, data: { id: 'ok' } });
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries on 417 and succeeds on second attempt', async () => {
+    const client = createClient(1);
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 417, statusText: 'Expectation Failed', text: async () => '' })
+      .mockResolvedValueOnce({ ok: true, json: async () => [1, 2], headers: new Headers() });
+
+    const promise = client.post('Test/Endpoint', {});
+    await vi.advanceTimersByTimeAsync(500);
+    const result = await promise;
+
+    expect(result).toEqual({ success: true, data: [1, 2] });
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries on network error and succeeds on second attempt', async () => {
+    const client = createClient(1);
+    global.fetch = vi.fn()
+      .mockRejectedValueOnce(new Error('ECONNREFUSED'))
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ recovered: true }) });
+
+    const promise = client.get('Test/Endpoint');
+    await vi.advanceTimersByTimeAsync(500);
+    const result = await promise;
+
+    expect(result).toEqual({ success: true, data: { recovered: true } });
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives up after maxRetries exhausted and returns last error', async () => {
+    const client = createClient(2);
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 502, statusText: 'Bad Gateway', text: async () => '' })
+      .mockResolvedValueOnce({ ok: false, status: 503, statusText: 'Service Unavailable', text: async () => '' })
+      .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Internal Server Error', text: async () => '' });
+
+    const promise = client.get('Test/Endpoint');
+    await vi.advanceTimersByTimeAsync(500);  // first retry delay
+    await vi.advanceTimersByTimeAsync(1000); // second retry delay
+    const result = await promise;
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.statusCode).toBe(500);
+    }
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('does NOT retry on 401', async () => {
+    const client = createClient(2);
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 401, statusText: 'Unauthorized', text: async () => '' });
+
+    const result = await client.get('Test/Endpoint');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('UNAUTHORIZED');
+    }
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT retry when maxRetries=0', async () => {
+    const client = createClient(0);
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Internal Server Error', text: async () => '' });
+
+    const result = await client.get('Test/Endpoint');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('SERVER_ERROR');
+    }
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('respects THREATLOCKER_MAX_RETRIES env var', async () => {
+    const original = process.env.THREATLOCKER_MAX_RETRIES;
+    process.env.THREATLOCKER_MAX_RETRIES = '2';
+    try {
+      const client = new ThreatLockerClient({
+        apiKey: 'test-api-key',
+        baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+      });
+      global.fetch = vi.fn()
+        .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Error', text: async () => '' })
+        .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Error', text: async () => '' })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ done: true }) });
+
+      const promise = client.get('Test/Endpoint');
+      await vi.advanceTimersByTimeAsync(500);
+      await vi.advanceTimersByTimeAsync(1000);
+      const result = await promise;
+
+      expect(result).toEqual({ success: true, data: { done: true } });
+      expect(global.fetch).toHaveBeenCalledTimes(3);
+    } finally {
+      if (original === undefined) {
+        delete process.env.THREATLOCKER_MAX_RETRIES;
+      } else {
+        process.env.THREATLOCKER_MAX_RETRIES = original;
+      }
+    }
   });
 });
