@@ -1,5 +1,10 @@
 # ThreatLocker MCP Server - Development Log
 
+## 0.10.4 (2026-02-07)
+
+- Added plain text API key storage disclaimer to README
+- Added ThreatLocker Storage Control guidance for protecting config files containing API keys
+
 ## 0.10.3 (2026-02-06)
 
 - Added configurable retry logic with exponential backoff to `ThreatLockerClient` for transient API failures

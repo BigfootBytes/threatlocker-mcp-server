@@ -14,12 +14,37 @@ This server exposes ThreatLocker Portal functionality as MCP tools, enabling AI 
 >
 > This software is provided "as is" without warranty of any kind. This is an unofficial, community-developed integration and is not affiliated with, endorsed by, or supported by ThreatLocker.
 >
+> - **API keys are currently stored in plain text** (in environment variables, `.env` files, or MCP client config files). A more secure credential storage solution is planned for a future release.
 > - Always test in a non-production environment first
 > - Review the source code before deploying
 > - Monitor API usage and audit logs
 > - The authors are not responsible for any damages, security incidents, or unintended actions resulting from use of this software
 >
 > By using this software, you accept full responsibility for its use in your environment.
+
+### Protecting API Keys with ThreatLocker Storage Control
+
+Since API keys are stored in plain text, you can use ThreatLocker's own Storage Control to restrict which applications can read the config files. This ensures that even if an unauthorized process runs on your machine, it cannot access the keys.
+
+**Files to protect:**
+
+| File | Used By |
+|------|---------|
+| `.env` | MCP server (stdio mode) |
+| `claude_desktop_config.json` | Claude Desktop |
+| `.mcp.json` / `~/.claude.json` | Claude Code |
+
+**Recommended Storage Control policy:**
+
+1. In ThreatLocker Portal, navigate to **Application Control > Storage Control**
+2. Create a **Deny** policy that blocks **all applications** from reading the config files listed above
+3. Create **Permit** policies that allow only the specific applications that need access:
+   - `node.exe` / `node` — for the MCP server process
+   - `Claude Desktop.exe` / `Claude Desktop` — for Claude Desktop
+   - `claude` — for Claude Code CLI
+4. Apply the policies to the relevant computer group
+
+This way, ThreatLocker prevents any other process from reading your API keys, even though they are stored in plain text.
 
 ## Installation
 
