@@ -22,6 +22,8 @@ import { systemAuditToolSchema, handleSystemAuditTool } from './tools/system-aud
 import { tagsToolSchema, handleTagsTool } from './tools/tags.js';
 import { storagePoliciesToolSchema, handleStoragePoliciesTool } from './tools/storage-policies.js';
 import { networkAccessPoliciesToolSchema, handleNetworkAccessPoliciesTool } from './tools/network-access-policies.js';
+import { threatlockerVersionsToolSchema, handleThreatLockerVersionsTool } from './tools/threatlocker-versions.js';
+import { onlineDevicesToolSchema, handleOnlineDevicesTool } from './tools/online-devices.js';
 import { createHttpServer } from './transports/http.js';
 import { VERSION } from './version.js';
 
@@ -97,6 +99,8 @@ if (transportMode === 'http') {
       tagsToolSchema,
       storagePoliciesToolSchema,
       networkAccessPoliciesToolSchema,
+      threatlockerVersionsToolSchema,
+      onlineDevicesToolSchema,
     ],
   }));
 
@@ -146,6 +150,12 @@ if (transportMode === 'http') {
         break;
       case 'network_access_policies':
         result = await handleNetworkAccessPoliciesTool(client, args || {});
+        break;
+      case 'threatlocker_versions':
+        result = await handleThreatLockerVersionsTool(client, args || {});
+        break;
+      case 'online_devices':
+        result = await handleOnlineDevicesTool(client, args || {});
         break;
       default:
         return {

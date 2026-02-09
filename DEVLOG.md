@@ -1,5 +1,14 @@
 # ThreatLocker MCP Server - Development Log
 
+## 0.10.6 (2026-02-09)
+
+- Added `threatlocker_versions` tool for querying available ThreatLocker agent versions
+  - `list` action — returns all agent versions with labels, availability, release dates, and OS types
+- Added `online_devices` tool for querying currently online devices
+  - `list` action — returns online devices with pagination support
+- Both new tools registered in stdio, SSE, Streamable HTTP, and REST API transports
+- Added 10 new tests (498 total): 4 for threatlocker_versions, 6 for online_devices
+
 ## 0.10.5 (2026-02-09)
 
 - Added `storage_policies` tool for querying ThreatLocker Storage Control policies

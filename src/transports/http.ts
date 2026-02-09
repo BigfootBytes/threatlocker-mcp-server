@@ -20,6 +20,8 @@ import { systemAuditToolSchema, handleSystemAuditTool } from '../tools/system-au
 import { tagsToolSchema, handleTagsTool } from '../tools/tags.js';
 import { storagePoliciesToolSchema, handleStoragePoliciesTool } from '../tools/storage-policies.js';
 import { networkAccessPoliciesToolSchema, handleNetworkAccessPoliciesTool } from '../tools/network-access-policies.js';
+import { threatlockerVersionsToolSchema, handleThreatLockerVersionsTool } from '../tools/threatlocker-versions.js';
+import { onlineDevicesToolSchema, handleOnlineDevicesTool } from '../tools/online-devices.js';
 import { VERSION } from '../version.js';
 
 interface ClientCredentials {
@@ -246,6 +248,16 @@ const networkAccessPoliciesZodSchema = {
   networkAccessPolicyId: z.string().optional().describe('Network access policy ID (required for get)'),
   searchText: z.string().optional().describe('Search text to filter policies'),
   appliesToId: z.string().optional().describe('Computer group ID to filter by'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Page size (default: 25)'),
+};
+
+const threatlockerVersionsZodSchema = {
+  action: z.enum(['list']).describe('Action to perform'),
+};
+
+const onlineDevicesZodSchema = {
+  action: z.enum(['list']).describe('Action to perform'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Page size (default: 25)'),
 };
@@ -511,6 +523,40 @@ function createMcpServer(client: ThreatLockerClient): McpServer {
     }
   );
 
+  server.tool(
+    threatlockerVersionsToolSchema.name,
+    threatlockerVersionsToolSchema.description,
+    threatlockerVersionsZodSchema,
+    async (args) => {
+      log('DEBUG', 'Tool call: threatlocker_versions', { args, baseUrl: client.baseUrl });
+      const result = await handleThreatLockerVersionsTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: threatlocker_versions', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: threatlocker_versions', { resultCount: count });
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    onlineDevicesToolSchema.name,
+    onlineDevicesToolSchema.description,
+    onlineDevicesZodSchema,
+    async (args) => {
+      log('DEBUG', 'Tool call: online_devices', { args, baseUrl: client.baseUrl });
+      const result = await handleOnlineDevicesTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: online_devices', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: online_devices', { resultCount: count });
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
   return server;
 }
 
@@ -592,6 +638,8 @@ export function createApp(): ReturnType<typeof express> {
         reportsToolSchema,
         storagePoliciesToolSchema,
         networkAccessPoliciesToolSchema,
+        threatlockerVersionsToolSchema,
+        onlineDevicesToolSchema,
       ],
     });
   });
@@ -668,6 +716,12 @@ export function createApp(): ReturnType<typeof express> {
           break;
         case 'network_access_policies':
           result = await handleNetworkAccessPoliciesTool(client, args);
+          break;
+        case 'threatlocker_versions':
+          result = await handleThreatLockerVersionsTool(client, args);
+          break;
+        case 'online_devices':
+          result = await handleOnlineDevicesTool(client, args);
           break;
         default:
           log('DEBUG', 'REST API unknown tool', { tool: toolName });
