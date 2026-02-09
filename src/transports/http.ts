@@ -18,6 +18,8 @@ import { maintenanceModeToolSchema, handleMaintenanceModeTool } from '../tools/m
 import { scheduledActionsToolSchema, handleScheduledActionsTool } from '../tools/scheduled-actions.js';
 import { systemAuditToolSchema, handleSystemAuditTool } from '../tools/system-audit.js';
 import { tagsToolSchema, handleTagsTool } from '../tools/tags.js';
+import { storagePoliciesToolSchema, handleStoragePoliciesTool } from '../tools/storage-policies.js';
+import { networkAccessPoliciesToolSchema, handleNetworkAccessPoliciesTool } from '../tools/network-access-policies.js';
 import { VERSION } from '../version.js';
 
 interface ClientCredentials {
@@ -226,6 +228,26 @@ const tagsZodSchema = {
   includeBuiltIns: z.boolean().optional().describe('Include ThreatLocker built-in tags (default: false)'),
   tagType: z.number().optional().describe('Tag type filter (default: 1)'),
   includeNetworkTagInMaster: z.boolean().optional().describe('Include network tags in master (default: true)'),
+};
+
+const storagePoliciesZodSchema = {
+  action: z.enum(['get', 'list']).describe('Action to perform'),
+  storagePolicyId: z.string().optional().describe('Storage policy ID (required for get)'),
+  searchText: z.string().optional().describe('Search text to filter policies'),
+  appliesToId: z.string().optional().describe('Computer group ID to filter by'),
+  policyType: z.number().optional().describe('Filter by policy type'),
+  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Page size (default: 25)'),
+};
+
+const networkAccessPoliciesZodSchema = {
+  action: z.enum(['get', 'list']).describe('Action to perform'),
+  networkAccessPolicyId: z.string().optional().describe('Network access policy ID (required for get)'),
+  searchText: z.string().optional().describe('Search text to filter policies'),
+  appliesToId: z.string().optional().describe('Computer group ID to filter by'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Page size (default: 25)'),
 };
 
 // Log levels: ERROR=0, INFO=1, DEBUG=2
@@ -455,6 +477,40 @@ function createMcpServer(client: ThreatLockerClient): McpServer {
     }
   );
 
+  server.tool(
+    storagePoliciesToolSchema.name,
+    storagePoliciesToolSchema.description,
+    storagePoliciesZodSchema,
+    async (args) => {
+      log('DEBUG', 'Tool call: storage_policies', { args, baseUrl: client.baseUrl });
+      const result = await handleStoragePoliciesTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: storage_policies', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: storage_policies', { resultCount: count, pagination: result.pagination });
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    networkAccessPoliciesToolSchema.name,
+    networkAccessPoliciesToolSchema.description,
+    networkAccessPoliciesZodSchema,
+    async (args) => {
+      log('DEBUG', 'Tool call: network_access_policies', { args, baseUrl: client.baseUrl });
+      const result = await handleNetworkAccessPoliciesTool(client, args);
+      if (!result.success) {
+        log('ERROR', 'Tool failed: network_access_policies', { error: result.error });
+      } else {
+        const count = Array.isArray(result.data) ? result.data.length : 1;
+        log('DEBUG', 'Tool success: network_access_policies', { resultCount: count, pagination: result.pagination });
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
   return server;
 }
 
@@ -534,6 +590,8 @@ export function createApp(): ReturnType<typeof express> {
         approvalRequestsToolSchema,
         organizationsToolSchema,
         reportsToolSchema,
+        storagePoliciesToolSchema,
+        networkAccessPoliciesToolSchema,
       ],
     });
   });
@@ -604,6 +662,12 @@ export function createApp(): ReturnType<typeof express> {
           break;
         case 'tags':
           result = await handleTagsTool(client, args);
+          break;
+        case 'storage_policies':
+          result = await handleStoragePoliciesTool(client, args);
+          break;
+        case 'network_access_policies':
+          result = await handleNetworkAccessPoliciesTool(client, args);
           break;
         default:
           log('DEBUG', 'REST API unknown tool', { tool: toolName });

@@ -221,6 +221,27 @@ export class ThreatLockerClient {
   }
 }
 
+export function extractPaginationFromJsonHeader(headers: Headers): Pagination | undefined {
+  const raw = headers.get('pagination');
+  if (!raw) return undefined;
+
+  try {
+    const parsed = JSON.parse(raw);
+    const totalItems = parsed.totalItems;
+    const totalPages = parsed.totalPages;
+    if (typeof totalItems !== 'number' || typeof totalPages !== 'number') return undefined;
+
+    return {
+      page: typeof parsed.currentPage === 'number' ? parsed.currentPage : 1,
+      pageSize: typeof parsed.itemsPerPage === 'number' ? parsed.itemsPerPage : 25,
+      totalItems,
+      totalPages,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 export function extractPaginationFromHeaders(headers: Headers): Pagination | undefined {
   const totalItems = headers.get('totalItems');
   const totalPages = headers.get('totalPages');

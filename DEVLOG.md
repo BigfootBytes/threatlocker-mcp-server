@@ -1,5 +1,17 @@
 # ThreatLocker MCP Server - Development Log
 
+## 0.10.5 (2026-02-09)
+
+- Added `storage_policies` tool for querying ThreatLocker Storage Control policies
+  - `get` action — get a storage policy by ID
+  - `list` action — search/list storage policies with filters (searchText, appliesToId, policyType, osType)
+- Added `network_access_policies` tool for querying ThreatLocker Network Access Control policies
+  - `get` action — get a network access policy by ID
+  - `list` action — search/list network access policies with filters (searchText, appliesToId)
+- Added `extractPaginationFromJsonHeader()` to client for endpoints that return pagination as a single JSON header
+- Both new tools registered in stdio, SSE, Streamable HTTP, and REST API transports
+- Added 24 new tests (478 total): 8 for storage_policies, 8 for network_access_policies, 8 for JSON pagination extractor
+
 ## 0.10.4 (2026-02-07)
 
 - Added plain text API key storage disclaimer to README

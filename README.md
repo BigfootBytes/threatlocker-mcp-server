@@ -153,6 +153,8 @@ Add to your MCP config file:
 | `scheduled_actions` | - | :white_check_mark: | - | - | Scheduled agent updates |
 | `system_audit` | - | :white_check_mark: | - | - | Portal audit logs, health center |
 | `tags` | - | :white_check_mark: | - | - | Network and policy tags |
+| `storage_policies` | - | :white_check_mark: | - | - | Storage control policies |
+| `network_access_policies` | - | :white_check_mark: | - | - | Network access control policies |
 
 ### Tool Details
 
@@ -170,6 +172,8 @@ Add to your MCP config file:
 | `scheduled_actions` | `list`, `search`, `get`, `get_applies_to` |
 | `system_audit` | `search`, `health_center` |
 | `tags` | `get`, `dropdown` |
+| `storage_policies` | `get`, `list` |
+| `network_access_policies` | `get`, `list` |
 
 ## HTTP Mode (Remote Server)
 

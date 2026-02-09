@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ThreatLockerClient, extractPaginationFromHeaders } from './client.js';
+import { ThreatLockerClient, extractPaginationFromHeaders, extractPaginationFromJsonHeader } from './client.js';
 import { clampPagination } from './types/responses.js';
 
 describe('ThreatLockerClient', () => {
@@ -417,6 +417,100 @@ describe('extractPaginationFromHeaders', () => {
       pageSize: 1,
       totalItems: 50,
       totalPages: 2,
+    });
+  });
+});
+
+describe('extractPaginationFromJsonHeader', () => {
+  it('parses valid JSON pagination header', () => {
+    const headers = new Headers({
+      pagination: JSON.stringify({
+        currentPage: 1,
+        itemsPerPage: 2,
+        totalItems: 21,
+        totalPages: 11,
+        firstItem: 1,
+        lastItem: 2,
+      }),
+    });
+
+    const result = extractPaginationFromJsonHeader(headers);
+    expect(result).toEqual({
+      page: 1,
+      pageSize: 2,
+      totalItems: 21,
+      totalPages: 11,
+    });
+  });
+
+  it('returns correct page for non-first page', () => {
+    const headers = new Headers({
+      pagination: JSON.stringify({
+        currentPage: 3,
+        itemsPerPage: 10,
+        totalItems: 50,
+        totalPages: 5,
+      }),
+    });
+
+    const result = extractPaginationFromJsonHeader(headers);
+    expect(result).toEqual({
+      page: 3,
+      pageSize: 10,
+      totalItems: 50,
+      totalPages: 5,
+    });
+  });
+
+  it('returns undefined when pagination header is missing', () => {
+    const headers = new Headers();
+    expect(extractPaginationFromJsonHeader(headers)).toBeUndefined();
+  });
+
+  it('returns undefined for invalid JSON', () => {
+    const headers = new Headers({ pagination: 'not-json' });
+    expect(extractPaginationFromJsonHeader(headers)).toBeUndefined();
+  });
+
+  it('returns undefined when totalItems is missing', () => {
+    const headers = new Headers({
+      pagination: JSON.stringify({ currentPage: 1, itemsPerPage: 25, totalPages: 4 }),
+    });
+    expect(extractPaginationFromJsonHeader(headers)).toBeUndefined();
+  });
+
+  it('returns undefined when totalPages is missing', () => {
+    const headers = new Headers({
+      pagination: JSON.stringify({ currentPage: 1, itemsPerPage: 25, totalItems: 100 }),
+    });
+    expect(extractPaginationFromJsonHeader(headers)).toBeUndefined();
+  });
+
+  it('defaults currentPage to 1 when missing', () => {
+    const headers = new Headers({
+      pagination: JSON.stringify({ itemsPerPage: 25, totalItems: 100, totalPages: 4 }),
+    });
+
+    const result = extractPaginationFromJsonHeader(headers);
+    expect(result).toEqual({
+      page: 1,
+      pageSize: 25,
+      totalItems: 100,
+      totalPages: 4,
+    });
+  });
+
+  it('defaults itemsPerPage to 25 when missing', () => {
+    const headers = new Headers({
+      pagination: JSON.stringify({ currentPage: 2, totalItems: 100, totalPages: 4 }),
+    });
+
+    const result = extractPaginationFromJsonHeader(headers);
+    expect(result).toEqual({
+      page: 2,
+      pageSize: 25,
+      totalItems: 100,
+      totalPages: 4,
     });
   });
 });

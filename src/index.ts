@@ -20,6 +20,8 @@ import { maintenanceModeToolSchema, handleMaintenanceModeTool } from './tools/ma
 import { scheduledActionsToolSchema, handleScheduledActionsTool } from './tools/scheduled-actions.js';
 import { systemAuditToolSchema, handleSystemAuditTool } from './tools/system-audit.js';
 import { tagsToolSchema, handleTagsTool } from './tools/tags.js';
+import { storagePoliciesToolSchema, handleStoragePoliciesTool } from './tools/storage-policies.js';
+import { networkAccessPoliciesToolSchema, handleNetworkAccessPoliciesTool } from './tools/network-access-policies.js';
 import { createHttpServer } from './transports/http.js';
 import { VERSION } from './version.js';
 
@@ -93,6 +95,8 @@ if (transportMode === 'http') {
       scheduledActionsToolSchema,
       systemAuditToolSchema,
       tagsToolSchema,
+      storagePoliciesToolSchema,
+      networkAccessPoliciesToolSchema,
     ],
   }));
 
@@ -136,6 +140,12 @@ if (transportMode === 'http') {
         break;
       case 'tags':
         result = await handleTagsTool(client, args || {});
+        break;
+      case 'storage_policies':
+        result = await handleStoragePoliciesTool(client, args || {});
+        break;
+      case 'network_access_policies':
+        result = await handleNetworkAccessPoliciesTool(client, args || {});
         break;
       default:
         return {
