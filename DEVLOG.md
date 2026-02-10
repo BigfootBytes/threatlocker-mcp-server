@@ -1,15 +1,34 @@
 # ThreatLocker MCP Server - Development Log
 
-## 0.10.6 (2026-02-09)
+## 2026-02-09
+
+- **REST API Zod enforcement**: REST endpoint (`POST /tools/:name`) now validates `req.body` against Zod schemas before dispatching to tool handlers, closing a gap where the MCP transports validated via SDK but REST did not
+- Added `.max()` string length limits to all Zod string fields (100 for GUIDs, 500 for hashes/certs/usernames, 1000 for paths/search text)
+- Added `.max()` array length limits: `groupBys` (10), `countries` (20), `organizationIds`/`computerGroupIds` (50)
+- Added GUID validation to 9 filter-context fields across 8 tool handlers: `computerId` (action_log file_history), `computerGroupId` (computer-groups list), `computerGroup` (computers list), `applicationId`/`organizationId`/`appliesToId` (policies list_by_application), `appliesToId` (storage-policies list, network-access-policies list), `objectId` (system-audit search), `organizationIds[]`/`computerGroupIds[]` items (scheduled-actions search)
+- Added `validateInstallKey()` and `validateSha256()` helpers to `src/types/responses.ts`
+- Added installKey length validation (must be exactly 24 chars) in computer-groups `get_by_install_key`
+- Added SHA256 hash format validation (64-char hex) in applications `match` action
+- Added days clamping (1–365) in system-audit `health_center` action
+- Added `validateDateRange()` and `validateGuid()` validation helpers to `src/types/responses.ts`
+  - `validateDateRange` rejects unparseable dates and startDate > endDate
+  - `validateGuid` validates 8-4-4-4-12 hex format (case-insensitive)
+- Applied date validation to `action_log` (search) and `system_audit` (search) — invalid dates now return BAD_REQUEST before hitting the API
+- Applied GUID validation to single-entity `get` actions across 11 tools: action_log, applications, approval_requests, computers, maintenance_mode, policies, reports, scheduled_actions, storage_policies, network_access_policies, tags
+- Exposed `simulateDeny` parameter in action_log tool (was hardcoded to `false`)
+- Fixed Zod schema gaps in HTTP transport: added `simulateDeny` to action_log, `scheduledType` and `includeChildren` to scheduled_actions
+- Added 4 HTTP dispatch tests for storage_policies, network_access_policies, threatlocker_versions, online_devices
+- 588 total tests
+
+## v0.11.2 (2026-02-09)
 
 - Added `threatlocker_versions` tool for querying available ThreatLocker agent versions
   - `list` action — returns all agent versions with labels, availability, release dates, and OS types
 - Added `online_devices` tool for querying currently online devices
   - `list` action — returns online devices with pagination support
 - Both new tools registered in stdio, SSE, Streamable HTTP, and REST API transports
-- Added 10 new tests (498 total): 4 for threatlocker_versions, 6 for online_devices
 
-## 0.10.5 (2026-02-09)
+## v0.11.1 (2026-02-09)
 
 - Added `storage_policies` tool for querying ThreatLocker Storage Control policies
   - `get` action — get a storage policy by ID
@@ -19,33 +38,25 @@
   - `list` action — search/list network access policies with filters (searchText, appliesToId)
 - Added `extractPaginationFromJsonHeader()` to client for endpoints that return pagination as a single JSON header
 - Both new tools registered in stdio, SSE, Streamable HTTP, and REST API transports
-- Added 24 new tests (478 total): 8 for storage_policies, 8 for network_access_policies, 8 for JSON pagination extractor
 
-## 0.10.4 (2026-02-07)
+## v0.11.0 (2026-02-07)
 
 - Added plain text API key storage disclaimer to README
 - Added ThreatLocker Storage Control guidance for protecting config files containing API keys
 
-## 0.10.3 (2026-02-06)
+## v0.10.0 (2026-02-06)
 
 - Added configurable retry logic with exponential backoff to `ThreatLockerClient` for transient API failures
   - Retries on network errors, HTTP 5xx, 408 (Request Timeout), 417 (Expectation Failed), and 429 (Too Many Requests)
   - Does not retry on non-transient 4xx errors (400, 401, 403, 404)
   - Configurable via `THREATLOCKER_MAX_RETRIES` env var or `ClientConfig.maxRetries` (default: 1 retry)
   - Exponential backoff: 500ms, 1000ms, 2000ms (`500 * 2^attempt`)
-  - Added 7 tests for retry behavior
-
-## 0.10.2 (2026-02-06)
-
-- Added 38 new tests covering high-value gaps (336 → 376 total):
+- Added 38 new tests covering high-value gaps:
   - Unit tests for `successResponse`, `errorResponse`, `mapHttpStatusToErrorCode` response helpers
   - Client `GET`/`POST` error-path tests (401/403/500 mapping, network failures, query params, headers, org headers)
   - `extractPaginationFromHeaders` branch coverage (page computation, missing headers, defaults)
   - Missing validation tests for `approval-requests` (3 actions) and `computers` (checkins)
   - Client error passthrough verification for representative tools
-
-## 0.10.1 (2026-02-06)
-
 - Security hardening from codebase audit (6 fixes):
   - **HIGH**: Replaced `Math.random()` SSE session IDs with `crypto.randomUUID()` for cryptographic security
   - **MEDIUM**: Added depth limit (max 10) to recursive `sanitizeLogData()` to prevent stack overflow on deeply nested API responses
@@ -53,9 +64,6 @@
   - **LOW**: Added rate limiting (200 req/15min) to `/health` metadata endpoint
   - **LOW**: Added CORS response headers (`Access-Control-Allow-Origin/Headers/Methods`) and `OPTIONS` preflight handling for allowed browser origins
   - **LOW**: Improved Bearer token prefix stripping with regex to avoid edge-case key corruption
-
-## 0.10.0 (2026-02-06)
-
 - Added Streamable HTTP via `mcp-remote` configuration example to README for Claude Desktop users
 - Upgraded vitest 2.1.9 → 4.0.18 to resolve moderate esbuild dev server vulnerability (CVE in esbuild ≤ 0.24.2)
 - Updated dotenv 17.2.3 → 17.2.4 (patch)
@@ -64,7 +72,7 @@
   - Updated `@types/node` from ^20.0.0 to ^24.0.0
   - Bumped TypeScript target from ES2022 to ES2024
 
-## 0.9.1 (2026-02-05)
+## v0.9.1 (2026-02-05)
 
 - Replaced placeholder SECURITY.md with proper security policy (reporting via GitHub Security Advisories, supported versions, security considerations)
 - Fixed scheduled_actions `list` action: added missing `scheduledType` and `includeChildren` query parameters required by the API (was returning 417)
@@ -170,29 +178,12 @@
   - Both transports now available on same server
 - Added Origin header validation for DNS rebinding protection
 - Added `ALLOWED_ORIGINS` environment variable for browser request allowlist
-- Bumped version to 0.4.0, then 0.4.1, then 0.4.2
 - Updated README documentation for Streamable HTTP transport
 - Added debug logging for HTTP server:
   - Request logging middleware with org ID and auth status
   - SSE session connect/disconnect logging
   - MCP request logging with method and tool name
   - Error logging for all transport failures
-
-### Detailed Changes
-
-- Updated MCP SDK from v1.0.0 to v1.26.0 for Streamable HTTP transport support
-- Added createMcpServer factory function with Zod schemas for Streamable HTTP transport
-- Implemented Streamable HTTP POST /mcp endpoint using StreamableHTTPServerTransport
-- Added GET /mcp and DELETE /mcp handlers returning 405 (not supported in stateless mode)
-- Removed legacy SSE transport code (SSESession, sseSessions Map, sendSSEEvent, handleMcpMessage, handleToolCall)
-- Removed GET /sse and POST /messages endpoints
-- Removed crypto import (no longer needed for session IDs)
-- Inlined tool dispatch in REST API /tools/:name endpoint
-- Updated startup console messages to reflect Streamable HTTP as primary transport
-- Added Origin header validation for DNS rebinding protection on POST /mcp and POST /tools/:name endpoints
-- Added whitespace trimming to ALLOWED_ORIGINS parsing for better config file handling
-- Bumped version to 0.4.0 in package.json, http.ts, and index.ts for Streamable HTTP release
-- Updated /health endpoint to report transport as 'streamable-http' and include protocolVersion '2025-03-26'
 
 ## 2026-02-03
 

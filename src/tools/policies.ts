@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 
 export const policiesToolSchema = {
   name: 'policies',
@@ -87,18 +87,29 @@ export async function handlePoliciesTool(
   }
 
   switch (action) {
-    case 'get':
+    case 'get': {
       if (!policyId) {
         return errorResponse('BAD_REQUEST', 'policyId is required for get action');
       }
+      const guidError = validateGuid(policyId, 'policyId');
+      if (guidError) return guidError;
       return client.get('Policy/PolicyGetById', { policyId });
+    }
 
-    case 'list_by_application':
+    case 'list_by_application': {
       if (!applicationId) {
         return errorResponse('BAD_REQUEST', 'applicationId is required for list_by_application action');
       }
+      const appGuidError = validateGuid(applicationId, 'applicationId');
+      if (appGuidError) return appGuidError;
       if (!organizationId) {
         return errorResponse('BAD_REQUEST', 'organizationId is required for list_by_application action');
+      }
+      const orgGuidError = validateGuid(organizationId, 'organizationId');
+      if (orgGuidError) return orgGuidError;
+      if (appliesToId) {
+        const appliesToGuidError = validateGuid(appliesToId, 'appliesToId');
+        if (appliesToGuidError) return appliesToGuidError;
       }
       return client.post(
         'Policy/PolicyGetForViewPoliciesByApplicationId',
@@ -112,6 +123,7 @@ export async function handlePoliciesTool(
         },
         extractPaginationFromHeaders
       );
+    }
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 
 export const approvalRequestsToolSchema = {
   name: 'approval_requests',
@@ -113,32 +113,44 @@ export async function handleApprovalRequestsTool(
         extractPaginationFromHeaders
       );
 
-    case 'get':
+    case 'get': {
       if (!approvalRequestId) {
         return errorResponse('BAD_REQUEST', 'approvalRequestId is required for get action');
       }
+      const guidError = validateGuid(approvalRequestId, 'approvalRequestId');
+      if (guidError) return guidError;
       return client.get('ApprovalRequest/ApprovalRequestGetById', { approvalRequestId });
+    }
 
     case 'count':
       return client.get('ApprovalRequest/ApprovalRequestGetCount', {});
 
-    case 'get_file_download_details':
+    case 'get_file_download_details': {
       if (!approvalRequestId) {
         return errorResponse('BAD_REQUEST', 'approvalRequestId is required for get_file_download_details action');
       }
+      const guidError = validateGuid(approvalRequestId, 'approvalRequestId');
+      if (guidError) return guidError;
       return client.get('ApprovalRequest/ApprovalRequestGetFileDownloadDetailsById', { approvalRequestId });
+    }
 
-    case 'get_permit_application':
+    case 'get_permit_application': {
       if (!approvalRequestId) {
         return errorResponse('BAD_REQUEST', 'approvalRequestId is required for get_permit_application action');
       }
+      const guidError = validateGuid(approvalRequestId, 'approvalRequestId');
+      if (guidError) return guidError;
       return client.get('ApprovalRequest/ApprovalRequestGetPermitApplicationById', { approvalRequestId });
+    }
 
-    case 'get_storage_approval':
+    case 'get_storage_approval': {
       if (!approvalRequestId) {
         return errorResponse('BAD_REQUEST', 'approvalRequestId is required for get_storage_approval action');
       }
+      const guidError = validateGuid(approvalRequestId, 'approvalRequestId');
+      if (guidError) return guidError;
       return client.get('ApprovalRequest/ApprovalRequestGetStorageApprovalById', { approvalRequestId });
+    }
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

@@ -3,6 +3,10 @@ import {
   successResponse,
   errorResponse,
   mapHttpStatusToErrorCode,
+  validateDateRange,
+  validateGuid,
+  validateInstallKey,
+  validateSha256,
 } from './responses.js';
 
 describe('successResponse', () => {
@@ -66,5 +70,112 @@ describe('mapHttpStatusToErrorCode', () => {
   it('maps unknown status codes to SERVER_ERROR', () => {
     expect(mapHttpStatusToErrorCode(502)).toBe('SERVER_ERROR');
     expect(mapHttpStatusToErrorCode(429)).toBe('SERVER_ERROR');
+  });
+});
+
+describe('validateDateRange', () => {
+  it('returns null for a valid date range', () => {
+    expect(validateDateRange('2025-01-01T00:00:00Z', '2025-01-31T23:59:59Z')).toBeNull();
+  });
+
+  it('returns null when startDate equals endDate', () => {
+    expect(validateDateRange('2025-01-01T00:00:00Z', '2025-01-01T00:00:00Z')).toBeNull();
+  });
+
+  it('returns error for invalid startDate', () => {
+    const result = validateDateRange('not-a-date', '2025-01-31T23:59:59Z');
+    expect(result).not.toBeNull();
+    expect(result!.error.code).toBe('BAD_REQUEST');
+    expect(result!.error.message).toContain('startDate');
+  });
+
+  it('returns error for invalid endDate', () => {
+    const result = validateDateRange('2025-01-01T00:00:00Z', 'not-a-date');
+    expect(result).not.toBeNull();
+    expect(result!.error.code).toBe('BAD_REQUEST');
+    expect(result!.error.message).toContain('endDate');
+  });
+
+  it('returns error when startDate is after endDate', () => {
+    const result = validateDateRange('2025-02-01T00:00:00Z', '2025-01-01T00:00:00Z');
+    expect(result).not.toBeNull();
+    expect(result!.error.code).toBe('BAD_REQUEST');
+    expect(result!.error.message).toContain('startDate must not be after endDate');
+  });
+});
+
+describe('validateGuid', () => {
+  it('returns null for a valid lowercase GUID', () => {
+    expect(validateGuid('12345678-1234-1234-1234-123456789abc', 'testField')).toBeNull();
+  });
+
+  it('returns null for a valid uppercase GUID', () => {
+    expect(validateGuid('12345678-1234-1234-1234-123456789ABC', 'testField')).toBeNull();
+  });
+
+  it('returns error for an invalid string', () => {
+    const result = validateGuid('not-a-guid', 'testField');
+    expect(result).not.toBeNull();
+    expect(result!.error.code).toBe('BAD_REQUEST');
+    expect(result!.error.message).toBe('testField must be a valid GUID');
+  });
+
+  it('returns error for an empty string', () => {
+    const result = validateGuid('', 'myId');
+    expect(result).not.toBeNull();
+    expect(result!.error.code).toBe('BAD_REQUEST');
+    expect(result!.error.message).toBe('myId must be a valid GUID');
+  });
+});
+
+describe('validateInstallKey', () => {
+  it('returns null for a 24-character key', () => {
+    expect(validateInstallKey('ABC123DEF456GHI789JKL012')).toBeNull();
+  });
+
+  it('returns error for a key that is too short', () => {
+    const result = validateInstallKey('SHORT');
+    expect(result).not.toBeNull();
+    expect(result!.error.code).toBe('BAD_REQUEST');
+    expect(result!.error.message).toBe('installKey must be exactly 24 characters');
+  });
+
+  it('returns error for a key that is too long', () => {
+    const result = validateInstallKey('A'.repeat(25));
+    expect(result).not.toBeNull();
+    expect(result!.error.code).toBe('BAD_REQUEST');
+  });
+});
+
+describe('validateSha256', () => {
+  it('returns null for a valid lowercase SHA256 hash', () => {
+    expect(validateSha256('a'.repeat(64), 'hash')).toBeNull();
+  });
+
+  it('returns null for a valid uppercase SHA256 hash', () => {
+    expect(validateSha256('A'.repeat(64), 'hash')).toBeNull();
+  });
+
+  it('returns null for a valid mixed-case SHA256 hash', () => {
+    expect(validateSha256('aB1c2D3e'.repeat(8), 'hash')).toBeNull();
+  });
+
+  it('returns error for a hash that is too short', () => {
+    const result = validateSha256('abc123', 'myHash');
+    expect(result).not.toBeNull();
+    expect(result!.error.code).toBe('BAD_REQUEST');
+    expect(result!.error.message).toBe('myHash must be a 64-character hex string (SHA256)');
+  });
+
+  it('returns error for a hash with invalid characters', () => {
+    const result = validateSha256('g'.repeat(64), 'hash');
+    expect(result).not.toBeNull();
+    expect(result!.error.code).toBe('BAD_REQUEST');
+  });
+
+  it('returns error for an empty string', () => {
+    const result = validateSha256('', 'hash');
+    expect(result).not.toBeNull();
+    expect(result!.error.code).toBe('BAD_REQUEST');
   });
 });

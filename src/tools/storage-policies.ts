@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromJsonHeader } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 
 export const storagePoliciesToolSchema = {
   name: 'storage_policies',
@@ -79,13 +79,20 @@ export async function handleStoragePoliciesTool(
   }
 
   switch (action) {
-    case 'get':
+    case 'get': {
       if (!storagePolicyId) {
         return errorResponse('BAD_REQUEST', 'storagePolicyId is required for get action');
       }
+      const guidError = validateGuid(storagePolicyId, 'storagePolicyId');
+      if (guidError) return guidError;
       return client.get('StoragePolicy/StoragePolicyGetById', { storagePolicyId });
+    }
 
     case 'list': {
+      if (appliesToId) {
+        const guidError = validateGuid(appliesToId, 'appliesToId');
+        if (guidError) return guidError;
+      }
       const body: Record<string, unknown> = { pageNumber, pageSize };
       if (searchText) body.searchText = searchText;
       if (appliesToId) body.appliesToId = appliesToId;

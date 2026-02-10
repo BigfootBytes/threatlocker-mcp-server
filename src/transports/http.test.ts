@@ -400,7 +400,8 @@ describe('HTTP server integration', () => {
         .send({ action: 'get_history' });
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
-      expect(res.body.error.message).toContain('computerId');
+      // Zod catches missing computerId before handler: "expected string, received undefined"
+      expect(res.body.error.message).toContain('expected string');
     });
 
     it('dispatches to scheduled_actions tool handler', async () => {
@@ -442,6 +443,44 @@ describe('HTTP server integration', () => {
     it('dispatches to computer_groups tool handler', async () => {
       const res = await request(app)
         .post('/tools/computer_groups')
+        .set(authHeaders)
+        .send({});
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('BAD_REQUEST');
+    });
+
+    it('dispatches to storage_policies tool handler', async () => {
+      const res = await request(app)
+        .post('/tools/storage_policies')
+        .set(authHeaders)
+        .send({ action: 'get' });
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('BAD_REQUEST');
+      expect(res.body.error.message).toContain('storagePolicyId');
+    });
+
+    it('dispatches to network_access_policies tool handler', async () => {
+      const res = await request(app)
+        .post('/tools/network_access_policies')
+        .set(authHeaders)
+        .send({ action: 'get' });
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('BAD_REQUEST');
+      expect(res.body.error.message).toContain('networkAccessPolicyId');
+    });
+
+    it('dispatches to threatlocker_versions tool handler', async () => {
+      const res = await request(app)
+        .post('/tools/threatlocker_versions')
+        .set(authHeaders)
+        .send({});
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('BAD_REQUEST');
+    });
+
+    it('dispatches to online_devices tool handler', async () => {
+      const res = await request(app)
+        .post('/tools/online_devices')
         .set(authHeaders)
         .send({});
       expect(res.body.success).toBe(false);
@@ -572,6 +611,40 @@ describe('HTTP server integration', () => {
       const res = await request(app).delete('/mcp');
       expect(res.status).toBe(405);
       expect(res.body.error.message).toContain('Sessions not supported');
+    });
+  });
+
+  // ─── REST API Zod enforcement ─────────────────────────────────────────
+
+  describe('POST /tools/:toolName - Zod validation', () => {
+    it('rejects invalid type for pageSize (string instead of number)', async () => {
+      const res = await request(app)
+        .post('/tools/computers')
+        .set(authHeaders)
+        .send({ action: 'list', pageSize: 'not-a-number' });
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('BAD_REQUEST');
+    });
+
+    it('rejects groupBys array exceeding max length', async () => {
+      const res = await request(app)
+        .post('/tools/action_log')
+        .set(authHeaders)
+        .send({ action: 'search', groupBys: Array(11).fill(1) });
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('BAD_REQUEST');
+    });
+
+    it('rejects searchText exceeding max length', async () => {
+      const res = await request(app)
+        .post('/tools/computers')
+        .set(authHeaders)
+        .send({ action: 'list', searchText: 'x'.repeat(1001) });
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('BAD_REQUEST');
     });
   });
 

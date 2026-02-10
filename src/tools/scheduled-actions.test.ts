@@ -43,13 +43,13 @@ describe('scheduled_actions tool', () => {
     vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: [] });
     await handleScheduledActionsTool(mockClient, {
       action: 'search',
-      organizationIds: ['org-123'],
+      organizationIds: ['12345678-1234-1234-1234-123456789abc'],
       orderBy: 'computername',
     });
     expect(mockClient.post).toHaveBeenCalledWith(
       'ScheduledAgentAction/GetByParameters',
       expect.objectContaining({
-        organizationIds: ['org-123'],
+        organizationIds: ['12345678-1234-1234-1234-123456789abc'],
         orderBy: 'computername',
       }),
       expect.any(Function)
@@ -63,11 +63,23 @@ describe('scheduled_actions tool', () => {
 
   it('calls correct endpoint for get action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
-    await handleScheduledActionsTool(mockClient, { action: 'get', scheduledActionId: 'action-123' });
+    await handleScheduledActionsTool(mockClient, { action: 'get', scheduledActionId: 'b8c9d0e1-f2a3-4567-bcde-678901234567' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'ScheduledAgentAction/GetForHydration',
-      { scheduledActionId: 'action-123' }
+      { scheduledActionId: 'b8c9d0e1-f2a3-4567-bcde-678901234567' }
     );
+  });
+
+  it('returns error for invalid item in organizationIds', async () => {
+    const result = await handleScheduledActionsTool(mockClient, {
+      action: 'search',
+      organizationIds: ['not-a-valid-guid'],
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+      expect(result.error.message).toContain('organizationIds item must be a valid GUID');
+    }
   });
 
   it('calls correct endpoint for get_applies_to action', async () => {

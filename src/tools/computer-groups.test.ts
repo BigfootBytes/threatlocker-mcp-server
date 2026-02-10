@@ -69,7 +69,7 @@ describe('computer_groups tool', () => {
       includeIngestors: true,
       includeAccessDevices: true,
       includeRemovedComputers: true,
-      computerGroupId: 'group-123',
+      computerGroupId: '12345678-1234-1234-1234-123456789abc',
     });
     expect(mockClient.get).toHaveBeenCalledWith(
       'ComputerGroup/ComputerGroupGetGroupAndComputer',
@@ -78,7 +78,7 @@ describe('computer_groups tool', () => {
         includeIngestors: 'true',
         includeAccessDevices: 'true',
         includeRemovedComputers: 'true',
-        computerGroupId: 'group-123',
+        computerGroupId: '12345678-1234-1234-1234-123456789abc',
       })
     );
   });
@@ -115,6 +115,30 @@ describe('computer_groups tool', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.message).toContain('installKey');
+    }
+  });
+
+  it('returns error for invalid computerGroupId in list', async () => {
+    const result = await handleComputerGroupsTool(mockClient, {
+      action: 'list',
+      computerGroupId: 'not-a-valid-guid',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+      expect(result.error.message).toContain('computerGroupId must be a valid GUID');
+    }
+  });
+
+  it('returns error for installKey with wrong length', async () => {
+    const result = await handleComputerGroupsTool(mockClient, {
+      action: 'get_by_install_key',
+      installKey: 'SHORT',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+      expect(result.error.message).toBe('installKey must be exactly 24 characters');
     }
   });
 });

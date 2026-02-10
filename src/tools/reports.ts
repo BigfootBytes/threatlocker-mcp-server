@@ -1,5 +1,5 @@
 import { ThreatLockerClient } from '../client.js';
-import { ApiResponse, errorResponse } from '../types/responses.js';
+import { ApiResponse, errorResponse, validateGuid } from '../types/responses.js';
 
 export const reportsToolSchema = {
   name: 'reports',
@@ -50,11 +50,14 @@ export async function handleReportsTool(
     case 'list':
       return client.get('Report/ReportGetByOrganizationId', {});
 
-    case 'get_data':
+    case 'get_data': {
       if (!reportId) {
         return errorResponse('BAD_REQUEST', 'reportId is required for get_data action');
       }
+      const guidError = validateGuid(reportId, 'reportId');
+      if (guidError) return guidError;
       return client.post('Report/ReportGetDynamicData', { reportId });
+    }
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

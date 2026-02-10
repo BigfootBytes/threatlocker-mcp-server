@@ -48,11 +48,11 @@ describe('storage_policies tool', () => {
   });
 
   it('calls correct endpoint for get action', async () => {
-    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: { id: 'sp-123' } });
-    await handleStoragePoliciesTool(mockClient, { action: 'get', storagePolicyId: 'sp-123' });
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: { id: 'c9d0e1f2-a3b4-5678-cdef-789012345678' } });
+    await handleStoragePoliciesTool(mockClient, { action: 'get', storagePolicyId: 'c9d0e1f2-a3b4-5678-cdef-789012345678' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'StoragePolicy/StoragePolicyGetById',
-      { storagePolicyId: 'sp-123' }
+      { storagePolicyId: 'c9d0e1f2-a3b4-5678-cdef-789012345678' }
     );
   });
 
@@ -71,7 +71,7 @@ describe('storage_policies tool', () => {
     await handleStoragePoliciesTool(mockClient, {
       action: 'list',
       searchText: 'USB',
-      appliesToId: 'group-1',
+      appliesToId: '12345678-1234-1234-1234-123456789abc',
       policyType: 2,
       osType: 1,
       pageNumber: 2,
@@ -83,12 +83,24 @@ describe('storage_policies tool', () => {
         pageNumber: 2,
         pageSize: 10,
         searchText: 'USB',
-        appliesToId: 'group-1',
+        appliesToId: '12345678-1234-1234-1234-123456789abc',
         policyType: 2,
         osType: 1,
       },
       expect.any(Function)
     );
+  });
+
+  it('returns error for invalid appliesToId in list', async () => {
+    const result = await handleStoragePoliciesTool(mockClient, {
+      action: 'list',
+      appliesToId: 'not-a-valid-guid',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+      expect(result.error.message).toContain('appliesToId must be a valid GUID');
+    }
   });
 
   it('clamps pagination values', async () => {

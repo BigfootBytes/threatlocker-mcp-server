@@ -19,7 +19,7 @@ describe('maintenance_mode tool', () => {
   });
 
   it('returns error for missing action', async () => {
-    const result = await handleMaintenanceModeTool(mockClient, { computerId: 'comp-123' });
+    const result = await handleMaintenanceModeTool(mockClient, { computerId: 'e5f6a7b8-c9d0-1234-efab-345678901234' });
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.code).toBe('BAD_REQUEST');
@@ -36,10 +36,10 @@ describe('maintenance_mode tool', () => {
 
   it('calls correct endpoint for get_history action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
-    await handleMaintenanceModeTool(mockClient, { action: 'get_history', computerId: 'comp-123' });
+    await handleMaintenanceModeTool(mockClient, { action: 'get_history', computerId: 'e5f6a7b8-c9d0-1234-efab-345678901234' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'MaintenanceMode/MaintenanceModeGetByComputerIdV2',
-      expect.objectContaining({ computerId: 'comp-123' })
+      expect.objectContaining({ computerId: 'e5f6a7b8-c9d0-1234-efab-345678901234' })
     );
   });
 });

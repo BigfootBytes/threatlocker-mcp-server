@@ -1,5 +1,5 @@
 import { ThreatLockerClient } from '../client.js';
-import { ApiResponse, errorResponse } from '../types/responses.js';
+import { ApiResponse, errorResponse, validateGuid, validateInstallKey } from '../types/responses.js';
 
 export const computerGroupsToolSchema = {
   name: 'computer_groups',
@@ -152,6 +152,8 @@ export async function handleComputerGroupsTool(
         includeAllPolicies: String(includeAllPolicies),
       };
       if (computerGroupId) {
+        const guidError = validateGuid(computerGroupId, 'computerGroupId');
+        if (guidError) return guidError;
         params.computerGroupId = computerGroupId;
       }
       return client.get('ComputerGroup/ComputerGroupGetGroupAndComputer', params);
@@ -171,11 +173,14 @@ export async function handleComputerGroupsTool(
     case 'get_for_permit':
       return client.get('ComputerGroup/ComputerGroupGetForPermitApplication', {});
 
-    case 'get_by_install_key':
+    case 'get_by_install_key': {
       if (!installKey) {
         return errorResponse('BAD_REQUEST', 'installKey is required for get_by_install_key action');
       }
+      const keyError = validateInstallKey(installKey);
+      if (keyError) return keyError;
       return client.get('ComputerGroup/ComputerGroupGetForDownload', { installKey });
+    }
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

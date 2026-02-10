@@ -78,11 +78,11 @@ export function validateOrigin(req: Request): boolean {
 // Zod schemas for McpServer tool registration
 const computersZodSchema = {
   action: z.enum(['list', 'get', 'checkins', 'get_install_info']).describe('Action to perform'),
-  computerId: z.string().optional().describe('Computer ID (required for get and checkins)'),
-  searchText: z.string().optional().describe('Search text for list action'),
+  computerId: z.string().max(100).optional().describe('Computer ID (required for get and checkins)'),
+  searchText: z.string().max(1000).optional().describe('Search text for list action'),
   searchBy: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional().describe('Field to search by: 1=Computer/Asset Name, 2=Username, 3=Computer Group Name, 4=Last Check-in IP, 5=Organization Name'),
   action_filter: z.enum(['Secure', 'Installation', 'Learning', 'MonitorOnly']).optional().describe('Filter by computer mode for list action'),
-  computerGroup: z.string().optional().describe('Computer group ID for list action'),
+  computerGroup: z.string().max(100).optional().describe('Computer group ID for list action'),
   orderBy: z.enum(['computername', 'group', 'action', 'lastcheckin', 'computerinstalldate', 'deniedcountthreedays', 'updatechannel', 'threatlockerversion']).optional().describe('Field to sort by (default: computername)'),
   isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
   childOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
@@ -104,17 +104,17 @@ const computerGroupsZodSchema = {
   includeIngestors: z.boolean().optional().describe('Include ingestors (list action)'),
   includeAccessDevices: z.boolean().optional().describe('Include access devices (list action)'),
   includeRemovedComputers: z.boolean().optional().describe('Include removed computers (list action)'),
-  computerGroupId: z.string().optional().describe('Filter by specific computer group ID (list action)'),
+  computerGroupId: z.string().max(100).optional().describe('Filter by specific computer group ID (list action)'),
   hideGlobals: z.boolean().optional().describe('Hide global groups (dropdown action)'),
   includeAvailableOrganizations: z.boolean().optional().describe('Include child and parent organizations (dropdown_with_org action)'),
   includeAllPolicies: z.boolean().optional().describe('Include all policies attached to groups (list action)'),
-  installKey: z.string().optional().describe('24-character install key (required for get_by_install_key)'),
+  installKey: z.string().max(500).optional().describe('24-character install key (required for get_by_install_key)'),
 };
 
 const applicationsZodSchema = {
   action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy']).describe('Action to perform'),
-  applicationId: z.string().optional().describe('Application ID (required for get, research, files, get_for_network_policy)'),
-  searchText: z.string().optional().describe('Search text for search and files actions'),
+  applicationId: z.string().max(100).optional().describe('Application ID (required for get, research, files, get_for_network_policy)'),
+  searchText: z.string().max(1000).optional().describe('Search text for search and files actions'),
   searchBy: z.enum(['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries']).optional().describe('Field to search by (default: app)'),
   osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
   category: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional().describe('Category: 0=All, 1=My Applications (Custom), 2=Built-In'),
@@ -123,23 +123,23 @@ const applicationsZodSchema = {
   includeChildOrganizations: z.boolean().optional().describe('Include child organization applications (default: false)'),
   isHidden: z.boolean().optional().describe('Include hidden/temporary applications (default: false)'),
   permittedApplications: z.boolean().optional().describe('Only show apps with active permit policies (default: false)'),
-  countries: z.array(z.string()).optional().describe('ISO country codes to filter by (use with searchBy=countries)'),
+  countries: z.array(z.string().max(10)).max(20).optional().describe('ISO country codes to filter by (use with searchBy=countries)'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Page size (default: 25)'),
-  hash: z.string().optional().describe('SHA256 hash for match action'),
-  path: z.string().optional().describe('Full file path for match action'),
-  processPath: z.string().optional().describe('Process path for match action'),
-  cert: z.string().optional().describe('Certificate subject for match action'),
-  certSha: z.string().optional().describe('Certificate SHA for match action'),
-  createdBy: z.string().optional().describe('Created by path for match action'),
+  hash: z.string().max(500).optional().describe('SHA256 hash for match action'),
+  path: z.string().max(1000).optional().describe('Full file path for match action'),
+  processPath: z.string().max(1000).optional().describe('Process path for match action'),
+  cert: z.string().max(500).optional().describe('Certificate subject for match action'),
+  certSha: z.string().max(500).optional().describe('Certificate SHA for match action'),
+  createdBy: z.string().max(1000).optional().describe('Created by path for match action'),
 };
 
 const policiesZodSchema = {
   action: z.enum(['get', 'list_by_application']).describe('Action to perform'),
-  policyId: z.string().optional().describe('Policy ID (required for get)'),
-  applicationId: z.string().optional().describe('Application ID (required for list_by_application)'),
-  organizationId: z.string().optional().describe('Organization ID (required for list_by_application)'),
-  appliesToId: z.string().optional().describe('Computer group ID to filter by'),
+  policyId: z.string().max(100).optional().describe('Policy ID (required for get)'),
+  applicationId: z.string().max(100).optional().describe('Application ID (required for list_by_application)'),
+  organizationId: z.string().max(100).optional().describe('Organization ID (required for list_by_application)'),
+  appliesToId: z.string().max(100).optional().describe('Computer group ID to filter by'),
   includeDenies: z.boolean().optional().describe('Include deny policies'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Page size (default: 25)'),
@@ -147,26 +147,27 @@ const policiesZodSchema = {
 
 const actionLogZodSchema = {
   action: z.enum(['search', 'get', 'file_history', 'get_file_download', 'get_policy_conditions', 'get_testing_details']).describe('Action to perform'),
-  startDate: z.string().optional().describe('Start date for search (ISO 8601 UTC)'),
-  endDate: z.string().optional().describe('End date for search (ISO 8601 UTC)'),
+  startDate: z.string().max(100).optional().describe('Start date for search (ISO 8601 UTC)'),
+  endDate: z.string().max(100).optional().describe('End date for search (ISO 8601 UTC)'),
   actionId: z.union([z.literal(1), z.literal(2), z.literal(99)]).optional().describe('Filter by action: 1=Permit, 2=Deny, 99=Any Deny'),
   actionType: z.enum(['execute', 'install', 'network', 'registry', 'read', 'write', 'move', 'delete', 'baseline', 'powershell', 'elevate', 'configuration', 'dns']).optional().describe('Filter by action type'),
-  hostname: z.string().optional().describe('Filter by hostname (wildcards supported)'),
-  actionLogId: z.string().optional().describe('Action log ID (required for get, get_file_download, get_policy_conditions, get_testing_details)'),
-  fullPath: z.string().optional().describe('File path for search filter or file_history (wildcards supported)'),
-  computerId: z.string().optional().describe('Computer ID to scope file_history'),
+  hostname: z.string().max(1000).optional().describe('Filter by hostname (wildcards supported)'),
+  actionLogId: z.string().max(100).optional().describe('Action log ID (required for get, get_file_download, get_policy_conditions, get_testing_details)'),
+  fullPath: z.string().max(1000).optional().describe('File path for search filter or file_history (wildcards supported)'),
+  computerId: z.string().max(100).optional().describe('Computer ID to scope file_history'),
   showChildOrganizations: z.boolean().optional().describe('Include child organization logs (default: false)'),
   onlyTrueDenies: z.boolean().optional().describe('Filter to actual denies only (default: false)'),
-  groupBys: z.array(z.number()).optional().describe('Group by: 1=Username, 2=Process Path, 6=Policy Name, 8=App Name, 9=Action Type, 17=Asset Name, 70=Risk Score'),
+  groupBys: z.array(z.number()).max(10).optional().describe('Group by: 1=Username, 2=Process Path, 6=Policy Name, 8=App Name, 9=Action Type, 17=Asset Name, 70=Risk Score'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Page size (default: 25)'),
+  simulateDeny: z.boolean().optional().describe('Include simulated denies from monitor mode (default: false)'),
 };
 
 const approvalRequestsZodSchema = {
   action: z.enum(['list', 'get', 'count', 'get_file_download_details', 'get_permit_application', 'get_storage_approval']).describe('Action to perform'),
-  approvalRequestId: z.string().optional().describe('Approval request ID (required for get)'),
+  approvalRequestId: z.string().max(100).optional().describe('Approval request ID (required for get)'),
   statusId: z.union([z.literal(1), z.literal(4), z.literal(6), z.literal(10), z.literal(12), z.literal(13), z.literal(16)]).optional().describe('Filter by status'),
-  searchText: z.string().optional().describe('Filter by text'),
+  searchText: z.string().max(1000).optional().describe('Filter by text'),
   orderBy: z.enum(['username', 'devicetype', 'actiontype', 'path', 'actiondate', 'datetime']).optional().describe('Field to order by'),
   isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
   showChildOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
@@ -176,7 +177,7 @@ const approvalRequestsZodSchema = {
 
 const organizationsZodSchema = {
   action: z.enum(['list_children', 'get_auth_key', 'get_for_move_computers']).describe('Action to perform'),
-  searchText: z.string().optional().describe('Filter by name (for list_children)'),
+  searchText: z.string().max(1000).optional().describe('Filter by name (for list_children)'),
   includeAllChildren: z.boolean().optional().describe('Include nested children (default: false)'),
   orderBy: z.enum(['billingMethod', 'businessClassificationName', 'dateAdded', 'name']).optional().describe('Field to order by'),
   isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
@@ -186,21 +187,23 @@ const organizationsZodSchema = {
 
 const reportsZodSchema = {
   action: z.enum(['list', 'get_data']).describe('Action to perform'),
-  reportId: z.string().optional().describe('Report ID (required for get_data action)'),
+  reportId: z.string().max(100).optional().describe('Report ID (required for get_data action)'),
 };
 
 const maintenanceModeZodSchema = {
   action: z.enum(['get_history']).describe('Action to perform'),
-  computerId: z.string().describe('Computer ID (required)'),
+  computerId: z.string().max(100).describe('Computer ID (required)'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Page size (default: 25)'),
 };
 
 const scheduledActionsZodSchema = {
   action: z.enum(['list', 'search', 'get', 'get_applies_to']).describe('Action to perform'),
-  scheduledActionId: z.string().optional().describe('Scheduled action ID (required for get)'),
-  organizationIds: z.array(z.string()).optional().describe('Filter by organization IDs'),
-  computerGroupIds: z.array(z.string()).optional().describe('Filter by computer group IDs'),
+  scheduledActionId: z.string().max(100).optional().describe('Scheduled action ID (required for get)'),
+  scheduledType: z.number().optional().describe('Scheduled type identifier (default: 1 for Version Update)'),
+  includeChildren: z.boolean().optional().describe('Include child organizations (list action only)'),
+  organizationIds: z.array(z.string().max(100)).max(50).optional().describe('Filter by organization IDs'),
+  computerGroupIds: z.array(z.string().max(100)).max(50).optional().describe('Filter by computer group IDs'),
   orderBy: z.enum(['scheduleddatetime', 'computername', 'computergroupname', 'organizationname']).optional().describe('Field to sort by'),
   isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
@@ -209,24 +212,24 @@ const scheduledActionsZodSchema = {
 
 const systemAuditZodSchema = {
   action: z.enum(['search', 'health_center']).describe('Action to perform'),
-  startDate: z.string().optional().describe('Start date (ISO 8601 UTC)'),
-  endDate: z.string().optional().describe('End date (ISO 8601 UTC)'),
-  username: z.string().optional().describe('Filter by username (wildcards supported)'),
+  startDate: z.string().max(100).optional().describe('Start date (ISO 8601 UTC)'),
+  endDate: z.string().max(100).optional().describe('End date (ISO 8601 UTC)'),
+  username: z.string().max(500).optional().describe('Filter by username (wildcards supported)'),
   auditAction: z.enum(['Create', 'Delete', 'Logon', 'Modify', 'Read']).optional().describe('Filter by audit action type'),
-  ipAddress: z.string().optional().describe('Filter by IP address'),
+  ipAddress: z.string().max(500).optional().describe('Filter by IP address'),
   effectiveAction: z.enum(['Denied', 'Permitted']).optional().describe('Filter by effective action'),
-  details: z.string().optional().describe('Filter by details text (wildcards supported)'),
+  details: z.string().max(1000).optional().describe('Filter by details text (wildcards supported)'),
   viewChildOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
-  objectId: z.string().optional().describe('Filter by specific object ID'),
+  objectId: z.string().max(100).optional().describe('Filter by specific object ID'),
   days: z.number().optional().describe('Number of days for health_center (default: 7)'),
-  searchText: z.string().optional().describe('Search text for health_center'),
+  searchText: z.string().max(1000).optional().describe('Search text for health_center'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Page size (default: 25)'),
 };
 
 const tagsZodSchema = {
   action: z.enum(['get', 'dropdown']).describe('Action to perform'),
-  tagId: z.string().optional().describe('Tag ID (required for get)'),
+  tagId: z.string().max(100).optional().describe('Tag ID (required for get)'),
   includeBuiltIns: z.boolean().optional().describe('Include ThreatLocker built-in tags (default: false)'),
   tagType: z.number().optional().describe('Tag type filter (default: 1)'),
   includeNetworkTagInMaster: z.boolean().optional().describe('Include network tags in master (default: true)'),
@@ -234,9 +237,9 @@ const tagsZodSchema = {
 
 const storagePoliciesZodSchema = {
   action: z.enum(['get', 'list']).describe('Action to perform'),
-  storagePolicyId: z.string().optional().describe('Storage policy ID (required for get)'),
-  searchText: z.string().optional().describe('Search text to filter policies'),
-  appliesToId: z.string().optional().describe('Computer group ID to filter by'),
+  storagePolicyId: z.string().max(100).optional().describe('Storage policy ID (required for get)'),
+  searchText: z.string().max(1000).optional().describe('Search text to filter policies'),
+  appliesToId: z.string().max(100).optional().describe('Computer group ID to filter by'),
   policyType: z.number().optional().describe('Filter by policy type'),
   osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
@@ -245,9 +248,9 @@ const storagePoliciesZodSchema = {
 
 const networkAccessPoliciesZodSchema = {
   action: z.enum(['get', 'list']).describe('Action to perform'),
-  networkAccessPolicyId: z.string().optional().describe('Network access policy ID (required for get)'),
-  searchText: z.string().optional().describe('Search text to filter policies'),
-  appliesToId: z.string().optional().describe('Computer group ID to filter by'),
+  networkAccessPolicyId: z.string().max(100).optional().describe('Network access policy ID (required for get)'),
+  searchText: z.string().max(1000).optional().describe('Search text to filter policies'),
+  appliesToId: z.string().max(100).optional().describe('Computer group ID to filter by'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Page size (default: 25)'),
 };
@@ -260,6 +263,26 @@ const onlineDevicesZodSchema = {
   action: z.enum(['list']).describe('Action to perform'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Page size (default: 25)'),
+};
+
+// Zod schemas for REST API validation (prevents bypassing type checks)
+const toolZodSchemas: Record<string, z.ZodObject<Record<string, z.ZodTypeAny>>> = {
+  computers: z.object(computersZodSchema).passthrough(),
+  computer_groups: z.object(computerGroupsZodSchema).passthrough(),
+  applications: z.object(applicationsZodSchema).passthrough(),
+  policies: z.object(policiesZodSchema).passthrough(),
+  action_log: z.object(actionLogZodSchema).passthrough(),
+  approval_requests: z.object(approvalRequestsZodSchema).passthrough(),
+  organizations: z.object(organizationsZodSchema).passthrough(),
+  reports: z.object(reportsZodSchema).passthrough(),
+  maintenance_mode: z.object(maintenanceModeZodSchema).passthrough(),
+  scheduled_actions: z.object(scheduledActionsZodSchema).passthrough(),
+  system_audit: z.object(systemAuditZodSchema).passthrough(),
+  tags: z.object(tagsZodSchema).passthrough(),
+  storage_policies: z.object(storagePoliciesZodSchema).passthrough(),
+  network_access_policies: z.object(networkAccessPoliciesZodSchema).passthrough(),
+  threatlocker_versions: z.object(threatlockerVersionsZodSchema).passthrough(),
+  online_devices: z.object(onlineDevicesZodSchema).passthrough(),
 };
 
 // Log levels: ERROR=0, INFO=1, DEBUG=2
@@ -672,6 +695,19 @@ export function createApp(): ReturnType<typeof express> {
     try {
       const client = new ThreatLockerClient(credentials);
       const args = req.body || {};
+
+      // Validate request body against Zod schema (REST API bypasses MCP SDK validation)
+      const zodSchema = toolZodSchemas[toolName];
+      if (zodSchema) {
+        const parsed = zodSchema.safeParse(args);
+        if (!parsed.success) {
+          res.status(400).json({
+            success: false,
+            error: { code: 'BAD_REQUEST', message: parsed.error.issues.map((e: z.ZodIssue) => e.message).join('; ') },
+          });
+          return;
+        }
+      }
 
       let result: unknown;
       switch (toolName) {

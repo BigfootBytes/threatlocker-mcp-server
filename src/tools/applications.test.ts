@@ -93,19 +93,19 @@ describe('applications tool', () => {
 
   it('calls correct endpoint for get action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
-    await handleApplicationsTool(mockClient, { action: 'get', applicationId: 'app-123' });
+    await handleApplicationsTool(mockClient, { action: 'get', applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'Application/ApplicationGetById',
-      { applicationId: 'app-123' }
+      { applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' }
     );
   });
 
   it('calls correct endpoint for research action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
-    await handleApplicationsTool(mockClient, { action: 'research', applicationId: 'app-123' });
+    await handleApplicationsTool(mockClient, { action: 'research', applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'Application/ApplicationGetResearchDetailsById',
-      { applicationId: 'app-123' }
+      { applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' }
     );
   });
 
@@ -119,20 +119,33 @@ describe('applications tool', () => {
 
   it('calls correct endpoint for files action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
-    await handleApplicationsTool(mockClient, { action: 'files', applicationId: 'app-123' });
+    await handleApplicationsTool(mockClient, { action: 'files', applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'ApplicationFile/ApplicationFileGetByApplicationId',
-      expect.objectContaining({ applicationId: 'app-123' })
+      expect.objectContaining({ applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' })
     );
   });
 
   it('calls correct endpoint for match action', async () => {
     vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: [] });
-    await handleApplicationsTool(mockClient, { action: 'match', hash: 'abc123', osType: 1 });
+    const validSha256 = 'a'.repeat(64);
+    await handleApplicationsTool(mockClient, { action: 'match', hash: validSha256, osType: 1 });
     expect(mockClient.post).toHaveBeenCalledWith(
       'Application/ApplicationGetMatchingList',
-      expect.objectContaining({ osType: 1, hash: 'abc123' })
+      expect.objectContaining({ osType: 1, hash: validSha256 })
     );
+  });
+
+  it('returns error for invalid hash format in match', async () => {
+    const result = await handleApplicationsTool(mockClient, {
+      action: 'match',
+      hash: 'not-a-valid-sha256',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+      expect(result.error.message).toContain('hash must be a 64-character hex string (SHA256)');
+    }
   });
 
   it('calls correct endpoint for get_for_maintenance action', async () => {
@@ -146,10 +159,10 @@ describe('applications tool', () => {
 
   it('calls correct endpoint for get_for_network_policy action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
-    await handleApplicationsTool(mockClient, { action: 'get_for_network_policy', applicationId: 'app-123' });
+    await handleApplicationsTool(mockClient, { action: 'get_for_network_policy', applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'Application/ApplicationGetForNetworkPolicyProcessById',
-      { applicationId: 'app-123' }
+      { applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' }
     );
   });
 

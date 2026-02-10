@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateDateRange, validateGuid } from '../types/responses.js';
 
 export const systemAuditToolSchema = {
   name: 'system_audit',
@@ -127,9 +127,15 @@ export async function handleSystemAuditTool(
   }
 
   switch (action) {
-    case 'search':
+    case 'search': {
       if (!startDate || !endDate) {
         return errorResponse('BAD_REQUEST', 'startDate and endDate are required for search action');
+      }
+      const dateError = validateDateRange(startDate, endDate);
+      if (dateError) return dateError;
+      if (objectId) {
+        const guidError = validateGuid(objectId, 'objectId');
+        if (guidError) return guidError;
       }
       return client.post(
         'SystemAudit/SystemAuditGetByParameters',
@@ -148,12 +154,14 @@ export async function handleSystemAuditTool(
         },
         extractPaginationFromHeaders
       );
+    }
 
-    case 'health_center':
+    case 'health_center': {
+      const clampedDays = Math.max(1, Math.min(Math.floor(days), 365));
       return client.post(
         'SystemAudit/SystemAuditGetForHealthCenter',
         {
-          days,
+          days: clampedDays,
           isLoggedIn: true,
           pageSize,
           pageNumber,
@@ -161,6 +169,7 @@ export async function handleSystemAuditTool(
         },
         extractPaginationFromHeaders
       );
+    }
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid, validateSha256 } from '../types/responses.js';
 
 export const applicationsToolSchema = {
   name: 'applications',
@@ -188,30 +188,43 @@ export async function handleApplicationsTool(
         extractPaginationFromHeaders
       );
 
-    case 'get':
+    case 'get': {
       if (!applicationId) {
         return errorResponse('BAD_REQUEST', 'applicationId is required for get action');
       }
+      const guidError = validateGuid(applicationId, 'applicationId');
+      if (guidError) return guidError;
       return client.get('Application/ApplicationGetById', { applicationId });
+    }
 
-    case 'research':
+    case 'research': {
       if (!applicationId) {
         return errorResponse('BAD_REQUEST', 'applicationId is required for research action');
       }
+      const guidError = validateGuid(applicationId, 'applicationId');
+      if (guidError) return guidError;
       return client.get('Application/ApplicationGetResearchDetailsById', { applicationId });
+    }
 
-    case 'files':
+    case 'files': {
       if (!applicationId) {
         return errorResponse('BAD_REQUEST', 'applicationId is required for files action');
       }
+      const guidError = validateGuid(applicationId, 'applicationId');
+      if (guidError) return guidError;
       return client.get('ApplicationFile/ApplicationFileGetByApplicationId', {
         applicationId,
         searchText,
         pageNumber: String(pageNumber),
         pageSize: String(pageSize),
       });
+    }
 
-    case 'match':
+    case 'match': {
+      if (hash) {
+        const hashError = validateSha256(hash, 'hash');
+        if (hashError) return hashError;
+      }
       return client.post('Application/ApplicationGetMatchingList', {
         osType,
         hash: hash || '',
@@ -221,15 +234,19 @@ export async function handleApplicationsTool(
         certs: certSha || cert ? [{ sha: certSha || '', subject: cert || '', validCert: true }] : [],
         createdBys: createdBy ? [createdBy] : [],
       });
+    }
 
     case 'get_for_maintenance':
       return client.get('Application/ApplicationGetForMaintenanceMode', {});
 
-    case 'get_for_network_policy':
+    case 'get_for_network_policy': {
       if (!applicationId) {
         return errorResponse('BAD_REQUEST', 'applicationId is required for get_for_network_policy action');
       }
+      const guidError = validateGuid(applicationId, 'applicationId');
+      if (guidError) return guidError;
       return client.get('Application/ApplicationGetForNetworkPolicyProcessById', { applicationId });
+    }
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

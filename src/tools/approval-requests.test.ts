@@ -49,10 +49,10 @@ describe('approval_requests tool', () => {
 
   it('calls correct endpoint for get action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
-    await handleApprovalRequestsTool(mockClient, { action: 'get', approvalRequestId: 'req-123' });
+    await handleApprovalRequestsTool(mockClient, { action: 'get', approvalRequestId: 'c3d4e5f6-a7b8-9012-cdef-123456789012' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'ApprovalRequest/ApprovalRequestGetById',
-      { approvalRequestId: 'req-123' }
+      { approvalRequestId: 'c3d4e5f6-a7b8-9012-cdef-123456789012' }
     );
   });
 
@@ -67,28 +67,28 @@ describe('approval_requests tool', () => {
 
   it('calls correct endpoint for get_file_download_details action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
-    await handleApprovalRequestsTool(mockClient, { action: 'get_file_download_details', approvalRequestId: 'req-123' });
+    await handleApprovalRequestsTool(mockClient, { action: 'get_file_download_details', approvalRequestId: 'c3d4e5f6-a7b8-9012-cdef-123456789012' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'ApprovalRequest/ApprovalRequestGetFileDownloadDetailsById',
-      { approvalRequestId: 'req-123' }
+      { approvalRequestId: 'c3d4e5f6-a7b8-9012-cdef-123456789012' }
     );
   });
 
   it('calls correct endpoint for get_permit_application action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
-    await handleApprovalRequestsTool(mockClient, { action: 'get_permit_application', approvalRequestId: 'req-123' });
+    await handleApprovalRequestsTool(mockClient, { action: 'get_permit_application', approvalRequestId: 'c3d4e5f6-a7b8-9012-cdef-123456789012' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'ApprovalRequest/ApprovalRequestGetPermitApplicationById',
-      { approvalRequestId: 'req-123' }
+      { approvalRequestId: 'c3d4e5f6-a7b8-9012-cdef-123456789012' }
     );
   });
 
   it('calls correct endpoint for get_storage_approval action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
-    await handleApprovalRequestsTool(mockClient, { action: 'get_storage_approval', approvalRequestId: 'req-123' });
+    await handleApprovalRequestsTool(mockClient, { action: 'get_storage_approval', approvalRequestId: 'c3d4e5f6-a7b8-9012-cdef-123456789012' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'ApprovalRequest/ApprovalRequestGetStorageApprovalById',
-      { approvalRequestId: 'req-123' }
+      { approvalRequestId: 'c3d4e5f6-a7b8-9012-cdef-123456789012' }
     );
   });
 

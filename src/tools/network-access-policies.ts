@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromJsonHeader } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 
 export const networkAccessPoliciesToolSchema = {
   name: 'network_access_policies',
@@ -68,13 +68,20 @@ export async function handleNetworkAccessPoliciesTool(
   }
 
   switch (action) {
-    case 'get':
+    case 'get': {
       if (!networkAccessPolicyId) {
         return errorResponse('BAD_REQUEST', 'networkAccessPolicyId is required for get action');
       }
+      const guidError = validateGuid(networkAccessPolicyId, 'networkAccessPolicyId');
+      if (guidError) return guidError;
       return client.get('NetworkAccessPolicy/NetworkAccessPolicyGetById', { networkAccessPolicyId });
+    }
 
     case 'list': {
+      if (appliesToId) {
+        const guidError = validateGuid(appliesToId, 'appliesToId');
+        if (guidError) return guidError;
+      }
       const body: Record<string, unknown> = { pageNumber, pageSize };
       if (searchText) body.searchText = searchText;
       if (appliesToId) body.appliesToId = appliesToId;

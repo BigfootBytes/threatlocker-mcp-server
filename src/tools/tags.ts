@@ -1,5 +1,5 @@
 import { ThreatLockerClient } from '../client.js';
-import { ApiResponse, errorResponse } from '../types/responses.js';
+import { ApiResponse, errorResponse, validateGuid } from '../types/responses.js';
 
 export const tagsToolSchema = {
   name: 'tags',
@@ -74,11 +74,14 @@ export async function handleTagsTool(
   }
 
   switch (action) {
-    case 'get':
+    case 'get': {
       if (!tagId) {
         return errorResponse('BAD_REQUEST', 'tagId is required for get action');
       }
+      const guidError = validateGuid(tagId, 'tagId');
+      if (guidError) return guidError;
       return client.get('Tag/TagGetById', { tagId });
+    }
 
     case 'dropdown':
       return client.get('Tag/TagGetDowndownOptionsByOrganizationId', {

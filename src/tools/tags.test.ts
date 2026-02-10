@@ -34,10 +34,10 @@ describe('tags tool', () => {
 
   it('calls correct endpoint for get action', async () => {
     vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: {} });
-    await handleTagsTool(mockClient, { action: 'get', tagId: 'tag-123' });
+    await handleTagsTool(mockClient, { action: 'get', tagId: 'e1f2a3b4-c5d6-7890-efab-012345678901' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'Tag/TagGetById',
-      { tagId: 'tag-123' }
+      { tagId: 'e1f2a3b4-c5d6-7890-efab-012345678901' }
     );
   });
 

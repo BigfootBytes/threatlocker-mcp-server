@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 
 export const computersToolSchema = {
   name: 'computers',
@@ -119,7 +119,11 @@ export async function handleComputersTool(
   }
 
   switch (action) {
-    case 'list':
+    case 'list': {
+      if (computerGroup) {
+        const guidError = validateGuid(computerGroup, 'computerGroup');
+        if (guidError) return guidError;
+      }
       return client.post(
         'Computer/ComputerGetByAllParameters',
         {
@@ -136,17 +140,23 @@ export async function handleComputersTool(
         },
         extractPaginationFromHeaders
       );
+    }
 
-    case 'get':
+    case 'get': {
       if (!computerId) {
         return errorResponse('BAD_REQUEST', 'computerId is required for get action');
       }
+      const guidError = validateGuid(computerId, 'computerId');
+      if (guidError) return guidError;
       return client.get('Computer/ComputerGetForEditById', { computerId });
+    }
 
-    case 'checkins':
+    case 'checkins': {
       if (!computerId) {
         return errorResponse('BAD_REQUEST', 'computerId is required for checkins action');
       }
+      const guidError = validateGuid(computerId, 'computerId');
+      if (guidError) return guidError;
       return client.post(
         'ComputerCheckin/ComputerCheckinGetByParameters',
         {
@@ -157,6 +167,7 @@ export async function handleComputersTool(
         },
         extractPaginationFromHeaders
       );
+    }
 
     case 'get_install_info':
       return client.get('Computer/ComputerGetForNewComputer', {});

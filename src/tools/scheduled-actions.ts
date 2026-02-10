@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 
 export const scheduledActionsToolSchema = {
   name: 'scheduled_actions',
@@ -108,7 +108,15 @@ export async function handleScheduledActionsTool(
         includeChildren: String(includeChildren),
       });
 
-    case 'search':
+    case 'search': {
+      for (const id of organizationIds) {
+        const guidError = validateGuid(id, 'organizationIds item');
+        if (guidError) return guidError;
+      }
+      for (const id of computerGroupIds) {
+        const guidError = validateGuid(id, 'computerGroupIds item');
+        if (guidError) return guidError;
+      }
       return client.post(
         'ScheduledAgentAction/GetByParameters',
         {
@@ -121,12 +129,16 @@ export async function handleScheduledActionsTool(
         },
         extractPaginationFromHeaders
       );
+    }
 
-    case 'get':
+    case 'get': {
       if (!scheduledActionId) {
         return errorResponse('BAD_REQUEST', 'scheduledActionId is required for get action');
       }
+      const guidError = validateGuid(scheduledActionId, 'scheduledActionId');
+      if (guidError) return guidError;
       return client.get('ScheduledAgentAction/GetForHydration', { scheduledActionId });
+    }
 
     case 'get_applies_to':
       return client.get('ScheduledAgentAction/AppliesTo', {});

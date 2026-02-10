@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateDateRange, validateGuid } from '../types/responses.js';
 
 export const actionLogToolSchema = {
   name: 'action_log',
@@ -83,6 +83,10 @@ Related tools: computers (find computer IDs), applications (identify apps), appr
         type: 'number',
         description: 'Results per page (default: 25)',
       },
+      simulateDeny: {
+        type: 'boolean',
+        description: 'Include simulated denies from monitor mode.',
+      },
     },
     required: ['action'],
   },
@@ -103,6 +107,7 @@ interface ActionLogInput {
   groupBys?: number[];
   pageNumber?: number;
   pageSize?: number;
+  simulateDeny?: boolean;
 }
 
 export async function handleActionLogTool(
@@ -122,6 +127,7 @@ export async function handleActionLogTool(
     showChildOrganizations = false,
     onlyTrueDenies = false,
     groupBys = [],
+    simulateDeny = false,
   } = input;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber, input.pageSize);
 
@@ -130,10 +136,12 @@ export async function handleActionLogTool(
   }
 
   switch (action) {
-    case 'search':
+    case 'search': {
       if (!startDate || !endDate) {
         return errorResponse('BAD_REQUEST', 'startDate and endDate are required for search action');
       }
+      const dateError = validateDateRange(startDate, endDate);
+      if (dateError) return dateError;
       return client.post(
         'ActionLog/ActionLogGetByParametersV2',
         {
@@ -151,17 +159,21 @@ export async function handleActionLogTool(
           showTotalCount: true,
           showChildOrganizations,
           onlyTrueDenies,
-          simulateDeny: false,
+          simulateDeny,
         },
         extractPaginationFromHeaders,
         { usenewsearch: 'true' }
       );
+    }
 
-    case 'get':
+    case 'get': {
       if (!actionLogId) {
         return errorResponse('BAD_REQUEST', 'actionLogId is required for get action');
       }
+      const guidError = validateGuid(actionLogId, 'actionLogId');
+      if (guidError) return guidError;
       return client.get('ActionLog/ActionLogGetByIdV2', { actionLogId });
+    }
 
     case 'file_history': {
       if (!fullPath) {
@@ -169,28 +181,39 @@ export async function handleActionLogTool(
       }
       const params: Record<string, string> = { fullPath };
       if (computerId) {
+        const guidError = validateGuid(computerId, 'computerId');
+        if (guidError) return guidError;
         params.computerId = computerId;
       }
       return client.get('ActionLog/ActionLogGetAllForFileHistoryV2', params);
     }
 
-    case 'get_file_download':
+    case 'get_file_download': {
       if (!actionLogId) {
         return errorResponse('BAD_REQUEST', 'actionLogId is required for get_file_download action');
       }
+      const guidError = validateGuid(actionLogId, 'actionLogId');
+      if (guidError) return guidError;
       return client.get('ActionLog/ActionLogGetFileDownloadDetailsById', { actionLogId });
+    }
 
-    case 'get_policy_conditions':
+    case 'get_policy_conditions': {
       if (!actionLogId) {
         return errorResponse('BAD_REQUEST', 'actionLogId is required for get_policy_conditions action');
       }
+      const guidError = validateGuid(actionLogId, 'actionLogId');
+      if (guidError) return guidError;
       return client.post('ActionLog/ActionLogGetPolicyConditionsForPermitApplication', { actionLogId });
+    }
 
-    case 'get_testing_details':
+    case 'get_testing_details': {
       if (!actionLogId) {
         return errorResponse('BAD_REQUEST', 'actionLogId is required for get_testing_details action');
       }
+      const guidError = validateGuid(actionLogId, 'actionLogId');
+      if (guidError) return guidError;
       return client.post('ActionLog/ActionLogGetTestingEnvironmentDetailsById', { actionLogId });
+    }
 
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);

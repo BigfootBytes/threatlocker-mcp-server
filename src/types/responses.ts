@@ -48,6 +48,46 @@ export function clampPagination(pageNumber?: number, pageSize?: number): { pageN
   };
 }
 
+const GUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function validateDateRange(startDate: string, endDate: string): ErrorResponse | null {
+  const start = Date.parse(startDate);
+  const end = Date.parse(endDate);
+  if (isNaN(start)) {
+    return errorResponse('BAD_REQUEST', `Invalid startDate: ${startDate}`);
+  }
+  if (isNaN(end)) {
+    return errorResponse('BAD_REQUEST', `Invalid endDate: ${endDate}`);
+  }
+  if (start > end) {
+    return errorResponse('BAD_REQUEST', 'startDate must not be after endDate');
+  }
+  return null;
+}
+
+export function validateGuid(value: string, fieldName: string): ErrorResponse | null {
+  if (!GUID_REGEX.test(value)) {
+    return errorResponse('BAD_REQUEST', `${fieldName} must be a valid GUID`);
+  }
+  return null;
+}
+
+export function validateInstallKey(value: string): ErrorResponse | null {
+  if (value.length !== 24) {
+    return errorResponse('BAD_REQUEST', 'installKey must be exactly 24 characters');
+  }
+  return null;
+}
+
+const SHA256_REGEX = /^[0-9a-f]{64}$/i;
+
+export function validateSha256(value: string, fieldName: string): ErrorResponse | null {
+  if (!SHA256_REGEX.test(value)) {
+    return errorResponse('BAD_REQUEST', `${fieldName} must be a 64-character hex string (SHA256)`);
+  }
+  return null;
+}
+
 export function mapHttpStatusToErrorCode(status: number): ErrorCode {
   switch (status) {
     case 400:

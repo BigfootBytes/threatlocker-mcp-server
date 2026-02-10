@@ -44,10 +44,10 @@ describe('reports tool', () => {
 
   it('calls correct endpoint for get_data action', async () => {
     vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
-    await handleReportsTool(mockClient, { action: 'get_data', reportId: 'report-123' });
+    await handleReportsTool(mockClient, { action: 'get_data', reportId: 'a7b8c9d0-e1f2-3456-abcd-567890123456' });
     expect(mockClient.post).toHaveBeenCalledWith(
       'Report/ReportGetDynamicData',
-      { reportId: 'report-123' }
+      { reportId: 'a7b8c9d0-e1f2-3456-abcd-567890123456' }
     );
   });
 });

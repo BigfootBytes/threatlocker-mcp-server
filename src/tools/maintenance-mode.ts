@@ -1,5 +1,5 @@
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 
 export const maintenanceModeToolSchema = {
   name: 'maintenance_mode',
@@ -67,6 +67,8 @@ export async function handleMaintenanceModeTool(
   if (!computerId) {
     return errorResponse('BAD_REQUEST', 'computerId is required');
   }
+  const guidError = validateGuid(computerId, 'computerId');
+  if (guidError) return guidError;
 
   switch (action) {
     case 'get_history':
