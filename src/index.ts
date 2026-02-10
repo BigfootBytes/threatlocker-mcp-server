@@ -8,22 +8,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { ThreatLockerClient } from './client.js';
-import { computersToolSchema, handleComputersTool } from './tools/computers.js';
-import { computerGroupsToolSchema, handleComputerGroupsTool } from './tools/computer-groups.js';
-import { applicationsToolSchema, handleApplicationsTool } from './tools/applications.js';
-import { policiesToolSchema, handlePoliciesTool } from './tools/policies.js';
-import { actionLogToolSchema, handleActionLogTool } from './tools/action-log.js';
-import { approvalRequestsToolSchema, handleApprovalRequestsTool } from './tools/approval-requests.js';
-import { organizationsToolSchema, handleOrganizationsTool } from './tools/organizations.js';
-import { reportsToolSchema, handleReportsTool } from './tools/reports.js';
-import { maintenanceModeToolSchema, handleMaintenanceModeTool } from './tools/maintenance-mode.js';
-import { scheduledActionsToolSchema, handleScheduledActionsTool } from './tools/scheduled-actions.js';
-import { systemAuditToolSchema, handleSystemAuditTool } from './tools/system-audit.js';
-import { tagsToolSchema, handleTagsTool } from './tools/tags.js';
-import { storagePoliciesToolSchema, handleStoragePoliciesTool } from './tools/storage-policies.js';
-import { networkAccessPoliciesToolSchema, handleNetworkAccessPoliciesTool } from './tools/network-access-policies.js';
-import { threatlockerVersionsToolSchema, handleThreatLockerVersionsTool } from './tools/threatlocker-versions.js';
-import { onlineDevicesToolSchema, handleOnlineDevicesTool } from './tools/online-devices.js';
+import { allTools, toolsByName } from './tools/registry.js';
 import { createHttpServer } from './transports/http.js';
 import { VERSION } from './version.js';
 
@@ -84,85 +69,24 @@ if (transportMode === 'http') {
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [
-      computersToolSchema,
-      computerGroupsToolSchema,
-      applicationsToolSchema,
-      policiesToolSchema,
-      actionLogToolSchema,
-      approvalRequestsToolSchema,
-      organizationsToolSchema,
-      reportsToolSchema,
-      maintenanceModeToolSchema,
-      scheduledActionsToolSchema,
-      systemAuditToolSchema,
-      tagsToolSchema,
-      storagePoliciesToolSchema,
-      networkAccessPoliciesToolSchema,
-      threatlockerVersionsToolSchema,
-      onlineDevicesToolSchema,
-    ],
+    tools: allTools.map(t => ({
+      name: t.name,
+      description: t.description,
+      inputSchema: t.inputSchema,
+    })),
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
+    const { name, arguments: toolArgs } = request.params;
+    const tool = toolsByName.get(name);
 
-    let result;
-    switch (name) {
-      case 'computers':
-        result = await handleComputersTool(client, args || {});
-        break;
-      case 'computer_groups':
-        result = await handleComputerGroupsTool(client, args || {});
-        break;
-      case 'applications':
-        result = await handleApplicationsTool(client, args || {});
-        break;
-      case 'policies':
-        result = await handlePoliciesTool(client, args || {});
-        break;
-      case 'action_log':
-        result = await handleActionLogTool(client, args || {});
-        break;
-      case 'approval_requests':
-        result = await handleApprovalRequestsTool(client, args || {});
-        break;
-      case 'organizations':
-        result = await handleOrganizationsTool(client, args || {});
-        break;
-      case 'reports':
-        result = await handleReportsTool(client, args || {});
-        break;
-      case 'maintenance_mode':
-        result = await handleMaintenanceModeTool(client, args || {});
-        break;
-      case 'scheduled_actions':
-        result = await handleScheduledActionsTool(client, args || {});
-        break;
-      case 'system_audit':
-        result = await handleSystemAuditTool(client, args || {});
-        break;
-      case 'tags':
-        result = await handleTagsTool(client, args || {});
-        break;
-      case 'storage_policies':
-        result = await handleStoragePoliciesTool(client, args || {});
-        break;
-      case 'network_access_policies':
-        result = await handleNetworkAccessPoliciesTool(client, args || {});
-        break;
-      case 'threatlocker_versions':
-        result = await handleThreatLockerVersionsTool(client, args || {});
-        break;
-      case 'online_devices':
-        result = await handleOnlineDevicesTool(client, args || {});
-        break;
-      default:
-        return {
-          content: [{ type: 'text', text: JSON.stringify({ success: false, error: { code: 'BAD_REQUEST', message: `Unknown tool: ${name}` } }) }],
-        };
+    if (!tool) {
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ success: false, error: { code: 'BAD_REQUEST', message: `Unknown tool: ${name}` } }) }],
+      };
     }
 
+    const result = await tool.handler(client, toolArgs || {});
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     };
