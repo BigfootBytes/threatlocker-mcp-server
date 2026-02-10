@@ -6,22 +6,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ThreatLockerClient } from '../client.js';
-import { computersToolSchema, handleComputersTool } from '../tools/computers.js';
-import { computerGroupsToolSchema, handleComputerGroupsTool } from '../tools/computer-groups.js';
-import { applicationsToolSchema, handleApplicationsTool } from '../tools/applications.js';
-import { policiesToolSchema, handlePoliciesTool } from '../tools/policies.js';
-import { actionLogToolSchema, handleActionLogTool } from '../tools/action-log.js';
-import { approvalRequestsToolSchema, handleApprovalRequestsTool } from '../tools/approval-requests.js';
-import { organizationsToolSchema, handleOrganizationsTool } from '../tools/organizations.js';
-import { reportsToolSchema, handleReportsTool } from '../tools/reports.js';
-import { maintenanceModeToolSchema, handleMaintenanceModeTool } from '../tools/maintenance-mode.js';
-import { scheduledActionsToolSchema, handleScheduledActionsTool } from '../tools/scheduled-actions.js';
-import { systemAuditToolSchema, handleSystemAuditTool } from '../tools/system-audit.js';
-import { tagsToolSchema, handleTagsTool } from '../tools/tags.js';
-import { storagePoliciesToolSchema, handleStoragePoliciesTool } from '../tools/storage-policies.js';
-import { networkAccessPoliciesToolSchema, handleNetworkAccessPoliciesTool } from '../tools/network-access-policies.js';
-import { threatlockerVersionsToolSchema, handleThreatLockerVersionsTool } from '../tools/threatlocker-versions.js';
-import { onlineDevicesToolSchema, handleOnlineDevicesTool } from '../tools/online-devices.js';
+import { allTools, toolsByName } from '../tools/registry.js';
 import { VERSION } from '../version.js';
 
 interface ClientCredentials {
@@ -75,216 +60,6 @@ export function validateOrigin(req: Request): boolean {
   return allowedOrigins.includes(origin);
 }
 
-// Zod schemas for McpServer tool registration
-const computersZodSchema = {
-  action: z.enum(['list', 'get', 'checkins', 'get_install_info']).describe('Action to perform'),
-  computerId: z.string().max(100).optional().describe('Computer ID (required for get and checkins)'),
-  searchText: z.string().max(1000).optional().describe('Search text for list action'),
-  searchBy: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional().describe('Field to search by: 1=Computer/Asset Name, 2=Username, 3=Computer Group Name, 4=Last Check-in IP, 5=Organization Name'),
-  action_filter: z.enum(['Secure', 'Installation', 'Learning', 'MonitorOnly']).optional().describe('Filter by computer mode for list action'),
-  computerGroup: z.string().max(100).optional().describe('Computer group ID for list action'),
-  orderBy: z.enum(['computername', 'group', 'action', 'lastcheckin', 'computerinstalldate', 'deniedcountthreedays', 'updatechannel', 'threatlockerversion']).optional().describe('Field to sort by (default: computername)'),
-  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
-  childOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
-  kindOfAction: z.enum(['Computer Mode', 'TamperProtectionDisabled', 'NeedsReview', 'ReadyToSecure', 'BaselineNotUploaded', 'Update Channel']).optional().describe('Additional filter for computer state'),
-  pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Page size (default: 25)'),
-  hideHeartbeat: z.boolean().optional().describe('Hide heartbeat entries for checkins action'),
-};
-
-const computerGroupsZodSchema = {
-  action: z.enum(['list', 'dropdown', 'dropdown_with_org', 'get_for_permit', 'get_by_install_key']).describe('Action to perform'),
-  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
-  includeGlobal: z.boolean().optional().describe('Include global application-permitting group (list action)'),
-  includeAllComputers: z.boolean().optional().describe('Include all computers in response (list action)'),
-  includeOrganizations: z.boolean().optional().describe('Include accessible organizations (list action)'),
-  includeParentGroups: z.boolean().optional().describe('Show parent computer groups (list action)'),
-  includeLoggedInObjects: z.boolean().optional().describe('Add contextual path labels (list action)'),
-  includeDnsServers: z.boolean().optional().describe('Include DNS servers (list action)'),
-  includeIngestors: z.boolean().optional().describe('Include ingestors (list action)'),
-  includeAccessDevices: z.boolean().optional().describe('Include access devices (list action)'),
-  includeRemovedComputers: z.boolean().optional().describe('Include removed computers (list action)'),
-  computerGroupId: z.string().max(100).optional().describe('Filter by specific computer group ID (list action)'),
-  hideGlobals: z.boolean().optional().describe('Hide global groups (dropdown action)'),
-  includeAvailableOrganizations: z.boolean().optional().describe('Include child and parent organizations (dropdown_with_org action)'),
-  includeAllPolicies: z.boolean().optional().describe('Include all policies attached to groups (list action)'),
-  installKey: z.string().max(500).optional().describe('24-character install key (required for get_by_install_key)'),
-};
-
-const applicationsZodSchema = {
-  action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy']).describe('Action to perform'),
-  applicationId: z.string().max(100).optional().describe('Application ID (required for get, research, files, get_for_network_policy)'),
-  searchText: z.string().max(1000).optional().describe('Search text for search and files actions'),
-  searchBy: z.enum(['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries']).optional().describe('Field to search by (default: app)'),
-  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
-  category: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional().describe('Category: 0=All, 1=My Applications (Custom), 2=Built-In'),
-  orderBy: z.enum(['name', 'date-created', 'review-rating', 'computer-count', 'policy']).optional().describe('Field to sort by (default: name)'),
-  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
-  includeChildOrganizations: z.boolean().optional().describe('Include child organization applications (default: false)'),
-  isHidden: z.boolean().optional().describe('Include hidden/temporary applications (default: false)'),
-  permittedApplications: z.boolean().optional().describe('Only show apps with active permit policies (default: false)'),
-  countries: z.array(z.string().max(10)).max(20).optional().describe('ISO country codes to filter by (use with searchBy=countries)'),
-  pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Page size (default: 25)'),
-  hash: z.string().max(500).optional().describe('SHA256 hash for match action'),
-  path: z.string().max(1000).optional().describe('Full file path for match action'),
-  processPath: z.string().max(1000).optional().describe('Process path for match action'),
-  cert: z.string().max(500).optional().describe('Certificate subject for match action'),
-  certSha: z.string().max(500).optional().describe('Certificate SHA for match action'),
-  createdBy: z.string().max(1000).optional().describe('Created by path for match action'),
-};
-
-const policiesZodSchema = {
-  action: z.enum(['get', 'list_by_application']).describe('Action to perform'),
-  policyId: z.string().max(100).optional().describe('Policy ID (required for get)'),
-  applicationId: z.string().max(100).optional().describe('Application ID (required for list_by_application)'),
-  organizationId: z.string().max(100).optional().describe('Organization ID (required for list_by_application)'),
-  appliesToId: z.string().max(100).optional().describe('Computer group ID to filter by'),
-  includeDenies: z.boolean().optional().describe('Include deny policies'),
-  pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Page size (default: 25)'),
-};
-
-const actionLogZodSchema = {
-  action: z.enum(['search', 'get', 'file_history', 'get_file_download', 'get_policy_conditions', 'get_testing_details']).describe('Action to perform'),
-  startDate: z.string().max(100).optional().describe('Start date for search (ISO 8601 UTC)'),
-  endDate: z.string().max(100).optional().describe('End date for search (ISO 8601 UTC)'),
-  actionId: z.union([z.literal(1), z.literal(2), z.literal(99)]).optional().describe('Filter by action: 1=Permit, 2=Deny, 99=Any Deny'),
-  actionType: z.enum(['execute', 'install', 'network', 'registry', 'read', 'write', 'move', 'delete', 'baseline', 'powershell', 'elevate', 'configuration', 'dns']).optional().describe('Filter by action type'),
-  hostname: z.string().max(1000).optional().describe('Filter by hostname (wildcards supported)'),
-  actionLogId: z.string().max(100).optional().describe('Action log ID (required for get, get_file_download, get_policy_conditions, get_testing_details)'),
-  fullPath: z.string().max(1000).optional().describe('File path for search filter or file_history (wildcards supported)'),
-  computerId: z.string().max(100).optional().describe('Computer ID to scope file_history'),
-  showChildOrganizations: z.boolean().optional().describe('Include child organization logs (default: false)'),
-  onlyTrueDenies: z.boolean().optional().describe('Filter to actual denies only (default: false)'),
-  groupBys: z.array(z.number()).max(10).optional().describe('Group by: 1=Username, 2=Process Path, 6=Policy Name, 8=App Name, 9=Action Type, 17=Asset Name, 70=Risk Score'),
-  pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Page size (default: 25)'),
-  simulateDeny: z.boolean().optional().describe('Include simulated denies from monitor mode (default: false)'),
-};
-
-const approvalRequestsZodSchema = {
-  action: z.enum(['list', 'get', 'count', 'get_file_download_details', 'get_permit_application', 'get_storage_approval']).describe('Action to perform'),
-  approvalRequestId: z.string().max(100).optional().describe('Approval request ID (required for get)'),
-  statusId: z.union([z.literal(1), z.literal(4), z.literal(6), z.literal(10), z.literal(12), z.literal(13), z.literal(16)]).optional().describe('Filter by status'),
-  searchText: z.string().max(1000).optional().describe('Filter by text'),
-  orderBy: z.enum(['username', 'devicetype', 'actiontype', 'path', 'actiondate', 'datetime']).optional().describe('Field to order by'),
-  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
-  showChildOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
-  pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Page size (default: 25)'),
-};
-
-const organizationsZodSchema = {
-  action: z.enum(['list_children', 'get_auth_key', 'get_for_move_computers']).describe('Action to perform'),
-  searchText: z.string().max(1000).optional().describe('Filter by name (for list_children)'),
-  includeAllChildren: z.boolean().optional().describe('Include nested children (default: false)'),
-  orderBy: z.enum(['billingMethod', 'businessClassificationName', 'dateAdded', 'name']).optional().describe('Field to order by'),
-  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
-  pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Page size (default: 25)'),
-};
-
-const reportsZodSchema = {
-  action: z.enum(['list', 'get_data']).describe('Action to perform'),
-  reportId: z.string().max(100).optional().describe('Report ID (required for get_data action)'),
-};
-
-const maintenanceModeZodSchema = {
-  action: z.enum(['get_history']).describe('Action to perform'),
-  computerId: z.string().max(100).describe('Computer ID (required)'),
-  pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Page size (default: 25)'),
-};
-
-const scheduledActionsZodSchema = {
-  action: z.enum(['list', 'search', 'get', 'get_applies_to']).describe('Action to perform'),
-  scheduledActionId: z.string().max(100).optional().describe('Scheduled action ID (required for get)'),
-  scheduledType: z.number().optional().describe('Scheduled type identifier (default: 1 for Version Update)'),
-  includeChildren: z.boolean().optional().describe('Include child organizations (list action only)'),
-  organizationIds: z.array(z.string().max(100)).max(50).optional().describe('Filter by organization IDs'),
-  computerGroupIds: z.array(z.string().max(100)).max(50).optional().describe('Filter by computer group IDs'),
-  orderBy: z.enum(['scheduleddatetime', 'computername', 'computergroupname', 'organizationname']).optional().describe('Field to sort by'),
-  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
-  pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Page size (default: 25)'),
-};
-
-const systemAuditZodSchema = {
-  action: z.enum(['search', 'health_center']).describe('Action to perform'),
-  startDate: z.string().max(100).optional().describe('Start date (ISO 8601 UTC)'),
-  endDate: z.string().max(100).optional().describe('End date (ISO 8601 UTC)'),
-  username: z.string().max(500).optional().describe('Filter by username (wildcards supported)'),
-  auditAction: z.enum(['Create', 'Delete', 'Logon', 'Modify', 'Read']).optional().describe('Filter by audit action type'),
-  ipAddress: z.string().max(500).optional().describe('Filter by IP address'),
-  effectiveAction: z.enum(['Denied', 'Permitted']).optional().describe('Filter by effective action'),
-  details: z.string().max(1000).optional().describe('Filter by details text (wildcards supported)'),
-  viewChildOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
-  objectId: z.string().max(100).optional().describe('Filter by specific object ID'),
-  days: z.number().optional().describe('Number of days for health_center (default: 7)'),
-  searchText: z.string().max(1000).optional().describe('Search text for health_center'),
-  pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Page size (default: 25)'),
-};
-
-const tagsZodSchema = {
-  action: z.enum(['get', 'dropdown']).describe('Action to perform'),
-  tagId: z.string().max(100).optional().describe('Tag ID (required for get)'),
-  includeBuiltIns: z.boolean().optional().describe('Include ThreatLocker built-in tags (default: false)'),
-  tagType: z.number().optional().describe('Tag type filter (default: 1)'),
-  includeNetworkTagInMaster: z.boolean().optional().describe('Include network tags in master (default: true)'),
-};
-
-const storagePoliciesZodSchema = {
-  action: z.enum(['get', 'list']).describe('Action to perform'),
-  storagePolicyId: z.string().max(100).optional().describe('Storage policy ID (required for get)'),
-  searchText: z.string().max(1000).optional().describe('Search text to filter policies'),
-  appliesToId: z.string().max(100).optional().describe('Computer group ID to filter by'),
-  policyType: z.number().optional().describe('Filter by policy type'),
-  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
-  pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Page size (default: 25)'),
-};
-
-const networkAccessPoliciesZodSchema = {
-  action: z.enum(['get', 'list']).describe('Action to perform'),
-  networkAccessPolicyId: z.string().max(100).optional().describe('Network access policy ID (required for get)'),
-  searchText: z.string().max(1000).optional().describe('Search text to filter policies'),
-  appliesToId: z.string().max(100).optional().describe('Computer group ID to filter by'),
-  pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Page size (default: 25)'),
-};
-
-const threatlockerVersionsZodSchema = {
-  action: z.enum(['list']).describe('Action to perform'),
-};
-
-const onlineDevicesZodSchema = {
-  action: z.enum(['list']).describe('Action to perform'),
-  pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Page size (default: 25)'),
-};
-
-// Zod schemas for REST API validation (prevents bypassing type checks)
-const toolZodSchemas: Record<string, z.ZodObject<Record<string, z.ZodTypeAny>>> = {
-  computers: z.object(computersZodSchema).passthrough(),
-  computer_groups: z.object(computerGroupsZodSchema).passthrough(),
-  applications: z.object(applicationsZodSchema).passthrough(),
-  policies: z.object(policiesZodSchema).passthrough(),
-  action_log: z.object(actionLogZodSchema).passthrough(),
-  approval_requests: z.object(approvalRequestsZodSchema).passthrough(),
-  organizations: z.object(organizationsZodSchema).passthrough(),
-  reports: z.object(reportsZodSchema).passthrough(),
-  maintenance_mode: z.object(maintenanceModeZodSchema).passthrough(),
-  scheduled_actions: z.object(scheduledActionsZodSchema).passthrough(),
-  system_audit: z.object(systemAuditZodSchema).passthrough(),
-  tags: z.object(tagsZodSchema).passthrough(),
-  storage_policies: z.object(storagePoliciesZodSchema).passthrough(),
-  network_access_policies: z.object(networkAccessPoliciesZodSchema).passthrough(),
-  threatlocker_versions: z.object(threatlockerVersionsZodSchema).passthrough(),
-  online_devices: z.object(onlineDevicesZodSchema).passthrough(),
-};
-
 // Log levels: ERROR=0, INFO=1, DEBUG=2
 const LOG_LEVELS = { ERROR: 0, INFO: 1, DEBUG: 2 } as const;
 type LogLevel = keyof typeof LOG_LEVELS;
@@ -308,277 +83,19 @@ function createMcpServer(client: ThreatLockerClient): McpServer {
     version: VERSION,
   });
 
-  server.tool(
-    computersToolSchema.name,
-    computersToolSchema.description,
-    computersZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: computers', { args, baseUrl: client.baseUrl });
-      const result = await handleComputersTool(client, args);
+  for (const tool of allTools) {
+    server.tool(tool.name, tool.description, tool.zodSchema, async (args) => {
+      log('DEBUG', `Tool call: ${tool.name}`, { args, baseUrl: client.baseUrl });
+      const result = await tool.handler(client, args);
       if (!result.success) {
-        log('ERROR', 'Tool failed: computers', { error: result.error });
+        log('ERROR', `Tool failed: ${tool.name}`, { error: result.error });
       } else {
         const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: computers', { resultCount: count, pagination: result.pagination });
+        log('DEBUG', `Tool success: ${tool.name}`, { resultCount: count, pagination: result.pagination });
       }
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    computerGroupsToolSchema.name,
-    computerGroupsToolSchema.description,
-    computerGroupsZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: computer_groups', { args, baseUrl: client.baseUrl });
-      const result = await handleComputerGroupsTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: computer_groups', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: computer_groups', { resultCount: count });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    applicationsToolSchema.name,
-    applicationsToolSchema.description,
-    applicationsZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: applications', { args, baseUrl: client.baseUrl });
-      const result = await handleApplicationsTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: applications', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: applications', { resultCount: count, pagination: result.pagination });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    policiesToolSchema.name,
-    policiesToolSchema.description,
-    policiesZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: policies', { args, baseUrl: client.baseUrl });
-      const result = await handlePoliciesTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: policies', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: policies', { resultCount: count, pagination: result.pagination });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    actionLogToolSchema.name,
-    actionLogToolSchema.description,
-    actionLogZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: action_log', { args, baseUrl: client.baseUrl });
-      const result = await handleActionLogTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: action_log', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: action_log', { resultCount: count, pagination: result.pagination });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    approvalRequestsToolSchema.name,
-    approvalRequestsToolSchema.description,
-    approvalRequestsZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: approval_requests', { args, baseUrl: client.baseUrl });
-      const result = await handleApprovalRequestsTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: approval_requests', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: approval_requests', { resultCount: count, pagination: result.pagination });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    organizationsToolSchema.name,
-    organizationsToolSchema.description,
-    organizationsZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: organizations', { args, baseUrl: client.baseUrl });
-      const result = await handleOrganizationsTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: organizations', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: organizations', { resultCount: count, pagination: result.pagination });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    reportsToolSchema.name,
-    reportsToolSchema.description,
-    reportsZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: reports', { args, baseUrl: client.baseUrl });
-      const result = await handleReportsTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: reports', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: reports', { resultCount: count });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    maintenanceModeToolSchema.name,
-    maintenanceModeToolSchema.description,
-    maintenanceModeZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: maintenance_mode', { args, baseUrl: client.baseUrl });
-      const result = await handleMaintenanceModeTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: maintenance_mode', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: maintenance_mode', { resultCount: count });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    scheduledActionsToolSchema.name,
-    scheduledActionsToolSchema.description,
-    scheduledActionsZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: scheduled_actions', { args, baseUrl: client.baseUrl });
-      const result = await handleScheduledActionsTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: scheduled_actions', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: scheduled_actions', { resultCount: count, pagination: result.pagination });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    systemAuditToolSchema.name,
-    systemAuditToolSchema.description,
-    systemAuditZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: system_audit', { args, baseUrl: client.baseUrl });
-      const result = await handleSystemAuditTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: system_audit', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: system_audit', { resultCount: count, pagination: result.pagination });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    tagsToolSchema.name,
-    tagsToolSchema.description,
-    tagsZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: tags', { args, baseUrl: client.baseUrl });
-      const result = await handleTagsTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: tags', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: tags', { resultCount: count });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    storagePoliciesToolSchema.name,
-    storagePoliciesToolSchema.description,
-    storagePoliciesZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: storage_policies', { args, baseUrl: client.baseUrl });
-      const result = await handleStoragePoliciesTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: storage_policies', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: storage_policies', { resultCount: count, pagination: result.pagination });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    networkAccessPoliciesToolSchema.name,
-    networkAccessPoliciesToolSchema.description,
-    networkAccessPoliciesZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: network_access_policies', { args, baseUrl: client.baseUrl });
-      const result = await handleNetworkAccessPoliciesTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: network_access_policies', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: network_access_policies', { resultCount: count, pagination: result.pagination });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    threatlockerVersionsToolSchema.name,
-    threatlockerVersionsToolSchema.description,
-    threatlockerVersionsZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: threatlocker_versions', { args, baseUrl: client.baseUrl });
-      const result = await handleThreatLockerVersionsTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: threatlocker_versions', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: threatlocker_versions', { resultCount: count });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    onlineDevicesToolSchema.name,
-    onlineDevicesToolSchema.description,
-    onlineDevicesZodSchema,
-    async (args) => {
-      log('DEBUG', 'Tool call: online_devices', { args, baseUrl: client.baseUrl });
-      const result = await handleOnlineDevicesTool(client, args);
-      if (!result.success) {
-        log('ERROR', 'Tool failed: online_devices', { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', 'Tool success: online_devices', { resultCount: count });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    }
-  );
+    });
+  }
 
   return server;
 }
@@ -650,20 +167,11 @@ export function createApp(): ReturnType<typeof express> {
   // List available tools - no auth required
   app.get('/tools', (_req, res) => {
     res.json({
-      tools: [
-        computersToolSchema,
-        computerGroupsToolSchema,
-        applicationsToolSchema,
-        policiesToolSchema,
-        actionLogToolSchema,
-        approvalRequestsToolSchema,
-        organizationsToolSchema,
-        reportsToolSchema,
-        storagePoliciesToolSchema,
-        networkAccessPoliciesToolSchema,
-        threatlockerVersionsToolSchema,
-        onlineDevicesToolSchema,
-      ],
+      tools: allTools.map(t => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: t.inputSchema,
+      })),
     });
   });
 
@@ -696,77 +204,28 @@ export function createApp(): ReturnType<typeof express> {
       const client = new ThreatLockerClient(credentials);
       const args = req.body || {};
 
-      // Validate request body against Zod schema (REST API bypasses MCP SDK validation)
-      const zodSchema = toolZodSchemas[toolName];
-      if (zodSchema) {
-        const parsed = zodSchema.safeParse(args);
-        if (!parsed.success) {
-          res.status(400).json({
-            success: false,
-            error: { code: 'BAD_REQUEST', message: parsed.error.issues.map((e: z.ZodIssue) => e.message).join('; ') },
-          });
-          return;
-        }
+      const tool = toolsByName.get(toolName);
+      if (!tool) {
+        log('DEBUG', 'REST API unknown tool', { tool: toolName });
+        res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: `Unknown tool: ${toolName}` },
+        });
+        return;
       }
 
-      let result: unknown;
-      switch (toolName) {
-        case 'computers':
-          result = await handleComputersTool(client, args);
-          break;
-        case 'computer_groups':
-          result = await handleComputerGroupsTool(client, args);
-          break;
-        case 'applications':
-          result = await handleApplicationsTool(client, args);
-          break;
-        case 'policies':
-          result = await handlePoliciesTool(client, args);
-          break;
-        case 'action_log':
-          result = await handleActionLogTool(client, args);
-          break;
-        case 'approval_requests':
-          result = await handleApprovalRequestsTool(client, args);
-          break;
-        case 'organizations':
-          result = await handleOrganizationsTool(client, args);
-          break;
-        case 'reports':
-          result = await handleReportsTool(client, args);
-          break;
-        case 'maintenance_mode':
-          result = await handleMaintenanceModeTool(client, args);
-          break;
-        case 'scheduled_actions':
-          result = await handleScheduledActionsTool(client, args);
-          break;
-        case 'system_audit':
-          result = await handleSystemAuditTool(client, args);
-          break;
-        case 'tags':
-          result = await handleTagsTool(client, args);
-          break;
-        case 'storage_policies':
-          result = await handleStoragePoliciesTool(client, args);
-          break;
-        case 'network_access_policies':
-          result = await handleNetworkAccessPoliciesTool(client, args);
-          break;
-        case 'threatlocker_versions':
-          result = await handleThreatLockerVersionsTool(client, args);
-          break;
-        case 'online_devices':
-          result = await handleOnlineDevicesTool(client, args);
-          break;
-        default:
-          log('DEBUG', 'REST API unknown tool', { tool: toolName });
-          res.status(400).json({
-            success: false,
-            error: { code: 'BAD_REQUEST', message: `Unknown tool: ${toolName}` },
-          });
-          return;
+      // Validate request body against Zod schema (REST API bypasses MCP SDK validation)
+      const zodObject = z.object(tool.zodSchema).passthrough();
+      const parsed = zodObject.safeParse(args);
+      if (!parsed.success) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: parsed.error.issues.map((e: z.ZodIssue) => e.message).join('; ') },
+        });
+        return;
       }
+
+      const result = await tool.handler(client, args);
       res.json(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
