@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient } from '../client.js';
 import { ApiResponse, errorResponse, validateGuid } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const tagsToolSchema = {
   name: 'tags',
@@ -94,3 +96,19 @@ export async function handleTagsTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const tagsZodSchema = {
+  action: z.enum(['get', 'dropdown']).describe('Action to perform'),
+  tagId: z.string().max(100).optional().describe('Tag ID (required for get)'),
+  includeBuiltIns: z.boolean().optional().describe('Include ThreatLocker built-in tags (default: false)'),
+  tagType: z.number().optional().describe('Tag type filter (default: 1)'),
+  includeNetworkTagInMaster: z.boolean().optional().describe('Include network tags in master (default: true)'),
+};
+
+export const tagsTool: ToolDefinition = {
+  name: tagsToolSchema.name,
+  description: tagsToolSchema.description,
+  inputSchema: tagsToolSchema.inputSchema,
+  zodSchema: tagsZodSchema,
+  handler: handleTagsTool as ToolDefinition['handler'],
+};

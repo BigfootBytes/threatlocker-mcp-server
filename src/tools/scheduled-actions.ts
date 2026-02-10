@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const scheduledActionsToolSchema = {
   name: 'scheduled_actions',
@@ -147,3 +149,24 @@ export async function handleScheduledActionsTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const scheduledActionsZodSchema = {
+  action: z.enum(['list', 'search', 'get', 'get_applies_to']).describe('Action to perform'),
+  scheduledActionId: z.string().max(100).optional().describe('Scheduled action ID (required for get)'),
+  scheduledType: z.number().optional().describe('Scheduled type identifier (default: 1 for Version Update)'),
+  includeChildren: z.boolean().optional().describe('Include child organizations (list action only)'),
+  organizationIds: z.array(z.string().max(100)).max(50).optional().describe('Filter by organization IDs'),
+  computerGroupIds: z.array(z.string().max(100)).max(50).optional().describe('Filter by computer group IDs'),
+  orderBy: z.enum(['scheduleddatetime', 'computername', 'computergroupname', 'organizationname']).optional().describe('Field to sort by'),
+  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+};
+
+export const scheduledActionsTool: ToolDefinition = {
+  name: scheduledActionsToolSchema.name,
+  description: scheduledActionsToolSchema.description,
+  inputSchema: scheduledActionsToolSchema.inputSchema,
+  zodSchema: scheduledActionsZodSchema,
+  handler: handleScheduledActionsTool as ToolDefinition['handler'],
+};

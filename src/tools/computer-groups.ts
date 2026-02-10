@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient } from '../client.js';
 import { ApiResponse, errorResponse, validateGuid, validateInstallKey } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const computerGroupsToolSchema = {
   name: 'computer_groups',
@@ -186,3 +188,30 @@ export async function handleComputerGroupsTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const computerGroupsZodSchema = {
+  action: z.enum(['list', 'dropdown', 'dropdown_with_org', 'get_for_permit', 'get_by_install_key']).describe('Action to perform'),
+  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
+  includeGlobal: z.boolean().optional().describe('Include global application-permitting group (list action)'),
+  includeAllComputers: z.boolean().optional().describe('Include all computers in response (list action)'),
+  includeOrganizations: z.boolean().optional().describe('Include accessible organizations (list action)'),
+  includeParentGroups: z.boolean().optional().describe('Show parent computer groups (list action)'),
+  includeLoggedInObjects: z.boolean().optional().describe('Add contextual path labels (list action)'),
+  includeDnsServers: z.boolean().optional().describe('Include DNS servers (list action)'),
+  includeIngestors: z.boolean().optional().describe('Include ingestors (list action)'),
+  includeAccessDevices: z.boolean().optional().describe('Include access devices (list action)'),
+  includeRemovedComputers: z.boolean().optional().describe('Include removed computers (list action)'),
+  computerGroupId: z.string().max(100).optional().describe('Filter by specific computer group ID (list action)'),
+  hideGlobals: z.boolean().optional().describe('Hide global groups (dropdown action)'),
+  includeAvailableOrganizations: z.boolean().optional().describe('Include child and parent organizations (dropdown_with_org action)'),
+  includeAllPolicies: z.boolean().optional().describe('Include all policies attached to groups (list action)'),
+  installKey: z.string().max(500).optional().describe('24-character install key (required for get_by_install_key)'),
+};
+
+export const computerGroupsTool: ToolDefinition = {
+  name: computerGroupsToolSchema.name,
+  description: computerGroupsToolSchema.description,
+  inputSchema: computerGroupsToolSchema.inputSchema,
+  zodSchema: computerGroupsZodSchema,
+  handler: handleComputerGroupsTool as ToolDefinition['handler'],
+};

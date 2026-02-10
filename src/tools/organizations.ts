@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const organizationsToolSchema = {
   name: 'organizations',
@@ -107,3 +109,21 @@ export async function handleOrganizationsTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const organizationsZodSchema = {
+  action: z.enum(['list_children', 'get_auth_key', 'get_for_move_computers']).describe('Action to perform'),
+  searchText: z.string().max(1000).optional().describe('Filter by name (for list_children)'),
+  includeAllChildren: z.boolean().optional().describe('Include nested children (default: false)'),
+  orderBy: z.enum(['billingMethod', 'businessClassificationName', 'dateAdded', 'name']).optional().describe('Field to order by'),
+  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+};
+
+export const organizationsTool: ToolDefinition = {
+  name: organizationsToolSchema.name,
+  description: organizationsToolSchema.description,
+  inputSchema: organizationsToolSchema.inputSchema,
+  zodSchema: organizationsZodSchema,
+  handler: handleOrganizationsTool as ToolDefinition['handler'],
+};

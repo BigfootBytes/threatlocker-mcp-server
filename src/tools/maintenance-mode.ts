@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const maintenanceModeToolSchema = {
   name: 'maintenance_mode',
@@ -82,3 +84,18 @@ export async function handleMaintenanceModeTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const maintenanceModeZodSchema = {
+  action: z.enum(['get_history']).describe('Action to perform'),
+  computerId: z.string().max(100).describe('Computer ID (required)'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+};
+
+export const maintenanceModeTool: ToolDefinition = {
+  name: maintenanceModeToolSchema.name,
+  description: maintenanceModeToolSchema.description,
+  inputSchema: maintenanceModeToolSchema.inputSchema,
+  zodSchema: maintenanceModeZodSchema,
+  handler: handleMaintenanceModeTool as ToolDefinition['handler'],
+};

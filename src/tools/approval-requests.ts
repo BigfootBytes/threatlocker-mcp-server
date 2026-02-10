@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const approvalRequestsToolSchema = {
   name: 'approval_requests',
@@ -156,3 +158,23 @@ export async function handleApprovalRequestsTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const approvalRequestsZodSchema = {
+  action: z.enum(['list', 'get', 'count', 'get_file_download_details', 'get_permit_application', 'get_storage_approval']).describe('Action to perform'),
+  approvalRequestId: z.string().max(100).optional().describe('Approval request ID (required for get)'),
+  statusId: z.union([z.literal(1), z.literal(4), z.literal(6), z.literal(10), z.literal(12), z.literal(13), z.literal(16)]).optional().describe('Filter by status'),
+  searchText: z.string().max(1000).optional().describe('Filter by text'),
+  orderBy: z.enum(['username', 'devicetype', 'actiontype', 'path', 'actiondate', 'datetime']).optional().describe('Field to order by'),
+  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
+  showChildOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+};
+
+export const approvalRequestsTool: ToolDefinition = {
+  name: approvalRequestsToolSchema.name,
+  description: approvalRequestsToolSchema.description,
+  inputSchema: approvalRequestsToolSchema.inputSchema,
+  zodSchema: approvalRequestsZodSchema,
+  handler: handleApprovalRequestsTool as ToolDefinition['handler'],
+};

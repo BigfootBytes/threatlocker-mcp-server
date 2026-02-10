@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateDateRange, validateGuid } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const systemAuditToolSchema = {
   name: 'system_audit',
@@ -175,3 +177,28 @@ export async function handleSystemAuditTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const systemAuditZodSchema = {
+  action: z.enum(['search', 'health_center']).describe('Action to perform'),
+  startDate: z.string().max(100).optional().describe('Start date (ISO 8601 UTC)'),
+  endDate: z.string().max(100).optional().describe('End date (ISO 8601 UTC)'),
+  username: z.string().max(500).optional().describe('Filter by username (wildcards supported)'),
+  auditAction: z.enum(['Create', 'Delete', 'Logon', 'Modify', 'Read']).optional().describe('Filter by audit action type'),
+  ipAddress: z.string().max(500).optional().describe('Filter by IP address'),
+  effectiveAction: z.enum(['Denied', 'Permitted']).optional().describe('Filter by effective action'),
+  details: z.string().max(1000).optional().describe('Filter by details text (wildcards supported)'),
+  viewChildOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
+  objectId: z.string().max(100).optional().describe('Filter by specific object ID'),
+  days: z.number().optional().describe('Number of days for health_center (default: 7)'),
+  searchText: z.string().max(1000).optional().describe('Search text for health_center'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+};
+
+export const systemAuditTool: ToolDefinition = {
+  name: systemAuditToolSchema.name,
+  description: systemAuditToolSchema.description,
+  inputSchema: systemAuditToolSchema.inputSchema,
+  zodSchema: systemAuditZodSchema,
+  handler: handleSystemAuditTool as ToolDefinition['handler'],
+};

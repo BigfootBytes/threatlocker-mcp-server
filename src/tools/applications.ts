@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid, validateSha256 } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const applicationsToolSchema = {
   name: 'applications',
@@ -252,3 +254,34 @@ export async function handleApplicationsTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const applicationsZodSchema = {
+  action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy']).describe('Action to perform'),
+  applicationId: z.string().max(100).optional().describe('Application ID (required for get, research, files, get_for_network_policy)'),
+  searchText: z.string().max(1000).optional().describe('Search text for search and files actions'),
+  searchBy: z.enum(['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries']).optional().describe('Field to search by (default: app)'),
+  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
+  category: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional().describe('Category: 0=All, 1=My Applications (Custom), 2=Built-In'),
+  orderBy: z.enum(['name', 'date-created', 'review-rating', 'computer-count', 'policy']).optional().describe('Field to sort by (default: name)'),
+  isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
+  includeChildOrganizations: z.boolean().optional().describe('Include child organization applications (default: false)'),
+  isHidden: z.boolean().optional().describe('Include hidden/temporary applications (default: false)'),
+  permittedApplications: z.boolean().optional().describe('Only show apps with active permit policies (default: false)'),
+  countries: z.array(z.string().max(10)).max(20).optional().describe('ISO country codes to filter by (use with searchBy=countries)'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+  hash: z.string().max(500).optional().describe('SHA256 hash for match action'),
+  path: z.string().max(1000).optional().describe('Full file path for match action'),
+  processPath: z.string().max(1000).optional().describe('Process path for match action'),
+  cert: z.string().max(500).optional().describe('Certificate subject for match action'),
+  certSha: z.string().max(500).optional().describe('Certificate SHA for match action'),
+  createdBy: z.string().max(1000).optional().describe('Created by path for match action'),
+};
+
+export const applicationsTool: ToolDefinition = {
+  name: applicationsToolSchema.name,
+  description: applicationsToolSchema.description,
+  inputSchema: applicationsToolSchema.inputSchema,
+  zodSchema: applicationsZodSchema,
+  handler: handleApplicationsTool as ToolDefinition['handler'],
+};

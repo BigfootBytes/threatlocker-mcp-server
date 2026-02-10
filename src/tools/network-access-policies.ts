@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromJsonHeader } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const networkAccessPoliciesToolSchema = {
   name: 'network_access_policies',
@@ -96,3 +98,20 @@ export async function handleNetworkAccessPoliciesTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const networkAccessPoliciesZodSchema = {
+  action: z.enum(['get', 'list']).describe('Action to perform'),
+  networkAccessPolicyId: z.string().max(100).optional().describe('Network access policy ID (required for get)'),
+  searchText: z.string().max(1000).optional().describe('Search text to filter policies'),
+  appliesToId: z.string().max(100).optional().describe('Computer group ID to filter by'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+};
+
+export const networkAccessPoliciesTool: ToolDefinition = {
+  name: networkAccessPoliciesToolSchema.name,
+  description: networkAccessPoliciesToolSchema.description,
+  inputSchema: networkAccessPoliciesToolSchema.inputSchema,
+  zodSchema: networkAccessPoliciesZodSchema,
+  handler: handleNetworkAccessPoliciesTool as ToolDefinition['handler'],
+};

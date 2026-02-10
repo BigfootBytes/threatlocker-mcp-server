@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromJsonHeader } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const storagePoliciesToolSchema = {
   name: 'storage_policies',
@@ -109,3 +111,22 @@ export async function handleStoragePoliciesTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const storagePoliciesZodSchema = {
+  action: z.enum(['get', 'list']).describe('Action to perform'),
+  storagePolicyId: z.string().max(100).optional().describe('Storage policy ID (required for get)'),
+  searchText: z.string().max(1000).optional().describe('Search text to filter policies'),
+  appliesToId: z.string().max(100).optional().describe('Computer group ID to filter by'),
+  policyType: z.number().optional().describe('Filter by policy type'),
+  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+};
+
+export const storagePoliciesTool: ToolDefinition = {
+  name: storagePoliciesToolSchema.name,
+  description: storagePoliciesToolSchema.description,
+  inputSchema: storagePoliciesToolSchema.inputSchema,
+  zodSchema: storagePoliciesZodSchema,
+  handler: handleStoragePoliciesTool as ToolDefinition['handler'],
+};

@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient } from '../client.js';
 import { ApiResponse, errorResponse, validateGuid } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const reportsToolSchema = {
   name: 'reports',
@@ -63,3 +65,16 @@ export async function handleReportsTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const reportsZodSchema = {
+  action: z.enum(['list', 'get_data']).describe('Action to perform'),
+  reportId: z.string().max(100).optional().describe('Report ID (required for get_data action)'),
+};
+
+export const reportsTool: ToolDefinition = {
+  name: reportsToolSchema.name,
+  description: reportsToolSchema.description,
+  inputSchema: reportsToolSchema.inputSchema,
+  zodSchema: reportsZodSchema,
+  handler: handleReportsTool as ToolDefinition['handler'],
+};

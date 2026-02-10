@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const onlineDevicesToolSchema = {
   name: 'online_devices',
@@ -63,3 +65,17 @@ export async function handleOnlineDevicesTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const onlineDevicesZodSchema = {
+  action: z.enum(['list']).describe('Action to perform'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+};
+
+export const onlineDevicesTool: ToolDefinition = {
+  name: onlineDevicesToolSchema.name,
+  description: onlineDevicesToolSchema.description,
+  inputSchema: onlineDevicesToolSchema.inputSchema,
+  zodSchema: onlineDevicesZodSchema,
+  handler: handleOnlineDevicesTool as ToolDefinition['handler'],
+};

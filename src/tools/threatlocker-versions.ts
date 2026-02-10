@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient } from '../client.js';
 import { ApiResponse, errorResponse } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const threatlockerVersionsToolSchema = {
   name: 'threatlocker_versions',
@@ -48,3 +50,15 @@ export async function handleThreatLockerVersionsTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const threatlockerVersionsZodSchema = {
+  action: z.enum(['list']).describe('Action to perform'),
+};
+
+export const threatlockerVersionsTool: ToolDefinition = {
+  name: threatlockerVersionsToolSchema.name,
+  description: threatlockerVersionsToolSchema.description,
+  inputSchema: threatlockerVersionsToolSchema.inputSchema,
+  zodSchema: threatlockerVersionsZodSchema,
+  handler: handleThreatLockerVersionsTool as ToolDefinition['handler'],
+};

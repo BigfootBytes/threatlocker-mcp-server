@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import type { ToolDefinition } from './registry.js';
 
 export const policiesToolSchema = {
   name: 'policies',
@@ -129,3 +131,22 @@ export async function handlePoliciesTool(
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
+
+export const policiesZodSchema = {
+  action: z.enum(['get', 'list_by_application']).describe('Action to perform'),
+  policyId: z.string().max(100).optional().describe('Policy ID (required for get)'),
+  applicationId: z.string().max(100).optional().describe('Application ID (required for list_by_application)'),
+  organizationId: z.string().max(100).optional().describe('Organization ID (required for list_by_application)'),
+  appliesToId: z.string().max(100).optional().describe('Computer group ID to filter by'),
+  includeDenies: z.boolean().optional().describe('Include deny policies'),
+  pageNumber: z.number().optional().describe('Page number (default: 1)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+};
+
+export const policiesTool: ToolDefinition = {
+  name: policiesToolSchema.name,
+  description: policiesToolSchema.description,
+  inputSchema: policiesToolSchema.inputSchema,
+  zodSchema: policiesZodSchema,
+  handler: handlePoliciesTool as ToolDefinition['handler'],
+};
