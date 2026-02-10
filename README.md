@@ -155,6 +155,8 @@ Add to your MCP config file:
 | `tags` | - | :white_check_mark: | - | - | Network and policy tags |
 | `storage_policies` | - | :white_check_mark: | - | - | Storage control policies |
 | `network_access_policies` | - | :white_check_mark: | - | - | Network access control policies |
+| `threatlocker_versions` | - | :white_check_mark: | - | - | Available ThreatLocker agent versions |
+| `online_devices` | - | :white_check_mark: | - | - | Currently online/connected devices |
 
 ### Tool Details
 
@@ -174,6 +176,8 @@ Add to your MCP config file:
 | `tags` | `get`, `dropdown` |
 | `storage_policies` | `get`, `list` |
 | `network_access_policies` | `get`, `list` |
+| `threatlocker_versions` | `list` |
+| `online_devices` | `list` |
 
 ## HTTP Mode (Remote Server)
 
