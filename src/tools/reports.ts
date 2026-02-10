@@ -5,17 +5,17 @@ import type { ToolDefinition } from './registry.js';
 
 export const reportsToolSchema = {
   name: 'reports',
-  description: `Query ThreatLocker reports.
+  description: `Query and run ThreatLocker reports.
 
-ThreatLocker provides pre-built reports for compliance, security analysis, and operational insights. Reports are organization-specific and may include computer inventory, policy coverage, deny summaries, and more.
+Access pre-built and custom reports configured in the ThreatLocker portal. Reports provide aggregated views of security data across your organization.
 
 Common workflows:
-- List available reports: action=list
-- Run a specific report: action=get_data, reportId="..."
+- List all available reports: action=list
+- Run a specific report: action=get_data, reportId="..." (get IDs from list action first)
+- Review security posture: list reports, then run relevant compliance or audit reports
+- Export data for external analysis: run a report and process the returned data
 
-Reports are read-only and cannot be created or modified via API. The available reports depend on your ThreatLocker license and organization configuration.
-
-Related tools: action_log (raw audit data), computers (computer inventory), policies (policy coverage)`,
+Related tools: action_log (raw audit events), system_audit (portal audit trail), computers (device inventory)`,
   inputSchema: {
     type: 'object' as const,
     properties: {

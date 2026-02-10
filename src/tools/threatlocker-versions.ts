@@ -5,16 +5,20 @@ import type { ToolDefinition } from './registry.js';
 
 export const threatlockerVersionsToolSchema = {
   name: 'threatlocker_versions',
-  description: `Query ThreatLocker agent versions.
+  description: `Query available ThreatLocker agent versions.
 
-Returns the catalog of available ThreatLocker agent versions, including version labels, availability status, release dates, and which OS each version supports.
+Returns all agent versions available in the portal, including which are enabled for installation, which is the default for new groups, and when each was released.
 
 Common workflows:
-- List all available agent versions: action=list
+- List all available versions: action=list
+- Find the latest version: action=list, look for highest version number with isEnabled=true
+- Check if a specific version is still available: action=list, search results for version string
+- Identify the default version for new computer groups: action=list, look for isDefault=true
+- Plan upgrade rollouts: action=list, compare to installed versions from computers tool
 
-Useful for checking which versions are available for deployment, finding the default version for new installs, and auditing version currency across your fleet.
+Response fields: label (version string), value (version ID), isEnabled, dateTime (release date), isDefault, OSTypes
 
-Related tools: computers (see installed versions), scheduled_actions (schedule version updates), computer_groups (group-level version settings)`,
+Related tools: computers (see installed versions per machine), scheduled_actions (schedule version updates), computer_groups (group-level version settings)`,
   inputSchema: {
     type: 'object' as const,
     properties: {

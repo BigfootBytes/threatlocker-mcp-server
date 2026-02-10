@@ -7,15 +7,15 @@ export const onlineDevicesToolSchema = {
   name: 'online_devices',
   description: `Query ThreatLocker online devices.
 
-Returns devices currently connected and reporting to the ThreatLocker platform.
+Returns devices currently connected and reporting to the ThreatLocker platform. Useful for real-time visibility into which endpoints are active.
 
 Common workflows:
-- List online devices: action=list
-- Paginate through results: action=list, pageNumber=2, pageSize=25
+- Check how many devices are online right now: action=list
+- Verify a specific computer is connected: action=list, then search results for hostname
+- Monitor fleet connectivity after a network change: action=list, compare count to computers tool total
+- Paginate through large device lists: action=list, pageNumber=2, pageSize=100
 
-Useful for monitoring real-time device connectivity and identifying which endpoints are actively communicating with ThreatLocker.
-
-Related tools: computers (full computer inventory and details), computer_groups (group membership)`,
+Related tools: computers (full inventory with details, modes, groups), computer_groups (group membership and structure)`,
   inputSchema: {
     type: 'object' as const,
     properties: {
