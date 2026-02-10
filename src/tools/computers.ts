@@ -70,7 +70,7 @@ Related tools: computer_groups (manage groups), maintenance_mode (maintenance hi
       },
       pageSize: {
         type: 'number',
-        description: 'Page size (default: 25)',
+        description: 'Results per page (default: 25)',
       },
       hideHeartbeat: {
         type: 'boolean',

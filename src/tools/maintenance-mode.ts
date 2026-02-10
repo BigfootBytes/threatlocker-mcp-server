@@ -67,7 +67,7 @@ export async function handleMaintenanceModeTool(
   }
 
   if (!computerId) {
-    return errorResponse('BAD_REQUEST', 'computerId is required');
+    return errorResponse('BAD_REQUEST', 'computerId is required for all maintenance_mode actions');
   }
   const guidError = validateGuid(computerId, 'computerId');
   if (guidError) return guidError;
