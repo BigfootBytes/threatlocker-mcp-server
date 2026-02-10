@@ -1,5 +1,19 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-10 — Polish and Registry Refactor
+
+- Added `ToolDefinition` interface and central tool registry (`src/tools/registry.ts`)
+- Each tool file now exports zodSchema and ToolDefinition bundle
+- Simplified `src/index.ts`: replaced 16 imports, manual tool list, and switch statement with registry-driven dispatch
+- Simplified `src/transports/http.ts`: removed ~470 lines of duplicated Zod schemas, repetitive server.tool() calls, and switch statements
+- Fixed `/tools` REST endpoint missing 4 tools (maintenance_mode, scheduled_actions, system_audit, tags)
+- Added `threatlocker_versions` and `online_devices` to README tools tables
+- Added missing env vars to `.env.example` (LOG_LEVEL, ALLOWED_ORIGINS, THREATLOCKER_MAX_RETRIES)
+- Enriched tool descriptions for `online_devices`, `threatlocker_versions`, and `reports`
+- Standardized error messages to include action names
+- Normalized pagination description wording across all tools
+- Adding a new tool now requires only 2 changes: create tool file + add import to registry
+
 ## 2026-02-09
 
 - **REST API Zod enforcement**: REST endpoint (`POST /tools/:name`) now validates `req.body` against Zod schemas before dispatching to tool handlers, closing a gap where the MCP transports validated via SDK but REST did not
