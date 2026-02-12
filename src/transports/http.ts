@@ -10,6 +10,8 @@ import { toolsByName, allToolsWithSchema } from '../tools/registry.js';
 import { createMcpServer, CHARACTER_LIMIT, LogFn, fetchAllPagesLoop } from '../server.js';
 import { formatAsMarkdown } from '../formatters.js';
 import { VERSION } from '../version.js';
+import { ENUMS } from '../resources/enums.js';
+import { allTools } from '../tools/registry.js';
 
 const responseFormatJsonSchema = {
   type: 'string',
@@ -120,6 +122,7 @@ export function createApp(): ReturnType<typeof express> {
     legacyHeaders: false,
   });
   app.use('/health', metadataLimiter);
+  app.use('/resources', metadataLimiter);
 
   // CORS response headers for allowed browser origins
   app.use((req, res, next) => {
@@ -175,6 +178,56 @@ export function createApp(): ReturnType<typeof express> {
     });
   });
 
+  // Resource registry for REST endpoints
+  const resources = [
+    {
+      name: 'enums',
+      uri: 'threatlocker://enums',
+      description: 'ThreatLocker API enumeration values (OS types, action IDs, maintenance types, approval statuses, etc.)',
+      mimeType: 'application/json',
+      getData: () => ENUMS,
+    },
+    {
+      name: 'server-info',
+      uri: 'threatlocker://server/info',
+      description: 'ThreatLocker MCP server metadata (name, version, tool count, transports, protocol version)',
+      mimeType: 'application/json',
+      getData: () => ({
+        name: 'threatlocker-mcp-server',
+        version: VERSION,
+        toolCount: allTools.length,
+        transports: ['stdio', 'sse', 'streamable-http'],
+        protocolVersion: '2025-03-26',
+      }),
+    },
+  ];
+
+  // List available resources - no auth required
+  app.get('/resources', (_req, res) => {
+    res.json({
+      resources: resources.map(({ name, uri, description, mimeType }) => ({
+        name,
+        uri,
+        description,
+        mimeType,
+      })),
+    });
+  });
+
+  // Read a resource by name - no auth required
+  app.get('/resources/:name', (req: Request, res: Response) => {
+    const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
+    const resource = resources.find(r => r.name === name);
+    if (!resource) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: `Unknown resource: ${name}` },
+      });
+      return;
+    }
+    res.json(resource.getData());
+  });
+
   // Direct tool call endpoint (REST API) - requires auth headers per request
   app.post('/tools/:toolName', async (req: Request, res: Response) => {
     // DNS rebinding protection
@@ -215,7 +268,11 @@ export function createApp(): ReturnType<typeof express> {
       }
 
       // Validate request body against Zod schema (REST API bypasses MCP SDK validation)
-      const zodObject = z.object(tool.zodSchema).passthrough();
+      const zodObject = z.object({
+        ...tool.zodSchema,
+        response_format: z.enum(['json', 'markdown']).default('markdown').optional(),
+        fetchAllPages: z.boolean().default(false).optional(),
+      }).strict();
       const parsed = zodObject.safeParse(args);
       if (!parsed.success) {
         res.status(400).json({
@@ -421,8 +478,10 @@ export function createHttpServer(port: number): void {
     console.error('  POST /mcp          - MCP JSON-RPC endpoint');
     console.error('');
     console.error('REST API (direct calls):');
-    console.error('  GET  /health       - Health check');
-    console.error('  GET  /tools        - List available tools');
-    console.error('  POST /tools/:name  - Call a tool (requires auth headers)');
+    console.error('  GET  /health          - Health check');
+    console.error('  GET  /tools           - List available tools');
+    console.error('  POST /tools/:name     - Call a tool (requires auth headers)');
+    console.error('  GET  /resources       - List available resources');
+    console.error('  GET  /resources/:name - Read a resource');
   });
 }

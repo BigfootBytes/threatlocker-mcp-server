@@ -713,6 +713,67 @@ describe('HTTP server integration', () => {
     });
   });
 
+  // ─── Resource endpoints ────────────────────────────────────────────────
+
+  describe('GET /resources', () => {
+    it('returns array of 2 resources without auth', async () => {
+      const res = await request(app).get('/resources');
+      expect(res.status).toBe(200);
+      expect(res.body.resources).toHaveLength(2);
+      expect(res.body.resources.map((r: any) => r.name)).toEqual(['enums', 'server-info']);
+    });
+  });
+
+  describe('GET /resources/:name', () => {
+    it('returns enums with osTypes and actionIds', async () => {
+      const res = await request(app).get('/resources/enums');
+      expect(res.status).toBe(200);
+      expect(res.body.osTypes).toBeDefined();
+      expect(res.body.actionIds).toBeDefined();
+      expect(res.body.osTypes['1']).toBe('Windows');
+    });
+
+    it('returns server-info with name, version, and toolCount=16', async () => {
+      const res = await request(app).get('/resources/server-info');
+      expect(res.status).toBe(200);
+      expect(res.body.name).toBe('threatlocker-mcp-server');
+      expect(res.body.version).toBeDefined();
+      expect(res.body.toolCount).toBe(16);
+      expect(res.body.transports).toEqual(['stdio', 'sse', 'streamable-http']);
+    });
+
+    it('returns 404 for nonexistent resource', async () => {
+      const res = await request(app).get('/resources/nonexistent');
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+  });
+
+  // ─── REST API strict validation (rejects unknown fields) ───────────────
+
+  describe('POST /tools/:toolName - strict validation', () => {
+    it('rejects unknown fields in request body', async () => {
+      const res = await request(app)
+        .post('/tools/threatlocker_computers')
+        .set(authHeaders)
+        .send({ action: 'list', unknownField: 'x' });
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('BAD_REQUEST');
+    });
+
+    it('accepts transport fields (response_format, fetchAllPages)', async () => {
+      const res = await request(app)
+        .post('/tools/threatlocker_computers')
+        .set(authHeaders)
+        .send({ action: 'get', response_format: 'json', fetchAllPages: false });
+      // Passes Zod validation, fails at handler level (missing computerId)
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('BAD_REQUEST');
+      expect(res.body.error.message).toContain('computerId');
+    });
+  });
+
   // ─── Request body size limit ───────────────────────────────────────────
 
   describe('request body size limit', () => {

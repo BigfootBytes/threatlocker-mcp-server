@@ -1,5 +1,18 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-12 — MCP Best Practices: Strict Validation, Resources, Package Rename
+
+- **Package rename**: `threatlocker-mcp` → `threatlocker-mcp-server` in `package.json` and MCP server name (follows `{service}-mcp-server` convention)
+- **Strict REST validation**: Replaced `.passthrough()` with `.strict()` on Zod validation in REST `POST /tools/:name` endpoint — unknown fields now return 400 BAD_REQUEST instead of being silently ignored. Transport fields (`response_format`, `fetchAllPages`) are included in the strict schema so they pass validation.
+- **MCP Resources**: Registered 2 static resources via `server.resource()`:
+  - `threatlocker://enums` — all ThreatLocker API enumeration values (OS types, action IDs, maintenance types, approval statuses, update channels, elevation status, rule IDs, policy action IDs, action log group-bys)
+  - `threatlocker://server/info` — server metadata (name, version, tool count, transports, protocol version)
+- **REST resource endpoints**: Added `GET /resources` (list) and `GET /resources/:name` (read) — no auth required, rate-limited by metadata limiter
+- New file: `src/resources/enums.ts` — centralized enum constants
+- New file: `src/resources/enums.test.ts` — 5 tests for enum structure and values
+- Added 6 tests in `http.test.ts` (resource list, enums content, server-info content, 404 for nonexistent, strict reject unknown, strict accept transport fields)
+- 686 tests passing across 43 test files
+
 ## 2026-02-12 — Auto-fetch Pages, Richer Descriptions, Retry Enhancements
 
 - **Gap 5 — Auto-fetch all pages**: Added `fetchAllPages` boolean parameter to all tools (injected centrally via `server.ts` and `http.ts`). When `true`, the handler loops up to `MAX_AUTO_PAGES` (10) pages, accumulating data arrays. Returns merged result with summary pagination showing `has_more` if the cap was reached. Works across MCP, SSE, and REST transports. Extracted `fetchAllPagesLoop()` helper shared between MCP and REST dispatch paths.
