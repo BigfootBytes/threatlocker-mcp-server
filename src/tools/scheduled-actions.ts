@@ -98,7 +98,11 @@ Common workflows:
 - Get scheduled action details: action=get, scheduledActionId="..."
 - Get available targets for scheduling: action=get_applies_to
 
-Scheduled action types: Version Update (update ThreatLocker agent)
+Scheduled action types: Version Update (scheduledType=1).
+
+Permissions: Edit Computers, Edit Computer Groups, View Computers.
+Pagination: search action is paginated (use fetchAllPages=true to auto-fetch all pages).
+Key response fields: scheduledAgentActionId, scheduledType, scheduledDateTime, computerName, computerGroupName, status.
 
 Related tools: computers (see current versions), computer_groups (target groups for updates), organizations (filter by org)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },

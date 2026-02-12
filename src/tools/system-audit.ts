@@ -111,7 +111,11 @@ Common workflows:
 - Get health center dashboard: action=health_center, days=7
 - Search health center by location: action=health_center, searchText="lat:X&long:Y"
 
-Audit actions: Create (new objects), Delete (removals), Logon (portal access), Modify (changes), Read (views)
+Audit actions: Create (new objects), Delete (removals), Logon (portal access), Modify (changes), Read (views). Supports * wildcard in text fields.
+
+Permissions: View System Audit, View Health Center.
+Pagination: search and health_center actions are paginated (use fetchAllPages=true to auto-fetch all pages).
+Key response fields: systemAuditId, username, action, effectiveAction, details, ipAddress, dateTime.
 
 Related tools: action_log (endpoint events, not portal events), organizations (filter by org)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },

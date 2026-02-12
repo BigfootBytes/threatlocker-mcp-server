@@ -42,7 +42,9 @@ Common workflows:
 - Identify the default version for new computer groups: action=list, look for isDefault=true
 - Plan upgrade rollouts: action=list, compare to installed versions from computers tool
 
-Response fields: label (version string), value (version ID), isEnabled, dateTime (release date), isDefault, OSTypes
+Permissions: Edit Computers, Edit Computer Groups, View Computers, Install Computers.
+No pagination — returns all versions in a single response.
+Key response fields: label (version string), value (version ID), isEnabled, dateTime (release date), isDefault, OSTypes.
 
 Related tools: computers (see installed versions per machine), scheduled_actions (schedule version updates), computer_groups (group-level version settings)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },

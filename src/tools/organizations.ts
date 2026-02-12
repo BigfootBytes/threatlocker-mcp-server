@@ -74,6 +74,10 @@ Common workflows:
 
 The organizationId is needed for many API calls (policies, applications, etc.) to scope the request to a specific organization.
 
+Permissions: View Organizations, Edit Organizations, Super Admin - Child.
+Pagination: list_children is paginated (use fetchAllPages=true to auto-fetch all pages).
+Key response fields: organizationId, name, displayName, dateAdded, computerCount.
+
 Related tools: computers (computers in org), computer_groups (groups in org), policies (policies in org)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: organizationsZodSchema,

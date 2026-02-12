@@ -107,7 +107,7 @@ export const computerGroupsTool: ToolDefinition = {
   title: 'ThreatLocker Computer Groups',
   description: `List and inspect ThreatLocker computer groups.
 
-Computer groups organize computers and define policy scope. Policies are applied to groups, not individual computers.
+Computer groups organize computers and define policy scope. Policies are applied to groups, not individual computers. The "global" group (includeGlobal=true) permits applications across all groups.
 
 Common workflows:
 - Get all groups with computers: action=list, includeAllComputers=true
@@ -116,6 +116,9 @@ Common workflows:
 - Filter by OS type: osType=1 (Windows), 2 (macOS), 3 (Linux)
 - Get groups for approval workflow: action=get_for_permit
 - Get group by install key: action=get_by_install_key, installKey="..."
+
+Permissions: Super Admin (for list), Edit Computers, Edit Computer Groups, View Computers.
+Key response fields: computerGroupId, name, osType, computerCount, organizationId.
 
 Related tools: computers (list computers in groups), policies (policies applied to groups)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },

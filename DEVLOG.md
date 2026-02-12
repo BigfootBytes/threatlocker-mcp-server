@@ -1,5 +1,15 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-12 — Auto-fetch Pages, Richer Descriptions, Retry Enhancements
+
+- **Gap 5 — Auto-fetch all pages**: Added `fetchAllPages` boolean parameter to all tools (injected centrally via `server.ts` and `http.ts`). When `true`, the handler loops up to `MAX_AUTO_PAGES` (10) pages, accumulating data arrays. Returns merged result with summary pagination showing `has_more` if the cap was reached. Works across MCP, SSE, and REST transports. Extracted `fetchAllPagesLoop()` helper shared between MCP and REST dispatch paths.
+- **Gap 7 — Richer tool descriptions**: Added Permissions, Pagination notes (with `fetchAllPages` mention), Key response fields, and Performance tips to all 16 tool descriptions. Action log description now highlights date filter requirement for performance.
+- **Gap 9 — Retry enhancements**: Added jitter (50-100% of base delay) to prevent thundering herd, `MAX_BACKOFF` cap (30 seconds) to prevent unbounded delays, and `Retry-After` header parsing for 429 responses. Exported `computeRetryDelay()` and `parseRetryAfter()` helpers for testing.
+- Added `src/server.test.ts` with 7 tests for `fetchAllPagesLoop` (single page, multi-page merge, MAX_AUTO_PAGES cap, error passthrough, non-array passthrough, no-pagination passthrough, partial data on failure)
+- Added 12 new tests in `client.test.ts` (jitter bounds, jitter variance, max backoff cap, parseRetryAfter edge cases, Retry-After header integration)
+- Added `fetchAllPages` property test in `http.test.ts`
+- 675 tests passing across 42 test files
+
 ## 2026-02-12 — MCP Best Practices: Tool Naming, Typed Inputs, Markdown Default, Pagination
 
 - Added `threatlocker_` prefix to all 16 tool names for discoverability (e.g., `computers` → `threatlocker_computers`)

@@ -163,6 +163,10 @@ Common workflows:
 - Get apps for maintenance mode: action=get_for_maintenance
 - Get app for network policy: action=get_for_network_policy, applicationId="..."
 
+Permissions: Edit Application Control Applications.
+Pagination: search and files actions are paginated (use fetchAllPages=true to auto-fetch all pages).
+Key response fields: applicationId, name, osType, computerCount, policyCount. Research fields: concernRating, reviewRating, categories, countriesWhereCodeCompiled.
+
 Related tools: policies (see policies using this app), action_log (see app activity), approval_requests (pending approvals for this app)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: applicationsZodSchema,

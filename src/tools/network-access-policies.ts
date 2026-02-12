@@ -68,6 +68,10 @@ Common workflows:
 - Filter by computer group: action=list, appliesToId="group-id"
 - Get policy details by ID: action=get, networkAccessPolicyId="..."
 
+Permissions: Edit Network Control Policies, View Network Control Policies.
+Pagination: list action is paginated (use fetchAllPages=true to auto-fetch all pages).
+Key response fields: networkAccessPolicyId, name, computerGroupName, isEnabled, applicationName.
+
 Related tools: policies (application control policies), computer_groups (where policy applies), tags (network tags used in policies)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: networkAccessPoliciesZodSchema,

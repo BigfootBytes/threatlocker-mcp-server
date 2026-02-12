@@ -114,6 +114,10 @@ Common workflows:
 
 Request statuses: 1=Pending (needs review), 4=Approved, 6=Not Learned (learning mode), 10=Ignored, 12=Added to Application, 13=Escalated (from Cyber Heroes), 16=Self-Approved
 
+Permissions: View Approvals, Approve for Entire Organization/Group/Single Computer.
+Pagination: list action is paginated (use fetchAllPages=true to auto-fetch all pages).
+Key response fields: approvalRequestId, username, fullPath, actionType, statusId, computerName, requestDateTime.
+
 Related tools: action_log (see the deny event), applications (find matching apps), policies (create permits)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: approvalRequestsZodSchema,

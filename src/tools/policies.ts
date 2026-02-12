@@ -93,6 +93,10 @@ Common workflows:
 
 Policy actions: Permit (allow), Deny (block), Ringfence (allow but restrict network/storage access)
 
+Permissions: View Application Control Policies, Edit Application Control Policies.
+Pagination: list_by_application is paginated (use fetchAllPages=true to auto-fetch all pages).
+Key response fields: policyId, name, policyActionId, applicationId, computerGroupId, isEnabled.
+
 Related tools: applications (what the policy permits), computer_groups (where policy applies), action_log (see policy enforcement)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: policiesZodSchema,

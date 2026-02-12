@@ -47,6 +47,10 @@ Common workflows:
 - Monitor fleet connectivity after a network change: action=list, compare count to computers tool total
 - Paginate through large device lists: action=list, pageNumber=2, pageSize=100
 
+Permissions: View Computers.
+Pagination: list action is paginated (use fetchAllPages=true to auto-fetch all pages).
+Key response fields: computerName, computerGroupName, lastCheckin, ipAddress.
+
 Related tools: computers (full inventory with details, modes, groups), computer_groups (group membership and structure)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: onlineDevicesZodSchema,

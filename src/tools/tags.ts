@@ -70,6 +70,9 @@ Tags are used in:
 
 Parent organization tags appear as "parentOrgName\\tagName" format.
 
+Permissions: Edit Network Control Policies, Manage Tags, Edit Application Control Policies.
+Key response fields: tagId, name, tagType, values (IP/domain/port entries).
+
 Related tools: policies (use tags in policy rules), applications (ringfence with tags)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: tagsZodSchema,

@@ -54,6 +54,7 @@ export interface ClientConfig {
 }
 
 const RETRYABLE_STATUS_CODES = [408, 417, 429];
+export const MAX_BACKOFF = 30_000; // 30 seconds
 
 function isRetryableStatus(status: number): boolean {
   return status >= 500 || RETRYABLE_STATUS_CODES.includes(status);
@@ -61,6 +62,21 @@ function isRetryableStatus(status: number): boolean {
 
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/** Compute retry delay with jitter: 50-100% of base delay, capped at MAX_BACKOFF */
+export function computeRetryDelay(attempt: number): number {
+  const baseDelay = 500 * Math.pow(2, attempt);
+  const jitter = baseDelay * (0.5 + Math.random() * 0.5);
+  return Math.min(jitter, MAX_BACKOFF);
+}
+
+/** Parse Retry-After header (seconds) into milliseconds, capped at MAX_BACKOFF */
+export function parseRetryAfter(header: string | null): number | null {
+  if (!header) return null;
+  const seconds = parseInt(header, 10);
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  return Math.min(seconds * 1000, MAX_BACKOFF);
 }
 
 export class ThreatLockerClient {
@@ -121,6 +137,15 @@ export class ThreatLockerClient {
         this.log('INFO', `Retryable HTTP ${response.status}, attempt ${attempt + 1}/${this.maxRetries + 1}`, {
           url, status: response.status,
         });
+
+        // Respect Retry-After header for 429 responses
+        if (response.status === 429) {
+          const retryAfterMs = parseRetryAfter(response.headers.get('Retry-After'));
+          if (retryAfterMs) {
+            await delay(retryAfterMs);
+            continue;
+          }
+        }
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
         if (attempt >= this.maxRetries) {
@@ -130,7 +155,7 @@ export class ThreatLockerClient {
           url, error: lastError.message,
         });
       }
-      await delay(500 * Math.pow(2, attempt));
+      await delay(computeRetryDelay(attempt));
     }
     // Should not reach here, but satisfy TypeScript
     throw lastError ?? new Error('Retry exhausted');

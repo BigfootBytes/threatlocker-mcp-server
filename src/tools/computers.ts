@@ -116,6 +116,10 @@ Common workflows:
 - View check-in history: action=checkins, computerId="..."
 - Get installation info for new deployments: action=get_install_info
 
+Permissions: View Computers, Edit Computers (for modifications), Install Computers (for install info).
+Pagination: list and checkins actions are paginated (use fetchAllPages=true to auto-fetch all pages).
+Key response fields: computerId, computerName, computerGroupName, lastCheckin, action (Secure/Installation/Learning/MonitorOnly), threatLockerVersion.
+
 Related tools: computer_groups (manage groups), maintenance_mode (maintenance history), action_log (audit events)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: computersZodSchema,

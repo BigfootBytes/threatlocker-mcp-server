@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ThreatLockerClient, extractPaginationFromHeaders, extractPaginationFromJsonHeader } from './client.js';
+import { ThreatLockerClient, extractPaginationFromHeaders, extractPaginationFromJsonHeader, computeRetryDelay, parseRetryAfter, MAX_BACKOFF } from './client.js';
 import { clampPagination } from './types/responses.js';
 
 describe('ThreatLockerClient', () => {
@@ -666,5 +666,91 @@ describe('ThreatLockerClient retry', () => {
         process.env.THREATLOCKER_MAX_RETRIES = original;
       }
     }
+  });
+
+  it('respects Retry-After header on 429 response', async () => {
+    const client = createClient(1);
+    const retryAfterHeaders = new Headers({ 'Retry-After': '2' });
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false, status: 429, statusText: 'Too Many Requests',
+        text: async () => '', headers: retryAfterHeaders,
+      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true }) });
+
+    const promise = client.get('Test/Endpoint');
+    // Retry-After: 2 means 2000ms
+    await vi.advanceTimersByTimeAsync(2000);
+    const result = await promise;
+
+    expect(result).toEqual({ success: true, data: { ok: true } });
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('computeRetryDelay', () => {
+  it('returns a value between 50% and 100% of base delay for attempt 0', () => {
+    // Base delay at attempt 0 = 500ms, so range is [250, 500]
+    for (let i = 0; i < 20; i++) {
+      const d = computeRetryDelay(0);
+      expect(d).toBeGreaterThanOrEqual(250);
+      expect(d).toBeLessThanOrEqual(500);
+    }
+  });
+
+  it('returns a value between 50% and 100% of base delay for attempt 1', () => {
+    // Base delay at attempt 1 = 1000ms, so range is [500, 1000]
+    for (let i = 0; i < 20; i++) {
+      const d = computeRetryDelay(1);
+      expect(d).toBeGreaterThanOrEqual(500);
+      expect(d).toBeLessThanOrEqual(1000);
+    }
+  });
+
+  it('caps delay at MAX_BACKOFF for very high attempt numbers', () => {
+    // Attempt 20 = 500 * 2^20 = 524,288,000ms — way above MAX_BACKOFF
+    const d = computeRetryDelay(20);
+    expect(d).toBeLessThanOrEqual(MAX_BACKOFF);
+  });
+
+  it('produces varying delays (jitter)', () => {
+    const delays = new Set<number>();
+    for (let i = 0; i < 50; i++) {
+      delays.add(computeRetryDelay(2));
+    }
+    // With random jitter, we should get more than one distinct value
+    expect(delays.size).toBeGreaterThan(1);
+  });
+});
+
+describe('parseRetryAfter', () => {
+  it('returns null for null input', () => {
+    expect(parseRetryAfter(null)).toBeNull();
+  });
+
+  it('returns null for empty string', () => {
+    expect(parseRetryAfter('')).toBeNull();
+  });
+
+  it('returns null for non-numeric string', () => {
+    expect(parseRetryAfter('abc')).toBeNull();
+  });
+
+  it('returns null for zero', () => {
+    expect(parseRetryAfter('0')).toBeNull();
+  });
+
+  it('returns null for negative value', () => {
+    expect(parseRetryAfter('-5')).toBeNull();
+  });
+
+  it('parses valid seconds to milliseconds', () => {
+    expect(parseRetryAfter('2')).toBe(2000);
+    expect(parseRetryAfter('10')).toBe(10000);
+  });
+
+  it('caps at MAX_BACKOFF', () => {
+    expect(parseRetryAfter('60')).toBe(MAX_BACKOFF);
+    expect(parseRetryAfter('3600')).toBe(MAX_BACKOFF);
   });
 });

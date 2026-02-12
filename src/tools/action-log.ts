@@ -152,6 +152,11 @@ Common workflows:
 - Get policy conditions for permit: action=get_policy_conditions, actionLogId="..."
 - Get testing environment details: action=get_testing_details, actionLogId="..."
 
+Permissions: View Unified Audit.
+Pagination: search action is paginated (use fetchAllPages=true to auto-fetch all pages).
+Performance: always use date filters — queries without startDate/endDate can be very slow on large organizations. Use groupBys to aggregate instead of fetching all raw rows.
+Key response fields: actionLogId, fullPath, processPath, hostname, username, actionType, policyName, applicationName.
+
 Related tools: computers (find computer IDs), applications (identify apps), approval_requests (handle denied software)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: actionLogZodSchema,

@@ -7,7 +7,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ThreatLockerClient } from '../client.js';
 import { toolsByName, allToolsWithSchema } from '../tools/registry.js';
-import { createMcpServer, CHARACTER_LIMIT, LogFn } from '../server.js';
+import { createMcpServer, CHARACTER_LIMIT, LogFn, fetchAllPagesLoop } from '../server.js';
 import { formatAsMarkdown } from '../formatters.js';
 import { VERSION } from '../version.js';
 
@@ -16,6 +16,12 @@ const responseFormatJsonSchema = {
   enum: ['json', 'markdown'],
   default: 'markdown',
   description: 'Output format: markdown (default, human-readable) or json (structured)',
+};
+
+const fetchAllPagesJsonSchema = {
+  type: 'boolean',
+  default: false,
+  description: 'Fetch all pages automatically (max 10 pages). Default: false (single page).',
 };
 
 interface ClientCredentials {
@@ -161,6 +167,7 @@ export function createApp(): ReturnType<typeof express> {
           properties: {
             ...(t.inputSchema.properties as Record<string, unknown>),
             response_format: responseFormatJsonSchema,
+            fetchAllPages: fetchAllPagesJsonSchema,
           },
         },
         outputSchema: t.outputSchema,
@@ -218,9 +225,11 @@ export function createApp(): ReturnType<typeof express> {
         return;
       }
 
-      const { response_format: rawFormat, ...toolArgs } = args;
+      const { response_format: rawFormat, fetchAllPages: rawFetchAll, ...toolArgs } = args;
       const responseFormat = rawFormat === 'json' ? 'json' : 'markdown'; // default: markdown
-      const result = await tool.handler(client, toolArgs);
+      const result = rawFetchAll
+        ? await fetchAllPagesLoop(tool.handler, client, toolArgs, log as LogFn, tool.name)
+        : await tool.handler(client, toolArgs);
 
       if (responseFormat === 'markdown') {
         let text = formatAsMarkdown(result);

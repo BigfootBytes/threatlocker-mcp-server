@@ -274,6 +274,20 @@ describe('HTTP server integration', () => {
     });
   });
 
+  // ─── fetchAllPages in tool listing ─────────────────────────────────────
+
+  describe('GET /tools - fetchAllPages', () => {
+    it('every tool inputSchema includes fetchAllPages property', async () => {
+      const res = await request(app).get('/tools');
+      for (const tool of res.body.tools) {
+        const props = tool.inputSchema.properties;
+        expect(props.fetchAllPages, `${tool.name} missing fetchAllPages`).toBeDefined();
+        expect(props.fetchAllPages.type).toBe('boolean');
+        expect(props.fetchAllPages.default).toBe(false);
+      }
+    });
+  });
+
   // ─── REST tool call endpoint auth ───────────────────────────────────────
 
   describe('POST /tools/:toolName - authentication', () => {

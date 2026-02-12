@@ -51,6 +51,9 @@ Common workflows:
 - Review security posture: list reports, then run relevant compliance or audit reports
 - Export data for external analysis: run a report and process the returned data
 
+Permissions: View Reports.
+Key response fields: reportId, name, description, reportData (dynamic columns per report type).
+
 Related tools: action_log (raw audit events), system_audit (portal audit trail), computers (device inventory)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: reportsZodSchema,

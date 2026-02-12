@@ -51,16 +51,20 @@ export const maintenanceModeTool: ToolDefinition = {
   description: `Query ThreatLocker maintenance mode history for computers.
 
 Maintenance mode temporarily changes a computer's protection level. Types include:
-- Installation Mode: Allows new software installs, auto-learns new applications
-- Learning Mode: Monitors and records software usage without blocking
-- Monitor Only: Logs but doesn't block (audit mode)
-- Tamper Protection Disabled: Allows ThreatLocker service changes
+- Installation Mode (1): Allows new software installs, auto-learns new applications
+- Learning Mode (3): Monitors and records software usage without blocking
+- Monitor Only (1): Logs but doesn't block (audit mode)
+- Tamper Protection Disabled (6): Allows ThreatLocker service changes
 
 Common workflows:
 - View maintenance history for a computer: action=get_history, computerId="..."
 - Audit who put computers in installation mode: check history across computers
 
 Maintenance mode history shows who enabled it, when, duration, and what applications were learned during that time.
+
+Permissions: Edit Computers, Manage Application Control Installation Mode, Manage Application Control Learning Mode.
+Pagination: get_history is paginated (use fetchAllPages=true to auto-fetch all pages).
+Key response fields: maintenanceModeId, maintenanceTypeId, startDateTime, endDateTime, userName.
 
 Related tools: computers (get computer IDs, see current mode), computer_groups (group-level modes)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
