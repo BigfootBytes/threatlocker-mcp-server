@@ -247,12 +247,15 @@ describe('HTTP server integration', () => {
       expect(res.body.tools.length).toBeGreaterThan(0);
     });
 
-    it('each tool has name, description, and inputSchema', async () => {
+    it('each tool has name, description, inputSchema, and outputSchema', async () => {
       const res = await request(app).get('/tools');
       for (const tool of res.body.tools) {
         expect(tool.name).toBeDefined();
         expect(tool.description).toBeDefined();
         expect(tool.inputSchema).toBeDefined();
+        expect(tool.outputSchema).toBeDefined();
+        expect(tool.outputSchema.type).toBe('object');
+        expect(tool.outputSchema.properties).toHaveProperty('success');
       }
     });
   });

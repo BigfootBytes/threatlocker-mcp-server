@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { allTools, toolsByName, ToolDefinition } from './registry.js';
+import { allTools, toolsByName, allToolsWithSchema, ToolDefinition } from './registry.js';
 
 describe('tool registry', () => {
   it('has exactly 16 tools', () => {
@@ -35,6 +35,19 @@ describe('tool registry', () => {
       expect(t.zodSchema.action).toBeDefined();
     }
   );
+
+  it('allToolsWithSchema entries have outputSchema', () => {
+    for (const tool of allToolsWithSchema) {
+      expect(tool.outputSchema, `${tool.name} missing outputSchema`).toBeDefined();
+      expect(tool.outputSchema).toHaveProperty('type', 'object');
+      expect(tool.outputSchema).toHaveProperty('properties');
+      const props = tool.outputSchema.properties as Record<string, unknown>;
+      expect(props).toHaveProperty('success');
+      expect(props).toHaveProperty('data');
+      expect(props).toHaveProperty('pagination');
+      expect(props).toHaveProperty('error');
+    }
+  });
 
   it('contains all expected tool names', () => {
     const expectedNames = [

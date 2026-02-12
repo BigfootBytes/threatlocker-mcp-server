@@ -1,13 +1,14 @@
 import { z } from 'zod';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { ThreatLockerClient } from '../client.js';
-import { ApiResponse } from '../types/responses.js';
+import { ApiResponse, apiResponseOutputSchema } from '../types/responses.js';
 
 export interface ToolDefinition {
   name: string;
   description: string;
   annotations?: ToolAnnotations;
   zodSchema: Record<string, z.ZodTypeAny>;
+  outputZodSchema?: Record<string, z.ZodTypeAny>;
   handler: (client: ThreatLockerClient, input: Record<string, unknown>) => Promise<ApiResponse<unknown>>;
 }
 
@@ -57,9 +58,11 @@ export const toolsByName = new Map(allTools.map(t => [t.name, t]));
 
 export interface ToolWithJsonSchema extends ToolDefinition {
   inputSchema: Record<string, unknown>;
+  outputSchema: Record<string, unknown>;
 }
 
 export const allToolsWithSchema: ToolWithJsonSchema[] = allTools.map(t => ({
   ...t,
   inputSchema: zodShapeToJsonSchema(t.zodSchema),
+  outputSchema: zodShapeToJsonSchema(t.outputZodSchema ?? apiResponseOutputSchema),
 }));

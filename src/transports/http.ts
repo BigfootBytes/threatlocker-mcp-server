@@ -149,6 +149,7 @@ export function createApp(): ReturnType<typeof express> {
         name: t.name,
         description: t.description,
         inputSchema: t.inputSchema,
+        outputSchema: t.outputSchema,
       })),
     });
   });

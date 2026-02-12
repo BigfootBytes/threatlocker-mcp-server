@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export type ErrorCode =
   | 'BAD_REQUEST'
   | 'UNAUTHORIZED'
@@ -29,6 +31,23 @@ export interface ErrorResponse {
 }
 
 export type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
+
+/** Zod shape describing the ApiResponse envelope — used as the default outputSchema for all tools. */
+export const apiResponseOutputSchema = {
+  success: z.boolean().describe('Whether the API call succeeded'),
+  data: z.any().optional().describe('Response data (object or array) when success is true'),
+  pagination: z.object({
+    page: z.number(),
+    pageSize: z.number(),
+    totalItems: z.number(),
+    totalPages: z.number(),
+  }).optional().describe('Pagination metadata when the response is a paginated list'),
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+    statusCode: z.number().optional(),
+  }).optional().describe('Error details when success is false'),
+};
 
 export function successResponse<T>(data: T, pagination?: Pagination): SuccessResponse<T> {
   return pagination ? { success: true, data, pagination } : { success: true, data };

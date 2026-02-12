@@ -1,5 +1,17 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-12 — Output Schemas + Structured Content
+
+- Added `apiResponseOutputSchema` Zod shape to `src/types/responses.ts` describing the shared `ApiResponse` envelope (`success`, `data`, `pagination`, `error`)
+- Added optional `outputZodSchema` field to `ToolDefinition` for per-tool output schema overrides
+- Updated `ToolWithJsonSchema` and `allToolsWithSchema` to include `outputSchema` (JSON Schema, auto-generated from Zod)
+- Migrated `src/server.ts` from deprecated `server.tool()` to `server.registerTool()` with `outputSchema` declaration
+- Tool handlers now return `structuredContent` alongside `content` in MCP responses
+- `GET /tools` REST endpoint now includes `outputSchema` for each tool
+- Added tests: registry test verifies `outputSchema` structure, HTTP test verifies `/tools` response includes `outputSchema`
+- All tools inherit the shared `apiResponseOutputSchema` by default; individual tools can provide custom `outputZodSchema` later
+- 631 tests passing across 40 test files
+
 ## 2026-02-12 — Zod-Only Schemas + Unified McpServer
 
 - Made Zod the single source of truth for tool schemas, eliminating 3 redundant definitions per tool (hand-crafted JSON Schema, TypeScript interface, Zod schema → Zod only)
