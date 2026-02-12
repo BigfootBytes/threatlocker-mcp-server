@@ -1,5 +1,20 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-12 — Deduplicate Resources + MCP Prompts
+
+- **Resource deduplication**: Extracted shared `ResourceDefinition` interface and `allResources` array into `src/resources/registry.ts` — both `server.ts` (MCP registration) and `http.ts` (REST endpoints) now import from one source, eliminating duplicated URIs, descriptions, and data logic
+- **MCP Prompts**: Added 4 prompt templates for common ThreatLocker workflows, registered via `server.registerPrompt()`:
+  - `investigate_denial` — step-by-step guide for investigating blocked applications (optional args: hostname, path, timeframe)
+  - `review_approval_requests` — guide for triaging pending approval requests (no args)
+  - `security_posture_report` — generate organization security posture summary (optional arg: timeframe)
+  - `computer_audit` — deep-dive audit of a specific computer's security state (required arg: computer_name)
+- **REST prompt endpoints**: Added `GET /prompts` (list) and `GET /prompts/:name` (get messages with query params) — no auth required, rate-limited by metadata limiter
+- New file: `src/resources/registry.ts` — shared resource definitions
+- New file: `src/prompts/registry.ts` — 4 prompt definitions with typed `PromptDefinition` interface
+- New file: `src/prompts/registry.test.ts` — 10 tests for prompt registry
+- Added 5 tests in `http.test.ts` (prompt list, prompt metadata, prompt messages, query param args, 404 for nonexistent)
+- 701 tests passing across 44 test files
+
 ## 2026-02-12 — MCP Best Practices: Strict Validation, Resources, Package Rename
 
 - **Package rename**: `threatlocker-mcp` → `threatlocker-mcp-server` in `package.json` and MCP server name (follows `{service}-mcp-server` convention)

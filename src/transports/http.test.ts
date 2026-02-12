@@ -749,6 +749,54 @@ describe('HTTP server integration', () => {
     });
   });
 
+  // ─── Prompt endpoints ──────────────────────────────────────────────────
+
+  describe('GET /prompts', () => {
+    it('returns 4 prompts without auth', async () => {
+      const res = await request(app).get('/prompts');
+      expect(res.status).toBe(200);
+      expect(res.body.prompts).toHaveLength(4);
+      expect(res.body.prompts.map((p: any) => p.name)).toEqual([
+        'investigate_denial',
+        'review_approval_requests',
+        'security_posture_report',
+        'computer_audit',
+      ]);
+    });
+
+    it('each prompt has name, title, and description', async () => {
+      const res = await request(app).get('/prompts');
+      for (const prompt of res.body.prompts) {
+        expect(prompt.name).toBeDefined();
+        expect(prompt.title).toBeDefined();
+        expect(prompt.description).toBeDefined();
+      }
+    });
+  });
+
+  describe('GET /prompts/:name', () => {
+    it('returns messages for investigate_denial', async () => {
+      const res = await request(app).get('/prompts/investigate_denial');
+      expect(res.status).toBe(200);
+      expect(res.body.messages).toBeDefined();
+      expect(res.body.messages.length).toBeGreaterThan(0);
+      expect(res.body.messages[0].role).toBe('user');
+    });
+
+    it('passes query params as args to computer_audit', async () => {
+      const res = await request(app).get('/prompts/computer_audit?computer_name=PC1');
+      expect(res.status).toBe(200);
+      const text = res.body.messages[0].content.text;
+      expect(text).toContain('PC1');
+    });
+
+    it('returns 404 for nonexistent prompt', async () => {
+      const res = await request(app).get('/prompts/nonexistent');
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+  });
+
   // ─── REST API strict validation (rejects unknown fields) ───────────────
 
   describe('POST /tools/:toolName - strict validation', () => {

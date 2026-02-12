@@ -5,7 +5,8 @@ import { allTools, ToolDefinition } from './tools/registry.js';
 import { ApiResponse, apiResponseOutputSchema, SuccessResponse } from './types/responses.js';
 import { formatAsMarkdown } from './formatters.js';
 import { VERSION } from './version.js';
-import { ENUMS } from './resources/enums.js';
+import { allResources } from './resources/registry.js';
+import { allPrompts } from './prompts/registry.js';
 
 export type LogFn = (level: 'DEBUG' | 'ERROR', message: string, data?: Record<string, unknown>) => void;
 
@@ -138,43 +139,33 @@ export function createMcpServer(client: ThreatLockerClient, log?: LogFn): McpSer
   }
 
   // Register static resources
-  server.resource(
-    'enums',
-    'threatlocker://enums',
-    {
-      description: 'ThreatLocker API enumeration values (OS types, action IDs, maintenance types, approval statuses, etc.)',
-      mimeType: 'application/json',
-    },
-    async () => ({
-      contents: [{
-        uri: 'threatlocker://enums',
-        mimeType: 'application/json',
-        text: JSON.stringify(ENUMS, null, 2),
-      }],
-    }),
-  );
+  for (const res of allResources) {
+    server.resource(
+      res.name,
+      res.uri,
+      { description: res.description, mimeType: res.mimeType },
+      async () => ({
+        contents: [{
+          uri: res.uri,
+          mimeType: res.mimeType,
+          text: JSON.stringify(res.getData(), null, 2),
+        }],
+      }),
+    );
+  }
 
-  server.resource(
-    'server-info',
-    'threatlocker://server/info',
-    {
-      description: 'ThreatLocker MCP server metadata (name, version, tool count, transports, protocol version)',
-      mimeType: 'application/json',
-    },
-    async () => ({
-      contents: [{
-        uri: 'threatlocker://server/info',
-        mimeType: 'application/json',
-        text: JSON.stringify({
-          name: 'threatlocker-mcp-server',
-          version: VERSION,
-          toolCount: allTools.length,
-          transports: ['stdio', 'sse', 'streamable-http'],
-          protocolVersion: '2025-03-26',
-        }, null, 2),
-      }],
-    }),
-  );
+  // Register prompt templates
+  for (const prompt of allPrompts) {
+    server.registerPrompt(
+      prompt.name,
+      {
+        title: prompt.title,
+        description: prompt.description,
+        argsSchema: prompt.argsSchema,
+      },
+      async (args) => prompt.cb(args as Record<string, string>),
+    );
+  }
 
   return server;
 }

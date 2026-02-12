@@ -10,8 +10,8 @@ import { toolsByName, allToolsWithSchema } from '../tools/registry.js';
 import { createMcpServer, CHARACTER_LIMIT, LogFn, fetchAllPagesLoop } from '../server.js';
 import { formatAsMarkdown } from '../formatters.js';
 import { VERSION } from '../version.js';
-import { ENUMS } from '../resources/enums.js';
-import { allTools } from '../tools/registry.js';
+import { allResources } from '../resources/registry.js';
+import { allPrompts } from '../prompts/registry.js';
 
 const responseFormatJsonSchema = {
   type: 'string',
@@ -123,6 +123,7 @@ export function createApp(): ReturnType<typeof express> {
   });
   app.use('/health', metadataLimiter);
   app.use('/resources', metadataLimiter);
+  app.use('/prompts', metadataLimiter);
 
   // CORS response headers for allowed browser origins
   app.use((req, res, next) => {
@@ -178,34 +179,10 @@ export function createApp(): ReturnType<typeof express> {
     });
   });
 
-  // Resource registry for REST endpoints
-  const resources = [
-    {
-      name: 'enums',
-      uri: 'threatlocker://enums',
-      description: 'ThreatLocker API enumeration values (OS types, action IDs, maintenance types, approval statuses, etc.)',
-      mimeType: 'application/json',
-      getData: () => ENUMS,
-    },
-    {
-      name: 'server-info',
-      uri: 'threatlocker://server/info',
-      description: 'ThreatLocker MCP server metadata (name, version, tool count, transports, protocol version)',
-      mimeType: 'application/json',
-      getData: () => ({
-        name: 'threatlocker-mcp-server',
-        version: VERSION,
-        toolCount: allTools.length,
-        transports: ['stdio', 'sse', 'streamable-http'],
-        protocolVersion: '2025-03-26',
-      }),
-    },
-  ];
-
   // List available resources - no auth required
   app.get('/resources', (_req, res) => {
     res.json({
-      resources: resources.map(({ name, uri, description, mimeType }) => ({
+      resources: allResources.map(({ name, uri, description, mimeType }) => ({
         name,
         uri,
         description,
@@ -217,7 +194,7 @@ export function createApp(): ReturnType<typeof express> {
   // Read a resource by name - no auth required
   app.get('/resources/:name', (req: Request, res: Response) => {
     const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
-    const resource = resources.find(r => r.name === name);
+    const resource = allResources.find(r => r.name === name);
     if (!resource) {
       res.status(404).json({
         success: false,
@@ -226,6 +203,38 @@ export function createApp(): ReturnType<typeof express> {
       return;
     }
     res.json(resource.getData());
+  });
+
+  // List available prompts - no auth required
+  app.get('/prompts', (_req, res) => {
+    res.json({
+      prompts: allPrompts.map(({ name, title, description, argsSchema }) => ({
+        name,
+        title,
+        description,
+        ...(argsSchema ? { args: Object.keys(argsSchema) } : {}),
+      })),
+    });
+  });
+
+  // Get prompt messages by name - no auth required
+  app.get('/prompts/:name', (req: Request, res: Response) => {
+    const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
+    const prompt = allPrompts.find(p => p.name === name);
+    if (!prompt) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: `Unknown prompt: ${name}` },
+      });
+      return;
+    }
+    const args: Record<string, string> = {};
+    for (const [key, value] of Object.entries(req.query)) {
+      if (typeof value === 'string') {
+        args[key] = value;
+      }
+    }
+    res.json(prompt.cb(args));
   });
 
   // Direct tool call endpoint (REST API) - requires auth headers per request
@@ -483,5 +492,7 @@ export function createHttpServer(port: number): void {
     console.error('  POST /tools/:name     - Call a tool (requires auth headers)');
     console.error('  GET  /resources       - List available resources');
     console.error('  GET  /resources/:name - Read a resource');
+    console.error('  GET  /prompts        - List available prompts');
+    console.error('  GET  /prompts/:name  - Get prompt messages');
   });
 }
