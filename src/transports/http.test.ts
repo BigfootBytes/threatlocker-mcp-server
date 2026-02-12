@@ -260,6 +260,20 @@ describe('HTTP server integration', () => {
     });
   });
 
+  // ─── response_format in tool listing ────────────────────────────────────
+
+  describe('GET /tools - response_format', () => {
+    it('every tool inputSchema includes response_format property', async () => {
+      const res = await request(app).get('/tools');
+      for (const tool of res.body.tools) {
+        const props = tool.inputSchema.properties;
+        expect(props.response_format, `${tool.name} missing response_format`).toBeDefined();
+        expect(props.response_format.enum).toEqual(['json', 'markdown']);
+        expect(props.response_format.default).toBe('json');
+      }
+    });
+  });
+
   // ─── REST tool call endpoint auth ───────────────────────────────────────
 
   describe('POST /tools/:toolName - authentication', () => {
@@ -488,6 +502,40 @@ describe('HTTP server integration', () => {
         .send({});
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
+    });
+  });
+
+  // ─── response_format dispatch behavior ──────────────────────────────────
+
+  describe('POST /tools/:toolName - response_format', () => {
+    it('returns markdown text when response_format=markdown', async () => {
+      // computers get without computerId returns BAD_REQUEST — should render as markdown error
+      const res = await request(app)
+        .post('/tools/computers')
+        .set(authHeaders)
+        .send({ action: 'get', response_format: 'markdown' });
+      expect(res.headers['content-type']).toContain('text/markdown');
+      expect(res.text).toContain('# Error');
+      expect(res.text).toContain('BAD_REQUEST');
+    });
+
+    it('returns JSON by default (no response_format)', async () => {
+      const res = await request(app)
+        .post('/tools/computers')
+        .set(authHeaders)
+        .send({ action: 'get' });
+      expect(res.headers['content-type']).toContain('application/json');
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('BAD_REQUEST');
+    });
+
+    it('returns JSON when response_format=json', async () => {
+      const res = await request(app)
+        .post('/tools/computers')
+        .set(authHeaders)
+        .send({ action: 'get', response_format: 'json' });
+      expect(res.headers['content-type']).toContain('application/json');
+      expect(res.body.success).toBe(false);
     });
   });
 

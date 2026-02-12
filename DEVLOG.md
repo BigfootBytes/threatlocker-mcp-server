@@ -1,5 +1,16 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-12 — Response Format, Character Limit, and enableJsonResponse
+
+- Added `response_format` parameter (`json` | `markdown`) to all 16 tools via centralized injection in `server.ts` — zero changes to individual tool files
+- Added `CHARACTER_LIMIT` (50,000 chars) truncation with format-appropriate guidance message when responses exceed the limit
+- Added `formatAsMarkdown()` module (`src/formatters.ts`) that renders `ApiResponse<T>` as human-readable markdown with headings, bullet lists, nested indentation, and pagination footers
+- Added `enableJsonResponse: true` to `StreamableHTTPServerTransport` config for spec compliance
+- REST API: `GET /tools` now includes `response_format` in every tool's `inputSchema`; `POST /tools/:name` supports `response_format=markdown` returning `text/markdown` content type
+- MCP transport: `response_format` is stripped from args before handler dispatch; `structuredContent` always returns raw JSON regardless of format
+- Added 19 formatter unit tests and 4 HTTP integration tests (response_format in tool listing, markdown dispatch, default JSON behavior)
+- 654 tests passing across 41 test files
+
 ## 2026-02-12 — MCP Best Practices Alignment
 
 - Added `isError: !result.success` to `CallToolResult` so MCP clients can distinguish tool errors from successes

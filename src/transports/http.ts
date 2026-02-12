@@ -7,8 +7,16 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ThreatLockerClient } from '../client.js';
 import { toolsByName, allToolsWithSchema } from '../tools/registry.js';
-import { createMcpServer, LogFn } from '../server.js';
+import { createMcpServer, CHARACTER_LIMIT, LogFn } from '../server.js';
+import { formatAsMarkdown } from '../formatters.js';
 import { VERSION } from '../version.js';
+
+const responseFormatJsonSchema = {
+  type: 'string',
+  enum: ['json', 'markdown'],
+  default: 'json',
+  description: 'Output format: json (default, structured) or markdown (human-readable)',
+};
 
 interface ClientCredentials {
   apiKey: string;
@@ -148,7 +156,13 @@ export function createApp(): ReturnType<typeof express> {
       tools: allToolsWithSchema.map(t => ({
         name: t.name,
         description: t.description,
-        inputSchema: t.inputSchema,
+        inputSchema: {
+          ...t.inputSchema,
+          properties: {
+            ...(t.inputSchema.properties as Record<string, unknown>),
+            response_format: responseFormatJsonSchema,
+          },
+        },
         outputSchema: t.outputSchema,
       })),
     });
@@ -204,8 +218,19 @@ export function createApp(): ReturnType<typeof express> {
         return;
       }
 
-      const result = await tool.handler(client, args);
-      res.json(result);
+      const { response_format: responseFormat, ...toolArgs } = args;
+      const result = await tool.handler(client, toolArgs);
+
+      if (responseFormat === 'markdown') {
+        let text = formatAsMarkdown(result);
+        if (text.length > CHARACTER_LIMIT) {
+          text = text.slice(0, CHARACTER_LIMIT) +
+            '\n\n---\n**Output truncated** (exceeded 50,000 characters). Use a smaller `pageSize` or add filters to narrow results.';
+        }
+        res.type('text/markdown').send(text);
+      } else {
+        res.json(result);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       log('ERROR', 'REST API tool failed', { tool: toolName, error: message });
@@ -334,6 +359,7 @@ export function createApp(): ReturnType<typeof express> {
       const server = createMcpServer(client, log as LogFn);
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined, // Stateless mode
+        enableJsonResponse: true,
       });
 
       await server.connect(transport);
