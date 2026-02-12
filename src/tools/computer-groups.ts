@@ -102,6 +102,7 @@ export const computerGroupsZodSchema = {
 
 export const computerGroupsTool: ToolDefinition = {
   name: 'computer_groups',
+  title: 'ThreatLocker Computer Groups',
   description: `List and inspect ThreatLocker computer groups.
 
 Computer groups organize computers and define policy scope. Policies are applied to groups, not individual computers.
@@ -115,7 +116,7 @@ Common workflows:
 - Get group by install key: action=get_by_install_key, installKey="..."
 
 Related tools: computers (list computers in groups), policies (policies applied to groups)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: computerGroupsZodSchema,
   handler: handleComputerGroupsTool,
 };

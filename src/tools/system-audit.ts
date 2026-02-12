@@ -96,6 +96,7 @@ export const systemAuditZodSchema = {
 
 export const systemAuditTool: ToolDefinition = {
   name: 'system_audit',
+  title: 'ThreatLocker System Audit',
   description: `Query ThreatLocker portal audit logs.
 
 System audit tracks administrator actions in the ThreatLocker portal: logins, policy changes, approvals, configuration modifications. This is different from action_log which tracks endpoint events.
@@ -111,7 +112,7 @@ Common workflows:
 Audit actions: Create (new objects), Delete (removals), Logon (portal access), Modify (changes), Read (views)
 
 Related tools: action_log (endpoint events, not portal events), organizations (filter by org)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: systemAuditZodSchema,
   handler: handleSystemAuditTool,
 };

@@ -96,6 +96,7 @@ export const approvalRequestsZodSchema = {
 
 export const approvalRequestsTool: ToolDefinition = {
   name: 'approval_requests',
+  title: 'ThreatLocker Approval Requests',
   description: `Query ThreatLocker approval requests.
 
 When users encounter blocked software and request access, it creates an approval request. Admins review these requests to decide whether to permit the software by creating policies.
@@ -112,7 +113,7 @@ Common workflows:
 Request statuses: 1=Pending (needs review), 4=Approved, 6=Not Learned (learning mode), 10=Ignored, 12=Added to Application, 13=Escalated (from Cyber Heroes), 16=Self-Approved
 
 Related tools: action_log (see the deny event), applications (find matching apps), policies (create permits)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: approvalRequestsZodSchema,
   handler: handleApprovalRequestsTool,
 };

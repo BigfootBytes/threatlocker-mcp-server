@@ -5,6 +5,7 @@ import { ApiResponse, apiResponseOutputSchema } from '../types/responses.js';
 
 export interface ToolDefinition {
   name: string;
+  title: string;
   description: string;
   annotations?: ToolAnnotations;
   zodSchema: Record<string, z.ZodTypeAny>;

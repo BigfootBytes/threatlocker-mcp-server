@@ -78,6 +78,7 @@ export const policiesZodSchema = {
 
 export const policiesTool: ToolDefinition = {
   name: 'policies',
+  title: 'ThreatLocker Policies',
   description: `Inspect ThreatLocker policies.
 
 Policies define what applications can run on which computer groups. A policy links an application (set of file rules) to a computer group with an action (permit/deny/ringfence).
@@ -91,7 +92,7 @@ Common workflows:
 Policy actions: Permit (allow), Deny (block), Ringfence (allow but restrict network/storage access)
 
 Related tools: applications (what the policy permits), computer_groups (where policy applies), action_log (see policy enforcement)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: policiesZodSchema,
   handler: handlePoliciesTool,
 };

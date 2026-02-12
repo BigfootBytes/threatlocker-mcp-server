@@ -27,12 +27,20 @@ describe('tool registry', () => {
       const t = tool as ToolDefinition;
       expect(typeof t.name).toBe('string');
       expect(t.name.length).toBeGreaterThan(0);
+      expect(typeof t.title).toBe('string');
+      expect(t.title.length).toBeGreaterThan(0);
       expect(typeof t.description).toBe('string');
       expect(t.description.length).toBeGreaterThan(0);
       expect(t.zodSchema).toBeDefined();
       expect(typeof t.handler).toBe('function');
       // zodSchema must have an 'action' field
       expect(t.zodSchema.action).toBeDefined();
+      // annotations must include all four hints
+      expect(t.annotations).toBeDefined();
+      expect(t.annotations!.readOnlyHint).toBe(true);
+      expect(t.annotations!.destructiveHint).toBe(false);
+      expect(t.annotations!.idempotentHint).toBe(true);
+      expect(t.annotations!.openWorldHint).toBe(true);
     }
   );
 

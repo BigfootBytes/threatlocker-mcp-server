@@ -1,5 +1,14 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-12 — MCP Best Practices Alignment
+
+- Added `isError: !result.success` to `CallToolResult` so MCP clients can distinguish tool errors from successes
+- Added `title` field to `ToolDefinition` interface; all 16 tools now declare human-readable titles (e.g., "ThreatLocker Computers")
+- `registerTool` config now passes `title` to the SDK
+- Expanded annotations on all 16 tools: added `destructiveHint: false` and `idempotentHint: true` alongside existing `readOnlyHint` and `openWorldHint`
+- Added test assertions: registry test verifies `title` is present and all four annotation hints are set correctly
+- 631 tests passing across 40 test files
+
 ## 2026-02-12 — Output Schemas + Structured Content
 
 - Added `apiResponseOutputSchema` Zod shape to `src/types/responses.ts` describing the shared `ApiResponse` envelope (`success`, `data`, `pagination`, `error`)

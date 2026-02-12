@@ -55,6 +55,7 @@ export const networkAccessPoliciesZodSchema = {
 
 export const networkAccessPoliciesTool: ToolDefinition = {
   name: 'network_access_policies',
+  title: 'ThreatLocker Network Access Policies',
   description: `Query ThreatLocker network access control policies.
 
 Network access policies define firewall rules for endpoints — controlling which applications can make or receive network connections, and to which destinations (IPs, ports, domains).
@@ -66,7 +67,7 @@ Common workflows:
 - Get policy details by ID: action=get, networkAccessPolicyId="..."
 
 Related tools: policies (application control policies), computer_groups (where policy applies), tags (network tags used in policies)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: networkAccessPoliciesZodSchema,
   handler: handleNetworkAccessPoliciesTool,
 };

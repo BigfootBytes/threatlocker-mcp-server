@@ -103,6 +103,7 @@ export const computersZodSchema = {
 
 export const computersTool: ToolDefinition = {
   name: 'computers',
+  title: 'ThreatLocker Computers',
   description: `Query and inspect ThreatLocker computers.
 
 Common workflows:
@@ -114,7 +115,7 @@ Common workflows:
 - Get installation info for new deployments: action=get_install_info
 
 Related tools: computer_groups (manage groups), maintenance_mode (maintenance history), action_log (audit events)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: computersZodSchema,
   handler: handleComputersTool,
 };

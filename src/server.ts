@@ -16,6 +16,7 @@ export function createMcpServer(client: ThreatLockerClient, log?: LogFn): McpSer
     server.registerTool(
       tool.name,
       {
+        title: tool.title,
         description: tool.description,
         inputSchema: tool.zodSchema,
         outputSchema: tool.outputZodSchema ?? apiResponseOutputSchema,
@@ -33,6 +34,7 @@ export function createMcpServer(client: ThreatLockerClient, log?: LogFn): McpSer
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
           structuredContent: result as unknown as Record<string, unknown>,
+          isError: !result.success,
         };
       }
     );

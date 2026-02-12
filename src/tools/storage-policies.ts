@@ -59,6 +59,7 @@ export const storagePoliciesZodSchema = {
 
 export const storagePoliciesTool: ToolDefinition = {
   name: 'storage_policies',
+  title: 'ThreatLocker Storage Policies',
   description: `Query ThreatLocker storage control policies.
 
 Storage policies define rules for file and folder access on endpoints — controlling which applications can read, write, or execute from specific storage locations (local drives, USB devices, network shares).
@@ -70,7 +71,7 @@ Common workflows:
 - Get policy details by ID: action=get, storagePolicyId="..."
 
 Related tools: policies (application control policies), computer_groups (where policy applies), applications (what the policy permits)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: storagePoliciesZodSchema,
   handler: handleStoragePoliciesTool,
 };

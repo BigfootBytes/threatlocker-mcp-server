@@ -58,6 +58,7 @@ export const organizationsZodSchema = {
 
 export const organizationsTool: ToolDefinition = {
   name: 'organizations',
+  title: 'ThreatLocker Organizations',
   description: `Query ThreatLocker organizations.
 
 Organizations are the top-level containers in ThreatLocker. MSPs have a parent organization with child organizations for each client. Enterprises may have organizations per business unit or location.
@@ -72,7 +73,7 @@ Common workflows:
 The organizationId is needed for many API calls (policies, applications, etc.) to scope the request to a specific organization.
 
 Related tools: computers (computers in org), computer_groups (groups in org), policies (policies in org)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: organizationsZodSchema,
   handler: handleOrganizationsTool,
 };

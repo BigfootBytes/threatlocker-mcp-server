@@ -34,6 +34,7 @@ export const onlineDevicesZodSchema = {
 
 export const onlineDevicesTool: ToolDefinition = {
   name: 'online_devices',
+  title: 'ThreatLocker Online Devices',
   description: `Query ThreatLocker online devices.
 
 Returns devices currently connected and reporting to the ThreatLocker platform. Useful for real-time visibility into which endpoints are active.
@@ -45,7 +46,7 @@ Common workflows:
 - Paginate through large device lists: action=list, pageNumber=2, pageSize=100
 
 Related tools: computers (full inventory with details, modes, groups), computer_groups (group membership and structure)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: onlineDevicesZodSchema,
   handler: handleOnlineDevicesTool,
 };

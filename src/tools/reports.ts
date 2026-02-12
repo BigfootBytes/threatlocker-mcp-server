@@ -38,6 +38,7 @@ export const reportsZodSchema = {
 
 export const reportsTool: ToolDefinition = {
   name: 'reports',
+  title: 'ThreatLocker Reports',
   description: `Query and run ThreatLocker reports.
 
 Access pre-built and custom reports configured in the ThreatLocker portal. Reports provide aggregated views of security data across your organization.
@@ -49,7 +50,7 @@ Common workflows:
 - Export data for external analysis: run a report and process the returned data
 
 Related tools: action_log (raw audit events), system_audit (portal audit trail), computers (device inventory)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: reportsZodSchema,
   handler: handleReportsTool,
 };

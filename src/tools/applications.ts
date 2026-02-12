@@ -144,6 +144,7 @@ export const applicationsZodSchema = {
 
 export const applicationsTool: ToolDefinition = {
   name: 'applications',
+  title: 'ThreatLocker Applications',
   description: `Search and inspect ThreatLocker applications.
 
 Applications are collections of file rules (hashes, paths, certificates) that define what software is allowed or denied. ThreatLocker comes with built-in applications for common software, and you can create custom ones.
@@ -161,7 +162,7 @@ Common workflows:
 - Get app for network policy: action=get_for_network_policy, applicationId="..."
 
 Related tools: policies (see policies using this app), action_log (see app activity), approval_requests (pending approvals for this app)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: applicationsZodSchema,
   handler: handleApplicationsTool,
 };

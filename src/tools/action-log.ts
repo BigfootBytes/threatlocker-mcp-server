@@ -133,6 +133,7 @@ export const actionLogZodSchema = {
 
 export const actionLogTool: ToolDefinition = {
   name: 'action_log',
+  title: 'ThreatLocker Action Log',
   description: `Query ThreatLocker unified audit logs.
 
 The action log records all application control events: permits, denies, network access, file operations, PowerShell execution, elevation requests, and more. This is your primary tool for investigating what happened on endpoints.
@@ -150,7 +151,7 @@ Common workflows:
 - Get testing environment details: action=get_testing_details, actionLogId="..."
 
 Related tools: computers (find computer IDs), applications (identify apps), approval_requests (handle denied software)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: actionLogZodSchema,
   handler: handleActionLogTool,
 };

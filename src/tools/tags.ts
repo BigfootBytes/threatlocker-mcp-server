@@ -51,6 +51,7 @@ export const tagsZodSchema = {
 
 export const tagsTool: ToolDefinition = {
   name: 'tags',
+  title: 'ThreatLocker Tags',
   description: `Query ThreatLocker tags for network and policy management.
 
 Tags are reusable labels for IP addresses, domains, ports, or other network identifiers. They simplify policy management by letting you reference "CRM Servers" instead of listing individual IPs.
@@ -68,7 +69,7 @@ Tags are used in:
 Parent organization tags appear as "parentOrgName\\tagName" format.
 
 Related tools: policies (use tags in policy rules), applications (ringfence with tags)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: tagsZodSchema,
   handler: handleTagsTool,
 };

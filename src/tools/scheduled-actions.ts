@@ -85,6 +85,7 @@ export const scheduledActionsZodSchema = {
 
 export const scheduledActionsTool: ToolDefinition = {
   name: 'scheduled_actions',
+  title: 'ThreatLocker Scheduled Actions',
   description: `Query ThreatLocker scheduled agent actions.
 
 Scheduled actions are pending operations on ThreatLocker agents, primarily version updates. Updates are batched and scheduled within maintenance windows to avoid disruption.
@@ -98,7 +99,7 @@ Common workflows:
 Scheduled action types: Version Update (update ThreatLocker agent)
 
 Related tools: computers (see current versions), computer_groups (target groups for updates), organizations (filter by org)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: scheduledActionsZodSchema,
   handler: handleScheduledActionsTool,
 };

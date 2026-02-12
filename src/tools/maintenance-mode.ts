@@ -45,6 +45,7 @@ export const maintenanceModeZodSchema = {
 
 export const maintenanceModeTool: ToolDefinition = {
   name: 'maintenance_mode',
+  title: 'ThreatLocker Maintenance Mode',
   description: `Query ThreatLocker maintenance mode history for computers.
 
 Maintenance mode temporarily changes a computer's protection level. Types include:
@@ -60,7 +61,7 @@ Common workflows:
 Maintenance mode history shows who enabled it, when, duration, and what applications were learned during that time.
 
 Related tools: computers (get computer IDs, see current mode), computer_groups (group-level modes)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: maintenanceModeZodSchema,
   handler: handleMaintenanceModeTool,
 };

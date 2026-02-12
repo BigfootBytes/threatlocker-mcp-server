@@ -28,6 +28,7 @@ export const threatlockerVersionsZodSchema = {
 
 export const threatlockerVersionsTool: ToolDefinition = {
   name: 'threatlocker_versions',
+  title: 'ThreatLocker Versions',
   description: `Query available ThreatLocker agent versions.
 
 Returns all agent versions available in the portal, including which are enabled for installation, which is the default for new groups, and when each was released.
@@ -42,7 +43,7 @@ Common workflows:
 Response fields: label (version string), value (version ID), isEnabled, dateTime (release date), isDefault, OSTypes
 
 Related tools: computers (see installed versions per machine), scheduled_actions (schedule version updates), computer_groups (group-level version settings)`,
-  annotations: { readOnlyHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: threatlockerVersionsZodSchema,
   handler: handleThreatLockerVersionsTool,
 };
