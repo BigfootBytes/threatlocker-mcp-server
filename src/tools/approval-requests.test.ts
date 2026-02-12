@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleApprovalRequestsTool, approvalRequestsToolSchema } from './approval-requests.js';
+import { handleApprovalRequestsTool, approvalRequestsZodSchema, approvalRequestsTool } from './approval-requests.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -15,13 +15,13 @@ describe('approval_requests tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(approvalRequestsToolSchema.name).toBe('approval_requests');
-    expect(approvalRequestsToolSchema.inputSchema.properties.action.enum).toContain('list');
-    expect(approvalRequestsToolSchema.inputSchema.properties.action.enum).toContain('get');
-    expect(approvalRequestsToolSchema.inputSchema.properties.action.enum).toContain('count');
-    expect(approvalRequestsToolSchema.inputSchema.properties.action.enum).toContain('get_file_download_details');
-    expect(approvalRequestsToolSchema.inputSchema.properties.action.enum).toContain('get_permit_application');
-    expect(approvalRequestsToolSchema.inputSchema.properties.action.enum).toContain('get_storage_approval');
+    expect(approvalRequestsTool.name).toBe('approval_requests');
+    expect(approvalRequestsZodSchema.action.options).toContain('list');
+    expect(approvalRequestsZodSchema.action.options).toContain('get');
+    expect(approvalRequestsZodSchema.action.options).toContain('count');
+    expect(approvalRequestsZodSchema.action.options).toContain('get_file_download_details');
+    expect(approvalRequestsZodSchema.action.options).toContain('get_permit_application');
+    expect(approvalRequestsZodSchema.action.options).toContain('get_storage_approval');
   });
 
   it('returns error for missing action', async () => {

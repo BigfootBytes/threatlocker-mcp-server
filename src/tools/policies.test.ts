@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handlePoliciesTool, policiesToolSchema } from './policies.js';
+import { handlePoliciesTool, policiesZodSchema, policiesTool } from './policies.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -15,9 +15,9 @@ describe('policies tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(policiesToolSchema.name).toBe('policies');
-    expect(policiesToolSchema.inputSchema.properties.action.enum).toContain('get');
-    expect(policiesToolSchema.inputSchema.properties.action.enum).toContain('list_by_application');
+    expect(policiesTool.name).toBe('policies');
+    expect(policiesZodSchema.action.options).toContain('get');
+    expect(policiesZodSchema.action.options).toContain('list_by_application');
   });
 
   it('returns error for missing action', async () => {

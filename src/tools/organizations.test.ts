@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleOrganizationsTool, organizationsToolSchema } from './organizations.js';
+import { handleOrganizationsTool, organizationsZodSchema, organizationsTool } from './organizations.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -15,10 +15,10 @@ describe('organizations tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(organizationsToolSchema.name).toBe('organizations');
-    expect(organizationsToolSchema.inputSchema.properties.action.enum).toContain('list_children');
-    expect(organizationsToolSchema.inputSchema.properties.action.enum).toContain('get_auth_key');
-    expect(organizationsToolSchema.inputSchema.properties.action.enum).toContain('get_for_move_computers');
+    expect(organizationsTool.name).toBe('organizations');
+    expect(organizationsZodSchema.action.options).toContain('list_children');
+    expect(organizationsZodSchema.action.options).toContain('get_auth_key');
+    expect(organizationsZodSchema.action.options).toContain('get_for_move_computers');
   });
 
   it('returns error for missing action', async () => {

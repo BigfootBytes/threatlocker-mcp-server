@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleScheduledActionsTool, scheduledActionsToolSchema } from './scheduled-actions.js';
+import { handleScheduledActionsTool, scheduledActionsZodSchema, scheduledActionsTool } from './scheduled-actions.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -15,11 +15,11 @@ describe('scheduled_actions tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(scheduledActionsToolSchema.name).toBe('scheduled_actions');
-    expect(scheduledActionsToolSchema.inputSchema.properties.action.enum).toContain('list');
-    expect(scheduledActionsToolSchema.inputSchema.properties.action.enum).toContain('search');
-    expect(scheduledActionsToolSchema.inputSchema.properties.action.enum).toContain('get');
-    expect(scheduledActionsToolSchema.inputSchema.properties.action.enum).toContain('get_applies_to');
+    expect(scheduledActionsTool.name).toBe('scheduled_actions');
+    expect(scheduledActionsZodSchema.action.options).toContain('list');
+    expect(scheduledActionsZodSchema.action.options).toContain('search');
+    expect(scheduledActionsZodSchema.action.options).toContain('get');
+    expect(scheduledActionsZodSchema.action.options).toContain('get_applies_to');
   });
 
   it('returns error for missing action', async () => {

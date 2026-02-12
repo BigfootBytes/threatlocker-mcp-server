@@ -29,7 +29,6 @@ describe('tool registry', () => {
       expect(t.name.length).toBeGreaterThan(0);
       expect(typeof t.description).toBe('string');
       expect(t.description.length).toBeGreaterThan(0);
-      expect(t.inputSchema).toBeDefined();
       expect(t.zodSchema).toBeDefined();
       expect(typeof t.handler).toBe('function');
       // zodSchema must have an 'action' field

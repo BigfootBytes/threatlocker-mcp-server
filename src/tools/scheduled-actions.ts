@@ -3,89 +3,9 @@ import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
-export const scheduledActionsToolSchema = {
-  name: 'scheduled_actions',
-  description: `Query ThreatLocker scheduled agent actions.
-
-Scheduled actions are pending operations on ThreatLocker agents, primarily version updates. Updates are batched and scheduled within maintenance windows to avoid disruption.
-
-Common workflows:
-- List all scheduled actions: action=list
-- Search with filters: action=search, organizationIds=["..."], computerGroupIds=["..."]
-- Get scheduled action details: action=get, scheduledActionId="..."
-- Get available targets for scheduling: action=get_applies_to
-
-Scheduled action types: Version Update (update ThreatLocker agent)
-
-Related tools: computers (see current versions), computer_groups (target groups for updates), organizations (filter by org)`,
-  inputSchema: {
-    type: 'object' as const,
-    properties: {
-      action: {
-        type: 'string',
-        enum: ['list', 'search', 'get', 'get_applies_to'],
-        description: 'list=all scheduled actions, search=filtered search, get=single action details, get_applies_to=available scheduling targets',
-      },
-      scheduledActionId: {
-        type: 'string',
-        description: 'Scheduled action GUID (required for get). Get from list or search.',
-      },
-      scheduledType: {
-        type: 'number',
-        description: 'Scheduled type identifier (default: 1 for Version Update). Used by list action.',
-      },
-      includeChildren: {
-        type: 'boolean',
-        description: 'Include child organizations (list action only).',
-      },
-      organizationIds: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'Filter to specific organizations (search only). Get org IDs from organizations tool.',
-      },
-      computerGroupIds: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'Filter to specific computer groups (search only). Get group IDs from computer_groups tool.',
-      },
-      orderBy: {
-        type: 'string',
-        enum: ['scheduleddatetime', 'computername', 'computergroupname', 'organizationname'],
-        description: 'Sort field: scheduleddatetime (when scheduled), computername, computergroupname, organizationname',
-      },
-      isAscending: {
-        type: 'boolean',
-        description: 'Sort direction. false with scheduleddatetime shows most recent first.',
-      },
-      pageNumber: {
-        type: 'number',
-        description: 'Page number (default: 1)',
-      },
-      pageSize: {
-        type: 'number',
-        description: 'Results per page (default: 25)',
-      },
-    },
-    required: ['action'],
-  },
-};
-
-interface ScheduledActionsInput {
-  action?: 'list' | 'search' | 'get' | 'get_applies_to';
-  scheduledActionId?: string;
-  scheduledType?: number;
-  includeChildren?: boolean;
-  organizationIds?: string[];
-  computerGroupIds?: string[];
-  orderBy?: string;
-  isAscending?: boolean;
-  pageNumber?: number;
-  pageSize?: number;
-}
-
 export async function handleScheduledActionsTool(
   client: ThreatLockerClient,
-  input: ScheduledActionsInput
+  input: Record<string, unknown>
 ): Promise<ApiResponse<unknown>> {
   const {
     action,
@@ -96,8 +16,8 @@ export async function handleScheduledActionsTool(
     computerGroupIds = [],
     orderBy = 'scheduleddatetime',
     isAscending = true,
-  } = input;
-  const { pageNumber, pageSize } = clampPagination(input.pageNumber, input.pageSize);
+  } = input as any;
+  const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');
@@ -164,9 +84,21 @@ export const scheduledActionsZodSchema = {
 };
 
 export const scheduledActionsTool: ToolDefinition = {
-  name: scheduledActionsToolSchema.name,
-  description: scheduledActionsToolSchema.description,
-  inputSchema: scheduledActionsToolSchema.inputSchema,
+  name: 'scheduled_actions',
+  description: `Query ThreatLocker scheduled agent actions.
+
+Scheduled actions are pending operations on ThreatLocker agents, primarily version updates. Updates are batched and scheduled within maintenance windows to avoid disruption.
+
+Common workflows:
+- List all scheduled actions: action=list
+- Search with filters: action=search, organizationIds=["..."], computerGroupIds=["..."]
+- Get scheduled action details: action=get, scheduledActionId="..."
+- Get available targets for scheduling: action=get_applies_to
+
+Scheduled action types: Version Update (update ThreatLocker agent)
+
+Related tools: computers (see current versions), computer_groups (target groups for updates), organizations (filter by org)`,
+  annotations: { readOnlyHint: true, openWorldHint: true },
   zodSchema: scheduledActionsZodSchema,
-  handler: handleScheduledActionsTool as ToolDefinition['handler'],
+  handler: handleScheduledActionsTool,
 };

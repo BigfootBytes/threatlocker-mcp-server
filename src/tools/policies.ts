@@ -3,76 +3,9 @@ import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
-export const policiesToolSchema = {
-  name: 'policies',
-  description: `Inspect ThreatLocker policies.
-
-Policies define what applications can run on which computer groups. A policy links an application (set of file rules) to a computer group with an action (permit/deny/ringfence).
-
-Common workflows:
-- Get policy details by ID: action=get, policyId="..."
-- List all policies for an application: action=list_by_application, applicationId="...", organizationId="..."
-- Find policies for a specific group: action=list_by_application, applicationId="...", organizationId="...", appliesToId="group-id"
-- Include deny policies in results: action=list_by_application, ..., includeDenies=true
-
-Policy actions: Permit (allow), Deny (block), Ringfence (allow but restrict network/storage access)
-
-Related tools: applications (what the policy permits), computer_groups (where policy applies), action_log (see policy enforcement)`,
-  inputSchema: {
-    type: 'object' as const,
-    properties: {
-      action: {
-        type: 'string',
-        enum: ['get', 'list_by_application'],
-        description: 'get=single policy by ID, list_by_application=all policies for an application',
-      },
-      policyId: {
-        type: 'string',
-        description: 'Policy GUID (required for get). Find via list_by_application or action_log.',
-      },
-      applicationId: {
-        type: 'string',
-        description: 'Application GUID (required for list_by_application). Get from applications tool.',
-      },
-      organizationId: {
-        type: 'string',
-        description: 'Organization GUID (required for list_by_application). Get from organizations tool.',
-      },
-      appliesToId: {
-        type: 'string',
-        description: 'Filter to policies for a specific computer group. Get group IDs from computer_groups tool.',
-      },
-      includeDenies: {
-        type: 'boolean',
-        description: 'Include deny policies in results. By default only permit/ringfence policies are shown.',
-      },
-      pageNumber: {
-        type: 'number',
-        description: 'Page number (default: 1)',
-      },
-      pageSize: {
-        type: 'number',
-        description: 'Results per page (default: 25)',
-      },
-    },
-    required: ['action'],
-  },
-};
-
-interface PoliciesInput {
-  action?: 'get' | 'list_by_application';
-  policyId?: string;
-  applicationId?: string;
-  organizationId?: string;
-  appliesToId?: string;
-  includeDenies?: boolean;
-  pageNumber?: number;
-  pageSize?: number;
-}
-
 export async function handlePoliciesTool(
   client: ThreatLockerClient,
-  input: PoliciesInput
+  input: Record<string, unknown>
 ): Promise<ApiResponse<unknown>> {
   const {
     action,
@@ -81,8 +14,8 @@ export async function handlePoliciesTool(
     organizationId,
     appliesToId,
     includeDenies = false,
-  } = input;
-  const { pageNumber, pageSize } = clampPagination(input.pageNumber, input.pageSize);
+  } = input as any;
+  const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');
@@ -144,9 +77,21 @@ export const policiesZodSchema = {
 };
 
 export const policiesTool: ToolDefinition = {
-  name: policiesToolSchema.name,
-  description: policiesToolSchema.description,
-  inputSchema: policiesToolSchema.inputSchema,
+  name: 'policies',
+  description: `Inspect ThreatLocker policies.
+
+Policies define what applications can run on which computer groups. A policy links an application (set of file rules) to a computer group with an action (permit/deny/ringfence).
+
+Common workflows:
+- Get policy details by ID: action=get, policyId="..."
+- List all policies for an application: action=list_by_application, applicationId="...", organizationId="..."
+- Find policies for a specific group: action=list_by_application, applicationId="...", organizationId="...", appliesToId="group-id"
+- Include deny policies in results: action=list_by_application, ..., includeDenies=true
+
+Policy actions: Permit (allow), Deny (block), Ringfence (allow but restrict network/storage access)
+
+Related tools: applications (what the policy permits), computer_groups (where policy applies), action_log (see policy enforcement)`,
+  annotations: { readOnlyHint: true, openWorldHint: true },
   zodSchema: policiesZodSchema,
-  handler: handlePoliciesTool as ToolDefinition['handler'],
+  handler: handlePoliciesTool,
 };

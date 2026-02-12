@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleReportsTool, reportsToolSchema } from './reports.js';
+import { handleReportsTool, reportsZodSchema, reportsTool } from './reports.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -15,9 +15,9 @@ describe('reports tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(reportsToolSchema.name).toBe('reports');
-    expect(reportsToolSchema.inputSchema.properties.action.enum).toContain('list');
-    expect(reportsToolSchema.inputSchema.properties.action.enum).toContain('get_data');
+    expect(reportsTool.name).toBe('reports');
+    expect(reportsZodSchema.action.options).toContain('list');
+    expect(reportsZodSchema.action.options).toContain('get_data');
   });
 
   it('returns error for missing action', async () => {

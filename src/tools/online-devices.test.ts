@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleOnlineDevicesTool, onlineDevicesToolSchema } from './online-devices.js';
+import { handleOnlineDevicesTool, onlineDevicesZodSchema, onlineDevicesTool } from './online-devices.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -14,8 +14,8 @@ describe('online_devices tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(onlineDevicesToolSchema.name).toBe('online_devices');
-    expect(onlineDevicesToolSchema.inputSchema.properties.action.enum).toContain('list');
+    expect(onlineDevicesTool.name).toBe('online_devices');
+    expect(onlineDevicesZodSchema.action.options).toContain('list');
   });
 
   it('returns error for missing action', async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleSystemAuditTool, systemAuditToolSchema } from './system-audit.js';
+import { handleSystemAuditTool, systemAuditZodSchema, systemAuditTool } from './system-audit.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -14,9 +14,9 @@ describe('system_audit tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(systemAuditToolSchema.name).toBe('system_audit');
-    expect(systemAuditToolSchema.inputSchema.properties.action.enum).toContain('search');
-    expect(systemAuditToolSchema.inputSchema.properties.action.enum).toContain('health_center');
+    expect(systemAuditTool.name).toBe('system_audit');
+    expect(systemAuditZodSchema.action.options).toContain('search');
+    expect(systemAuditZodSchema.action.options).toContain('health_center');
   });
 
   it('returns error for missing action', async () => {

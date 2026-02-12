@@ -3,145 +3,9 @@ import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid, validateSha256 } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
-export const applicationsToolSchema = {
-  name: 'applications',
-  description: `Search and inspect ThreatLocker applications.
-
-Applications are collections of file rules (hashes, paths, certificates) that define what software is allowed or denied. ThreatLocker comes with built-in applications for common software, and you can create custom ones.
-
-Common workflows:
-- Find an application by name: action=search, searchText="Chrome"
-- Find apps by file hash: action=search, searchBy=hash, searchText="abc123..."
-- Find apps by certificate: action=search, searchBy=cert, searchText="Microsoft"
-- Get ThreatLocker research on an app: action=research, applicationId="..."
-- List files in an application: action=files, applicationId="..."
-- Find apps actively permitted: action=search, permittedApplications=true
-- Find recently created custom apps: action=search, category=1, orderBy=date-created
-- Find matching apps by file properties: action=match, hash="...", path="...", cert="..."
-- Get apps for maintenance mode: action=get_for_maintenance
-- Get app for network policy: action=get_for_network_policy, applicationId="..."
-
-Related tools: policies (see policies using this app), action_log (see app activity), approval_requests (pending approvals for this app)`,
-  inputSchema: {
-    type: 'object' as const,
-    properties: {
-      action: {
-        type: 'string',
-        enum: ['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy'],
-        description: 'search=find applications, get=details by ID, research=ThreatLocker security analysis, files=list file rules in app, match=find apps by file hash/cert/path, get_for_maintenance=apps for maintenance mode, get_for_network_policy=app for network policy',
-      },
-      applicationId: {
-        type: 'string',
-        description: 'Application GUID (required for get, research, and files). Find via search action first.',
-      },
-      searchText: {
-        type: 'string',
-        description: 'Search text. Supports wildcards (*). Examples: "Chrome*", "*Office*", or a SHA256 hash.',
-      },
-      searchBy: {
-        type: 'string',
-        enum: ['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries'],
-        description: 'Search field: app=name (default), full=full path rules, process=process path, hash=SHA256, cert=certificate subject, created=created by path, categories=app categories, countries=compilation country',
-      },
-      osType: {
-        type: 'number',
-        enum: [0, 1, 2, 3, 5],
-        description: 'Filter by OS: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP (legacy)',
-      },
-      category: {
-        type: 'number',
-        enum: [0, 1, 2],
-        description: 'Filter by source: 0=All, 1=My Applications (custom apps you created), 2=Built-In (ThreatLocker curated apps)',
-      },
-      orderBy: {
-        type: 'string',
-        enum: ['name', 'date-created', 'review-rating', 'computer-count', 'policy'],
-        description: 'Sort field: name, date-created (newest first when desc), review-rating (ThreatLocker security rating), computer-count (deployment spread), policy (policy count)',
-      },
-      isAscending: {
-        type: 'boolean',
-        description: 'Sort direction. false with date-created shows newest first.',
-      },
-      includeChildOrganizations: {
-        type: 'boolean',
-        description: 'Include applications from child organizations (MSP/enterprise view).',
-      },
-      isHidden: {
-        type: 'boolean',
-        description: 'Include hidden/temporary applications. Useful for finding auto-created learning apps.',
-      },
-      permittedApplications: {
-        type: 'boolean',
-        description: 'Only show apps with active permit policies. Useful for auditing what software is allowed.',
-      },
-      countries: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'ISO country codes (e.g., ["US", "GB"]). Use with searchBy=countries to find apps compiled in specific countries.',
-      },
-      pageNumber: {
-        type: 'number',
-        description: 'Page number (default: 1)',
-      },
-      pageSize: {
-        type: 'number',
-        description: 'Results per page (default: 25)',
-      },
-      hash: {
-        type: 'string',
-        description: 'SHA256 hash for match action.',
-      },
-      path: {
-        type: 'string',
-        description: 'Full file path for match action.',
-      },
-      processPath: {
-        type: 'string',
-        description: 'Process path for match action.',
-      },
-      cert: {
-        type: 'string',
-        description: 'Certificate subject for match action.',
-      },
-      certSha: {
-        type: 'string',
-        description: 'Certificate SHA for match action.',
-      },
-      createdBy: {
-        type: 'string',
-        description: 'Created by path (e.g., msiexec.exe) for match action.',
-      },
-    },
-    required: ['action'],
-  },
-};
-
-interface ApplicationsInput {
-  action?: 'search' | 'get' | 'research' | 'files' | 'match' | 'get_for_maintenance' | 'get_for_network_policy';
-  applicationId?: string;
-  searchText?: string;
-  searchBy?: string;
-  osType?: number;
-  category?: number;
-  orderBy?: string;
-  isAscending?: boolean;
-  includeChildOrganizations?: boolean;
-  isHidden?: boolean;
-  permittedApplications?: boolean;
-  countries?: string[];
-  pageNumber?: number;
-  pageSize?: number;
-  hash?: string;
-  path?: string;
-  processPath?: string;
-  cert?: string;
-  certSha?: string;
-  createdBy?: string;
-}
-
 export async function handleApplicationsTool(
   client: ThreatLockerClient,
-  input: ApplicationsInput
+  input: Record<string, unknown>
 ): Promise<ApiResponse<unknown>> {
   const {
     action,
@@ -162,8 +26,8 @@ export async function handleApplicationsTool(
     cert,
     certSha,
     createdBy,
-  } = input;
-  const { pageNumber, pageSize } = clampPagination(input.pageNumber, input.pageSize);
+  } = input as any;
+  const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');
@@ -279,9 +143,25 @@ export const applicationsZodSchema = {
 };
 
 export const applicationsTool: ToolDefinition = {
-  name: applicationsToolSchema.name,
-  description: applicationsToolSchema.description,
-  inputSchema: applicationsToolSchema.inputSchema,
+  name: 'applications',
+  description: `Search and inspect ThreatLocker applications.
+
+Applications are collections of file rules (hashes, paths, certificates) that define what software is allowed or denied. ThreatLocker comes with built-in applications for common software, and you can create custom ones.
+
+Common workflows:
+- Find an application by name: action=search, searchText="Chrome"
+- Find apps by file hash: action=search, searchBy=hash, searchText="abc123..."
+- Find apps by certificate: action=search, searchBy=cert, searchText="Microsoft"
+- Get ThreatLocker research on an app: action=research, applicationId="..."
+- List files in an application: action=files, applicationId="..."
+- Find apps actively permitted: action=search, permittedApplications=true
+- Find recently created custom apps: action=search, category=1, orderBy=date-created
+- Find matching apps by file properties: action=match, hash="...", path="...", cert="..."
+- Get apps for maintenance mode: action=get_for_maintenance
+- Get app for network policy: action=get_for_network_policy, applicationId="..."
+
+Related tools: policies (see policies using this app), action_log (see app activity), approval_requests (pending approvals for this app)`,
+  annotations: { readOnlyHint: true, openWorldHint: true },
   zodSchema: applicationsZodSchema,
-  handler: handleApplicationsTool as ToolDefinition['handler'],
+  handler: handleApplicationsTool,
 };

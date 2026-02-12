@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleComputersTool, computersToolSchema } from './computers.js';
+import { handleComputersTool, computersZodSchema, computersTool } from './computers.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -15,11 +15,11 @@ describe('computers tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(computersToolSchema.name).toBe('computers');
-    expect(computersToolSchema.inputSchema.properties.action.enum).toContain('list');
-    expect(computersToolSchema.inputSchema.properties.action.enum).toContain('get');
-    expect(computersToolSchema.inputSchema.properties.action.enum).toContain('checkins');
-    expect(computersToolSchema.inputSchema.properties.action.enum).toContain('get_install_info');
+    expect(computersTool.name).toBe('computers');
+    expect(computersZodSchema.action.options).toContain('list');
+    expect(computersZodSchema.action.options).toContain('get');
+    expect(computersZodSchema.action.options).toContain('checkins');
+    expect(computersZodSchema.action.options).toContain('get_install_info');
   });
 
   it('returns error for missing action', async () => {

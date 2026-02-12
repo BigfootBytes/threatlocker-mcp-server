@@ -1,5 +1,20 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-12 — Zod-Only Schemas + Unified McpServer
+
+- Made Zod the single source of truth for tool schemas, eliminating 3 redundant definitions per tool (hand-crafted JSON Schema, TypeScript interface, Zod schema → Zod only)
+- Added `zodShapeToJsonSchema()` helper to `registry.ts` that auto-generates JSON Schema from Zod shapes via `z.toJSONSchema()`
+- Removed `inputSchema` from `ToolDefinition`, added `annotations` field (typed via SDK's `ToolAnnotations`)
+- Added `allToolsWithSchema` pre-computed export for consumers needing JSON Schema (REST `/tools` endpoint)
+- Stripped hand-crafted `inputSchema` objects and TypeScript `interface` types from all 16 tool files (~40% smaller each)
+- Added `annotations: { readOnlyHint: true, openWorldHint: true }` to all 16 tools
+- Extracted shared `createMcpServer()` factory into `src/server.ts` — both stdio and HTTP transports now share identical tool registration logic
+- Replaced legacy `Server` + `setRequestHandler(ListToolsRequestSchema/CallToolRequestSchema)` in `index.ts` with shared `createMcpServer()`
+- Simplified `http.ts` to import shared `createMcpServer` and `allToolsWithSchema`
+- Updated all 20 test files: schema assertions now use Zod introspection (`.options`) instead of JSON Schema property access
+- Adding a new tool still requires only 2 changes: create tool file + add import to registry
+- 630 tests passing across 40 test files
+
 ## 2026-02-10 — Polish and Registry Refactor
 
 - Added `ToolDefinition` interface and central tool registry (`src/tools/registry.ts`)

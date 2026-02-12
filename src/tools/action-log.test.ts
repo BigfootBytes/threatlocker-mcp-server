@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleActionLogTool, actionLogToolSchema } from './action-log.js';
+import { handleActionLogTool, actionLogZodSchema, actionLogTool } from './action-log.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -15,10 +15,10 @@ describe('action_log tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(actionLogToolSchema.name).toBe('action_log');
-    expect(actionLogToolSchema.inputSchema.properties.action.enum).toContain('search');
-    expect(actionLogToolSchema.inputSchema.properties.action.enum).toContain('get');
-    expect(actionLogToolSchema.inputSchema.properties.action.enum).toContain('file_history');
+    expect(actionLogTool.name).toBe('action_log');
+    expect(actionLogZodSchema.action.options).toContain('search');
+    expect(actionLogZodSchema.action.options).toContain('get');
+    expect(actionLogZodSchema.action.options).toContain('file_history');
   });
 
   it('returns error for missing action', async () => {

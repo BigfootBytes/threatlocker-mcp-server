@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleNetworkAccessPoliciesTool, networkAccessPoliciesToolSchema } from './network-access-policies.js';
+import { handleNetworkAccessPoliciesTool, networkAccessPoliciesZodSchema, networkAccessPoliciesTool } from './network-access-policies.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -15,9 +15,9 @@ describe('network_access_policies tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(networkAccessPoliciesToolSchema.name).toBe('network_access_policies');
-    expect(networkAccessPoliciesToolSchema.inputSchema.properties.action.enum).toContain('get');
-    expect(networkAccessPoliciesToolSchema.inputSchema.properties.action.enum).toContain('list');
+    expect(networkAccessPoliciesTool.name).toBe('network_access_policies');
+    expect(networkAccessPoliciesZodSchema.action.options).toContain('get');
+    expect(networkAccessPoliciesZodSchema.action.options).toContain('list');
   });
 
   it('returns error for missing action', async () => {

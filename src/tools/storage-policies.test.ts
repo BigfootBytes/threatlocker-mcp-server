@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleStoragePoliciesTool, storagePoliciesToolSchema } from './storage-policies.js';
+import { handleStoragePoliciesTool, storagePoliciesZodSchema, storagePoliciesTool } from './storage-policies.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -15,9 +15,9 @@ describe('storage_policies tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(storagePoliciesToolSchema.name).toBe('storage_policies');
-    expect(storagePoliciesToolSchema.inputSchema.properties.action.enum).toContain('get');
-    expect(storagePoliciesToolSchema.inputSchema.properties.action.enum).toContain('list');
+    expect(storagePoliciesTool.name).toBe('storage_policies');
+    expect(storagePoliciesZodSchema.action.options).toContain('get');
+    expect(storagePoliciesZodSchema.action.options).toContain('list');
   });
 
   it('returns error for missing action', async () => {

@@ -1,16 +1,10 @@
 #!/usr/bin/env node
 import 'dotenv/config';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
 
 import { ThreatLockerClient } from './client.js';
-import { allTools, toolsByName } from './tools/registry.js';
+import { createMcpServer } from './server.js';
 import { createHttpServer } from './transports/http.js';
-import { VERSION } from './version.js';
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
@@ -55,42 +49,7 @@ if (transportMode === 'http') {
   }
 
   const client = new ThreatLockerClient({ apiKey, baseUrl, organizationId });
-
-  const server = new Server(
-    {
-      name: 'threatlocker-mcp',
-      version: VERSION,
-    },
-    {
-      capabilities: {
-        tools: {},
-      },
-    }
-  );
-
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: allTools.map(t => ({
-      name: t.name,
-      description: t.description,
-      inputSchema: t.inputSchema,
-    })),
-  }));
-
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: toolArgs } = request.params;
-    const tool = toolsByName.get(name);
-
-    if (!tool) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify({ success: false, error: { code: 'BAD_REQUEST', message: `Unknown tool: ${name}` } }) }],
-      };
-    }
-
-    const result = await tool.handler(client, toolArgs || {});
-    return {
-      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-    };
-  });
+  const server = createMcpServer(client);
 
   async function main() {
     const transport = new StdioServerTransport();

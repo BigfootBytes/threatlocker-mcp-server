@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleComputerGroupsTool, computerGroupsToolSchema } from './computer-groups.js';
+import { handleComputerGroupsTool, computerGroupsZodSchema, computerGroupsTool } from './computer-groups.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -14,10 +14,10 @@ describe('computer_groups tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(computerGroupsToolSchema.name).toBe('computer_groups');
-    expect(computerGroupsToolSchema.inputSchema.properties.action.enum).toContain('list');
-    expect(computerGroupsToolSchema.inputSchema.properties.action.enum).toContain('dropdown');
-    expect(computerGroupsToolSchema.inputSchema.properties.action.enum).toContain('dropdown_with_org');
+    expect(computerGroupsTool.name).toBe('computer_groups');
+    expect(computerGroupsZodSchema.action.options).toContain('list');
+    expect(computerGroupsZodSchema.action.options).toContain('dropdown');
+    expect(computerGroupsZodSchema.action.options).toContain('dropdown_with_org');
   });
 
   it('returns error for missing action', async () => {

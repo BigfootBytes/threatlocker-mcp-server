@@ -6,7 +6,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ThreatLockerClient } from '../client.js';
-import { allTools, toolsByName } from '../tools/registry.js';
+import { toolsByName, allToolsWithSchema } from '../tools/registry.js';
+import { createMcpServer, LogFn } from '../server.js';
 import { VERSION } from '../version.js';
 
 interface ClientCredentials {
@@ -77,29 +78,6 @@ function log(level: LogLevel, message: string, data?: Record<string, unknown>): 
   console.error(`[${timestamp}] [${level}] ${message}${dataStr}`);
 }
 
-function createMcpServer(client: ThreatLockerClient): McpServer {
-  const server = new McpServer({
-    name: 'threatlocker-mcp',
-    version: VERSION,
-  });
-
-  for (const tool of allTools) {
-    server.tool(tool.name, tool.description, tool.zodSchema, async (args) => {
-      log('DEBUG', `Tool call: ${tool.name}`, { args, baseUrl: client.baseUrl });
-      const result = await tool.handler(client, args);
-      if (!result.success) {
-        log('ERROR', `Tool failed: ${tool.name}`, { error: result.error });
-      } else {
-        const count = Array.isArray(result.data) ? result.data.length : 1;
-        log('DEBUG', `Tool success: ${tool.name}`, { resultCount: count, pagination: result.pagination });
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    });
-  }
-
-  return server;
-}
-
 export function createApp(): ReturnType<typeof express> {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
@@ -167,7 +145,7 @@ export function createApp(): ReturnType<typeof express> {
   // List available tools - no auth required
   app.get('/tools', (_req, res) => {
     res.json({
-      tools: allTools.map(t => ({
+      tools: allToolsWithSchema.map(t => ({
         name: t.name,
         description: t.description,
         inputSchema: t.inputSchema,
@@ -257,7 +235,7 @@ export function createApp(): ReturnType<typeof express> {
 
     try {
       const client = new ThreatLockerClient(credentials);
-      const server = createMcpServer(client);
+      const server = createMcpServer(client, log as LogFn);
       const transport = new SSEServerTransport('/messages', res);
 
       // Generate cryptographically secure session ID
@@ -352,7 +330,7 @@ export function createApp(): ReturnType<typeof express> {
 
     try {
       const client = new ThreatLockerClient(credentials);
-      const server = createMcpServer(client);
+      const server = createMcpServer(client, log as LogFn);
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined, // Stateless mode
       });

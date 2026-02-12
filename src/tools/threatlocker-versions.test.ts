@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleThreatLockerVersionsTool, threatlockerVersionsToolSchema } from './threatlocker-versions.js';
+import { handleThreatLockerVersionsTool, threatlockerVersionsZodSchema, threatlockerVersionsTool } from './threatlocker-versions.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -14,8 +14,8 @@ describe('threatlocker_versions tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(threatlockerVersionsToolSchema.name).toBe('threatlocker_versions');
-    expect(threatlockerVersionsToolSchema.inputSchema.properties.action.enum).toContain('list');
+    expect(threatlockerVersionsTool.name).toBe('threatlocker_versions');
+    expect(threatlockerVersionsZodSchema.action.options).toContain('list');
   });
 
   it('returns error for missing action', async () => {

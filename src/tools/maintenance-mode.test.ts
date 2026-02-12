@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleMaintenanceModeTool, maintenanceModeToolSchema } from './maintenance-mode.js';
+import { handleMaintenanceModeTool, maintenanceModeZodSchema, maintenanceModeTool } from './maintenance-mode.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -14,8 +14,8 @@ describe('maintenance_mode tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(maintenanceModeToolSchema.name).toBe('maintenance_mode');
-    expect(maintenanceModeToolSchema.inputSchema.properties.action.enum).toContain('get_history');
+    expect(maintenanceModeTool.name).toBe('maintenance_mode');
+    expect(maintenanceModeZodSchema.action.options).toContain('get_history');
   });
 
   it('returns error for missing action', async () => {

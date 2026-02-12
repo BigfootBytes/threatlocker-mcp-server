@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleTagsTool, tagsToolSchema } from './tags.js';
+import { handleTagsTool, tagsZodSchema, tagsTool } from './tags.js';
 import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
@@ -14,9 +14,9 @@ describe('tags tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(tagsToolSchema.name).toBe('tags');
-    expect(tagsToolSchema.inputSchema.properties.action.enum).toContain('get');
-    expect(tagsToolSchema.inputSchema.properties.action.enum).toContain('dropdown');
+    expect(tagsTool.name).toBe('tags');
+    expect(tagsZodSchema.action.options).toContain('get');
+    expect(tagsZodSchema.action.options).toContain('dropdown');
   });
 
   it('returns error for missing action', async () => {
