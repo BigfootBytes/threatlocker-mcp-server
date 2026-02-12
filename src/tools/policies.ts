@@ -3,6 +3,8 @@ import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof policiesZodSchema>>;
+
 export async function handlePoliciesTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -14,7 +16,7 @@ export async function handlePoliciesTool(
     organizationId,
     appliesToId,
     includeDenies = false,
-  } = input as any;
+  } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
@@ -77,7 +79,7 @@ export const policiesZodSchema = {
 };
 
 export const policiesTool: ToolDefinition = {
-  name: 'policies',
+  name: 'threatlocker_policies',
   title: 'ThreatLocker Policies',
   description: `Inspect ThreatLocker policies.
 

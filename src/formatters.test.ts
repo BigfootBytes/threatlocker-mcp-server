@@ -102,12 +102,13 @@ describe('formatAsMarkdown', () => {
     const response: ApiResponse<unknown[]> = {
       success: true,
       data: [{ id: '1' }],
-      pagination: { page: 2, pageSize: 25, totalItems: 100, totalPages: 4 },
+      pagination: { page: 2, pageSize: 25, totalItems: 100, totalPages: 4, has_more: true, nextPage: 3 },
     };
     const result = formatAsMarkdown(response);
     expect(result).toContain('Page 2 of 4');
     expect(result).toContain('items 26–50 of 100');
     expect(result).toContain('pageSize 25');
+    expect(result).toContain('Next page: 3');
   });
 
   it('omits pagination footer when absent', () => {
@@ -169,13 +170,13 @@ describe('formatObject', () => {
 
 describe('formatPagination', () => {
   it('computes correct item range for first page', () => {
-    const p: Pagination = { page: 1, pageSize: 25, totalItems: 100, totalPages: 4 };
+    const p: Pagination = { page: 1, pageSize: 25, totalItems: 100, totalPages: 4, has_more: true, nextPage: 2 };
     const result = formatPagination(p);
     expect(result).toContain('items 1–25 of 100');
   });
 
   it('computes correct item range for last partial page', () => {
-    const p: Pagination = { page: 3, pageSize: 25, totalItems: 55, totalPages: 3 };
+    const p: Pagination = { page: 3, pageSize: 25, totalItems: 55, totalPages: 3, has_more: false, nextPage: null };
     const result = formatPagination(p);
     expect(result).toContain('items 51–55 of 55');
   });

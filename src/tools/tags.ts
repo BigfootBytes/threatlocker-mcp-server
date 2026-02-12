@@ -3,6 +3,8 @@ import { ThreatLockerClient } from '../client.js';
 import { ApiResponse, errorResponse, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof tagsZodSchema>>;
+
 export async function handleTagsTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -13,7 +15,7 @@ export async function handleTagsTool(
     includeBuiltIns = false,
     tagType = 1,
     includeNetworkTagInMaster = true,
-  } = input as any;
+  } = input as ToolInput;
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');
@@ -50,7 +52,7 @@ export const tagsZodSchema = {
 };
 
 export const tagsTool: ToolDefinition = {
-  name: 'tags',
+  name: 'threatlocker_tags',
   title: 'ThreatLocker Tags',
   description: `Query ThreatLocker tags for network and policy management.
 

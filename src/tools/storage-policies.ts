@@ -3,11 +3,13 @@ import { ThreatLockerClient, extractPaginationFromJsonHeader } from '../client.j
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof storagePoliciesZodSchema>>;
+
 export async function handleStoragePoliciesTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
 ): Promise<ApiResponse<unknown>> {
-  const { action, storagePolicyId, searchText, appliesToId, policyType, osType } = input as any;
+  const { action, storagePolicyId, searchText, appliesToId, policyType, osType } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
@@ -58,7 +60,7 @@ export const storagePoliciesZodSchema = {
 };
 
 export const storagePoliciesTool: ToolDefinition = {
-  name: 'storage_policies',
+  name: 'threatlocker_storage_policies',
   title: 'ThreatLocker Storage Policies',
   description: `Query ThreatLocker storage control policies.
 

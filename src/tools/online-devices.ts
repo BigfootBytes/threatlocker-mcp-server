@@ -3,11 +3,13 @@ import { ThreatLockerClient } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof onlineDevicesZodSchema>>;
+
 export async function handleOnlineDevicesTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
 ): Promise<ApiResponse<unknown>> {
-  const { action } = input as any;
+  const { action } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
@@ -33,7 +35,7 @@ export const onlineDevicesZodSchema = {
 };
 
 export const onlineDevicesTool: ToolDefinition = {
-  name: 'online_devices',
+  name: 'threatlocker_online_devices',
   title: 'ThreatLocker Online Devices',
   description: `Query ThreatLocker online devices.
 

@@ -3,6 +3,8 @@ import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateDateRange, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof actionLogZodSchema>>;
+
 export async function handleActionLogTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -21,7 +23,7 @@ export async function handleActionLogTool(
     onlyTrueDenies = false,
     groupBys = [],
     simulateDeny = false,
-  } = input as any;
+  } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
@@ -132,7 +134,7 @@ export const actionLogZodSchema = {
 };
 
 export const actionLogTool: ToolDefinition = {
-  name: 'action_log',
+  name: 'threatlocker_action_log',
   title: 'ThreatLocker Action Log',
   description: `Query ThreatLocker unified audit logs.
 

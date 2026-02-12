@@ -14,8 +14,8 @@ import { VERSION } from '../version.js';
 const responseFormatJsonSchema = {
   type: 'string',
   enum: ['json', 'markdown'],
-  default: 'json',
-  description: 'Output format: json (default, structured) or markdown (human-readable)',
+  default: 'markdown',
+  description: 'Output format: markdown (default, human-readable) or json (structured)',
 };
 
 interface ClientCredentials {
@@ -218,7 +218,8 @@ export function createApp(): ReturnType<typeof express> {
         return;
       }
 
-      const { response_format: responseFormat, ...toolArgs } = args;
+      const { response_format: rawFormat, ...toolArgs } = args;
+      const responseFormat = rawFormat === 'json' ? 'json' : 'markdown'; // default: markdown
       const result = await tool.handler(client, toolArgs);
 
       if (responseFormat === 'markdown') {

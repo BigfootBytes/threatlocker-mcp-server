@@ -15,7 +15,7 @@ describe('organizations tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(organizationsTool.name).toBe('organizations');
+    expect(organizationsTool.name).toBe('threatlocker_organizations');
     expect(organizationsZodSchema.action.options).toContain('list_children');
     expect(organizationsZodSchema.action.options).toContain('get_auth_key');
     expect(organizationsZodSchema.action.options).toContain('get_for_move_computers');

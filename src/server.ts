@@ -24,15 +24,15 @@ export function createMcpServer(client: ThreatLockerClient, log?: LogFn): McpSer
         description: tool.description,
         inputSchema: {
           ...tool.zodSchema,
-          response_format: z.enum(['json', 'markdown']).default('json')
-            .describe('Output format: json (default, structured) or markdown (human-readable)'),
+          response_format: z.enum(['json', 'markdown']).default('markdown')
+            .describe('Output format: markdown (default, human-readable) or json (structured)'),
         },
         outputSchema: tool.outputZodSchema ?? apiResponseOutputSchema,
         annotations: tool.annotations ?? {},
       },
       async (args) => {
         const { response_format, ...toolArgs } = args as Record<string, unknown>;
-        const format = response_format === 'markdown' ? 'markdown' : 'json';
+        const format = response_format === 'json' ? 'json' : 'markdown';
 
         log?.('DEBUG', `Tool call: ${tool.name}`, { args: toolArgs, baseUrl: client.baseUrl });
         const result = await tool.handler(client, toolArgs);

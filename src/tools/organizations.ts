@@ -3,6 +3,8 @@ import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof organizationsZodSchema>>;
+
 export async function handleOrganizationsTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -13,7 +15,7 @@ export async function handleOrganizationsTool(
     includeAllChildren = false,
     orderBy = 'name',
     isAscending = true,
-  } = input as any;
+  } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
@@ -57,7 +59,7 @@ export const organizationsZodSchema = {
 };
 
 export const organizationsTool: ToolDefinition = {
-  name: 'organizations',
+  name: 'threatlocker_organizations',
   title: 'ThreatLocker Organizations',
   description: `Query ThreatLocker organizations.
 

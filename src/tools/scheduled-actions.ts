@@ -3,6 +3,8 @@ import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof scheduledActionsZodSchema>>;
+
 export async function handleScheduledActionsTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -16,7 +18,7 @@ export async function handleScheduledActionsTool(
     computerGroupIds = [],
     orderBy = 'scheduleddatetime',
     isAscending = true,
-  } = input as any;
+  } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
@@ -84,7 +86,7 @@ export const scheduledActionsZodSchema = {
 };
 
 export const scheduledActionsTool: ToolDefinition = {
-  name: 'scheduled_actions',
+  name: 'threatlocker_scheduled_actions',
   title: 'ThreatLocker Scheduled Actions',
   description: `Query ThreatLocker scheduled agent actions.
 

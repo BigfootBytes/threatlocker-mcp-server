@@ -15,7 +15,7 @@ describe('scheduled_actions tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(scheduledActionsTool.name).toBe('scheduled_actions');
+    expect(scheduledActionsTool.name).toBe('threatlocker_scheduled_actions');
     expect(scheduledActionsZodSchema.action.options).toContain('list');
     expect(scheduledActionsZodSchema.action.options).toContain('search');
     expect(scheduledActionsZodSchema.action.options).toContain('get');

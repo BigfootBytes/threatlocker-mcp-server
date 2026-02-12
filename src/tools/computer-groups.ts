@@ -3,6 +3,8 @@ import { ThreatLockerClient } from '../client.js';
 import { ApiResponse, errorResponse, validateGuid, validateInstallKey } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof computerGroupsZodSchema>>;
+
 export async function handleComputerGroupsTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -24,7 +26,7 @@ export async function handleComputerGroupsTool(
     includeAvailableOrganizations = false,
     includeAllPolicies = false,
     installKey,
-  } = input as any;
+  } = input as ToolInput;
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');
@@ -101,7 +103,7 @@ export const computerGroupsZodSchema = {
 };
 
 export const computerGroupsTool: ToolDefinition = {
-  name: 'computer_groups',
+  name: 'threatlocker_computer_groups',
   title: 'ThreatLocker Computer Groups',
   description: `List and inspect ThreatLocker computer groups.
 

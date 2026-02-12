@@ -17,7 +17,7 @@ describe('successResponse', () => {
   });
 
   it('includes pagination when provided', () => {
-    const pagination = { page: 2, pageSize: 25, totalItems: 100, totalPages: 4 };
+    const pagination = { page: 2, pageSize: 25, totalItems: 100, totalPages: 4, has_more: true, nextPage: 3 as number | null };
     const result = successResponse('data', pagination);
     expect(result).toEqual({ success: true, data: 'data', pagination });
   });

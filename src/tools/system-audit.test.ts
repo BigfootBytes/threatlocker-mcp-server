@@ -14,7 +14,7 @@ describe('system_audit tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(systemAuditTool.name).toBe('system_audit');
+    expect(systemAuditTool.name).toBe('threatlocker_system_audit');
     expect(systemAuditZodSchema.action.options).toContain('search');
     expect(systemAuditZodSchema.action.options).toContain('health_center');
   });

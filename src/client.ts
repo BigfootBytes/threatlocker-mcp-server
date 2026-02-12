@@ -231,11 +231,14 @@ export function extractPaginationFromJsonHeader(headers: Headers): Pagination | 
     const totalPages = parsed.totalPages;
     if (typeof totalItems !== 'number' || typeof totalPages !== 'number') return undefined;
 
+    const page = typeof parsed.currentPage === 'number' ? parsed.currentPage : 1;
     return {
-      page: typeof parsed.currentPage === 'number' ? parsed.currentPage : 1,
+      page,
       pageSize: typeof parsed.itemsPerPage === 'number' ? parsed.itemsPerPage : 25,
       totalItems,
       totalPages,
+      has_more: page < totalPages,
+      nextPage: page < totalPages ? page + 1 : null,
     };
   } catch {
     return undefined;
@@ -253,12 +256,15 @@ export function extractPaginationFromHeaders(headers: Headers): Pagination | und
     const last = parseInt(lastItem || '1', 10);
     const pageSize = last - first + 1;
     const page = Math.floor(first / pageSize) + 1;
+    const parsedTotalPages = parseInt(totalPages, 10);
 
     return {
       page,
       pageSize,
       totalItems: parseInt(totalItems, 10),
-      totalPages: parseInt(totalPages, 10),
+      totalPages: parsedTotalPages,
+      has_more: page < parsedTotalPages,
+      nextPage: page < parsedTotalPages ? page + 1 : null,
     };
   }
   return undefined;

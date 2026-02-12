@@ -3,6 +3,8 @@ import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof approvalRequestsZodSchema>>;
+
 export async function handleApprovalRequestsTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -15,7 +17,7 @@ export async function handleApprovalRequestsTool(
     orderBy = 'datetime',
     isAscending = true,
     showChildOrganizations = false,
-  } = input as any;
+  } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
@@ -95,7 +97,7 @@ export const approvalRequestsZodSchema = {
 };
 
 export const approvalRequestsTool: ToolDefinition = {
-  name: 'approval_requests',
+  name: 'threatlocker_approval_requests',
   title: 'ThreatLocker Approval Requests',
   description: `Query ThreatLocker approval requests.
 

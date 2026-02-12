@@ -3,6 +3,8 @@ import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateDateRange, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof systemAuditZodSchema>>;
+
 export async function handleSystemAuditTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -20,7 +22,7 @@ export async function handleSystemAuditTool(
     objectId,
     days = 7,
     searchText = '',
-  } = input as any;
+  } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
@@ -95,7 +97,7 @@ export const systemAuditZodSchema = {
 };
 
 export const systemAuditTool: ToolDefinition = {
-  name: 'system_audit',
+  name: 'threatlocker_system_audit',
   title: 'ThreatLocker System Audit',
   description: `Query ThreatLocker portal audit logs.
 

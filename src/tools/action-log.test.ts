@@ -15,7 +15,7 @@ describe('action_log tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(actionLogTool.name).toBe('action_log');
+    expect(actionLogTool.name).toBe('threatlocker_action_log');
     expect(actionLogZodSchema.action.options).toContain('search');
     expect(actionLogZodSchema.action.options).toContain('get');
     expect(actionLogZodSchema.action.options).toContain('file_history');

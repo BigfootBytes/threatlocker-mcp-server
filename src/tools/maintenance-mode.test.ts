@@ -14,7 +14,7 @@ describe('maintenance_mode tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(maintenanceModeTool.name).toBe('maintenance_mode');
+    expect(maintenanceModeTool.name).toBe('threatlocker_maintenance_mode');
     expect(maintenanceModeZodSchema.action.options).toContain('get_history');
   });
 

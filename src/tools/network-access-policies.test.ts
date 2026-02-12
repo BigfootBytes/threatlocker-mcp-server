@@ -15,7 +15,7 @@ describe('network_access_policies tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(networkAccessPoliciesTool.name).toBe('network_access_policies');
+    expect(networkAccessPoliciesTool.name).toBe('threatlocker_network_access_policies');
     expect(networkAccessPoliciesZodSchema.action.options).toContain('get');
     expect(networkAccessPoliciesZodSchema.action.options).toContain('list');
   });

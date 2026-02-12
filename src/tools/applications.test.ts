@@ -15,7 +15,7 @@ describe('applications tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(applicationsTool.name).toBe('applications');
+    expect(applicationsTool.name).toBe('threatlocker_applications');
     expect(applicationsZodSchema.action.options).toContain('search');
     expect(applicationsZodSchema.action.options).toContain('get');
     expect(applicationsZodSchema.action.options).toContain('research');

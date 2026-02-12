@@ -3,11 +3,13 @@ import { ThreatLockerClient } from '../client.js';
 import { ApiResponse, errorResponse } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof threatlockerVersionsZodSchema>>;
+
 export async function handleThreatLockerVersionsTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
 ): Promise<ApiResponse<unknown>> {
-  const { action } = input as any;
+  const { action } = input as ToolInput;
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');

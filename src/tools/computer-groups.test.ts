@@ -14,7 +14,7 @@ describe('computer_groups tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(computerGroupsTool.name).toBe('computer_groups');
+    expect(computerGroupsTool.name).toBe('threatlocker_computer_groups');
     expect(computerGroupsZodSchema.action.options).toContain('list');
     expect(computerGroupsZodSchema.action.options).toContain('dropdown');
     expect(computerGroupsZodSchema.action.options).toContain('dropdown_with_org');

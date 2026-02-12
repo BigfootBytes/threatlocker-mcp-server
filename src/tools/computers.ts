@@ -3,6 +3,8 @@ import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof computersZodSchema>>;
+
 export async function handleComputersTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -19,7 +21,7 @@ export async function handleComputersTool(
     childOrganizations = false,
     kindOfAction,
     hideHeartbeat = false,
-  } = input as any;
+  } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
@@ -102,7 +104,7 @@ export const computersZodSchema = {
 };
 
 export const computersTool: ToolDefinition = {
-  name: 'computers',
+  name: 'threatlocker_computers',
   title: 'ThreatLocker Computers',
   description: `Query and inspect ThreatLocker computers.
 

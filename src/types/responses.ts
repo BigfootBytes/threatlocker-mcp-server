@@ -13,6 +13,8 @@ export interface Pagination {
   pageSize: number;
   totalItems: number;
   totalPages: number;
+  has_more: boolean;
+  nextPage: number | null;
 }
 
 export interface SuccessResponse<T> {
@@ -41,6 +43,8 @@ export const apiResponseOutputSchema = {
     pageSize: z.number(),
     totalItems: z.number(),
     totalPages: z.number(),
+    has_more: z.boolean().describe('Whether more pages are available'),
+    nextPage: z.number().nullable().describe('Next page number, or null if on the last page'),
   }).optional().describe('Pagination metadata when the response is a paginated list'),
   error: z.object({
     code: z.string(),

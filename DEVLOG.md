@@ -1,5 +1,14 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-12 — MCP Best Practices: Tool Naming, Typed Inputs, Markdown Default, Pagination
+
+- Added `threatlocker_` prefix to all 16 tool names for discoverability (e.g., `computers` → `threatlocker_computers`)
+- Replaced `as any` casts in all 16 tool handlers with typed Zod inference (`type ToolInput = z.infer<z.ZodObject<typeof schema>>`)
+- Changed `response_format` default from `json` to `markdown` — human-readable output by default in both MCP and REST transports
+- Extended `Pagination` type with `has_more: boolean` and `nextPage: number | null`; both pagination extraction functions in `client.ts` now compute these fields
+- `formatPagination()` now displays "Next page: N" indicator when more pages are available
+- Updated all 41 test files; 654 tests passing
+
 ## 2026-02-12 — Response Format, Character Limit, and enableJsonResponse
 
 - Added `response_format` parameter (`json` | `markdown`) to all 16 tools via centralized injection in `server.ts` — zero changes to individual tool files

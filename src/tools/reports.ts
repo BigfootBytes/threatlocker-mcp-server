@@ -3,11 +3,13 @@ import { ThreatLockerClient } from '../client.js';
 import { ApiResponse, errorResponse, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof reportsZodSchema>>;
+
 export async function handleReportsTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
 ): Promise<ApiResponse<unknown>> {
-  const { action, reportId } = input as any;
+  const { action, reportId } = input as ToolInput;
 
   if (!action) {
     return errorResponse('BAD_REQUEST', 'action is required');
@@ -37,7 +39,7 @@ export const reportsZodSchema = {
 };
 
 export const reportsTool: ToolDefinition = {
-  name: 'reports',
+  name: 'threatlocker_reports',
   title: 'ThreatLocker Reports',
   description: `Query and run ThreatLocker reports.
 

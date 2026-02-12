@@ -3,11 +3,13 @@ import { ThreatLockerClient, extractPaginationFromJsonHeader } from '../client.j
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof networkAccessPoliciesZodSchema>>;
+
 export async function handleNetworkAccessPoliciesTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
 ): Promise<ApiResponse<unknown>> {
-  const { action, networkAccessPolicyId, searchText, appliesToId } = input as any;
+  const { action, networkAccessPolicyId, searchText, appliesToId } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
@@ -54,7 +56,7 @@ export const networkAccessPoliciesZodSchema = {
 };
 
 export const networkAccessPoliciesTool: ToolDefinition = {
-  name: 'network_access_policies',
+  name: 'threatlocker_network_access_policies',
   title: 'ThreatLocker Network Access Policies',
   description: `Query ThreatLocker network access control policies.
 

@@ -59,11 +59,11 @@ describe('tool registry', () => {
 
   it('contains all expected tool names', () => {
     const expectedNames = [
-      'computers', 'computer_groups', 'applications', 'policies',
-      'action_log', 'approval_requests', 'organizations', 'reports',
-      'maintenance_mode', 'scheduled_actions', 'system_audit', 'tags',
-      'storage_policies', 'network_access_policies',
-      'threatlocker_versions', 'online_devices',
+      'threatlocker_computers', 'threatlocker_computer_groups', 'threatlocker_applications', 'threatlocker_policies',
+      'threatlocker_action_log', 'threatlocker_approval_requests', 'threatlocker_organizations', 'threatlocker_reports',
+      'threatlocker_maintenance_mode', 'threatlocker_scheduled_actions', 'threatlocker_system_audit', 'threatlocker_tags',
+      'threatlocker_storage_policies', 'threatlocker_network_access_policies',
+      'threatlocker_versions', 'threatlocker_online_devices',
     ];
     for (const name of expectedNames) {
       expect(toolsByName.has(name), `missing tool: ${name}`).toBe(true);

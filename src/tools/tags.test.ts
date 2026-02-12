@@ -14,7 +14,7 @@ describe('tags tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(tagsTool.name).toBe('tags');
+    expect(tagsTool.name).toBe('threatlocker_tags');
     expect(tagsZodSchema.action.options).toContain('get');
     expect(tagsZodSchema.action.options).toContain('dropdown');
   });

@@ -15,7 +15,7 @@ describe('storage_policies tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(storagePoliciesTool.name).toBe('storage_policies');
+    expect(storagePoliciesTool.name).toBe('threatlocker_storage_policies');
     expect(storagePoliciesZodSchema.action.options).toContain('get');
     expect(storagePoliciesZodSchema.action.options).toContain('list');
   });

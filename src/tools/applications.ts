@@ -3,6 +3,8 @@ import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid, validateSha256 } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof applicationsZodSchema>>;
+
 export async function handleApplicationsTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -26,7 +28,7 @@ export async function handleApplicationsTool(
     cert,
     certSha,
     createdBy,
-  } = input as any;
+  } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
@@ -143,7 +145,7 @@ export const applicationsZodSchema = {
 };
 
 export const applicationsTool: ToolDefinition = {
-  name: 'applications',
+  name: 'threatlocker_applications',
   title: 'ThreatLocker Applications',
   description: `Search and inspect ThreatLocker applications.
 

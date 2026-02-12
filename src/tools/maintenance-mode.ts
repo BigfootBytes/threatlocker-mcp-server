@@ -3,6 +3,8 @@ import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
+type ToolInput = z.infer<z.ZodObject<typeof maintenanceModeZodSchema>>;
+
 export async function handleMaintenanceModeTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -10,7 +12,7 @@ export async function handleMaintenanceModeTool(
   const {
     action,
     computerId,
-  } = input as any;
+  } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
   if (!action) {
@@ -44,7 +46,7 @@ export const maintenanceModeZodSchema = {
 };
 
 export const maintenanceModeTool: ToolDefinition = {
-  name: 'maintenance_mode',
+  name: 'threatlocker_maintenance_mode',
   title: 'ThreatLocker Maintenance Mode',
   description: `Query ThreatLocker maintenance mode history for computers.
 

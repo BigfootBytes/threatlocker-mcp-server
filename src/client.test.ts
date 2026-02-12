@@ -308,6 +308,8 @@ describe('ThreatLockerClient.post', () => {
       pageSize: 25,
       totalItems: parseInt(headers.get('totalItems')!, 10),
       totalPages: parseInt(headers.get('totalPages')!, 10),
+      has_more: true,
+      nextPage: 3 as number | null,
     });
 
     const result = await client.post('Test/Endpoint', {}, extractPagination);
@@ -318,6 +320,8 @@ describe('ThreatLockerClient.post', () => {
         pageSize: 25,
         totalItems: 100,
         totalPages: 4,
+        has_more: true,
+        nextPage: 3,
       });
     }
   });
@@ -369,6 +373,8 @@ describe('extractPaginationFromHeaders', () => {
       pageSize: 25,
       totalItems: 100,
       totalPages: 4,
+      has_more: true,
+      nextPage: 2,
     });
   });
 
@@ -386,6 +392,8 @@ describe('extractPaginationFromHeaders', () => {
       pageSize: 25,
       totalItems: 100,
       totalPages: 4,
+      has_more: true,
+      nextPage: 3,
     });
   });
 
@@ -417,6 +425,8 @@ describe('extractPaginationFromHeaders', () => {
       pageSize: 1,
       totalItems: 50,
       totalPages: 2,
+      has_more: false,
+      nextPage: null,
     });
   });
 });
@@ -440,6 +450,8 @@ describe('extractPaginationFromJsonHeader', () => {
       pageSize: 2,
       totalItems: 21,
       totalPages: 11,
+      has_more: true,
+      nextPage: 2,
     });
   });
 
@@ -459,6 +471,8 @@ describe('extractPaginationFromJsonHeader', () => {
       pageSize: 10,
       totalItems: 50,
       totalPages: 5,
+      has_more: true,
+      nextPage: 4,
     });
   });
 
@@ -497,6 +511,8 @@ describe('extractPaginationFromJsonHeader', () => {
       pageSize: 25,
       totalItems: 100,
       totalPages: 4,
+      has_more: true,
+      nextPage: 2,
     });
   });
 
@@ -511,6 +527,8 @@ describe('extractPaginationFromJsonHeader', () => {
       pageSize: 25,
       totalItems: 100,
       totalPages: 4,
+      has_more: true,
+      nextPage: 3,
     });
   });
 });

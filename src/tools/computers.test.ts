@@ -15,7 +15,7 @@ describe('computers tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(computersTool.name).toBe('computers');
+    expect(computersTool.name).toBe('threatlocker_computers');
     expect(computersZodSchema.action.options).toContain('list');
     expect(computersZodSchema.action.options).toContain('get');
     expect(computersZodSchema.action.options).toContain('checkins');

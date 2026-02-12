@@ -64,8 +64,12 @@ export function formatObject(obj: Record<string, unknown>, indent: number): stri
  * Render pagination metadata as a markdown footer.
  */
 export function formatPagination(pagination: Pagination): string {
-  const { page, pageSize, totalItems, totalPages } = pagination;
+  const { page, pageSize, totalItems, totalPages, has_more, nextPage } = pagination;
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, totalItems);
-  return `\n---\nPage ${page} of ${totalPages} (items ${start}–${end} of ${totalItems}, pageSize ${pageSize})`;
+  let line = `\n---\nPage ${page} of ${totalPages} (items ${start}–${end} of ${totalItems}, pageSize ${pageSize})`;
+  if (has_more && nextPage !== null) {
+    line += ` | **Next page: ${nextPage}**`;
+  }
+  return line;
 }

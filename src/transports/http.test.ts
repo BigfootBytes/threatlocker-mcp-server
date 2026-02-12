@@ -269,7 +269,7 @@ describe('HTTP server integration', () => {
         const props = tool.inputSchema.properties;
         expect(props.response_format, `${tool.name} missing response_format`).toBeDefined();
         expect(props.response_format.enum).toEqual(['json', 'markdown']);
-        expect(props.response_format.default).toBe('json');
+        expect(props.response_format.default).toBe('markdown');
       }
     });
   });
@@ -279,7 +279,7 @@ describe('HTTP server integration', () => {
   describe('POST /tools/:toolName - authentication', () => {
     it('returns 401 when no auth headers provided', async () => {
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .send({ action: 'list' });
       expect(res.status).toBe(401);
       expect(res.body.error.code).toBe('UNAUTHORIZED');
@@ -287,7 +287,7 @@ describe('HTTP server integration', () => {
 
     it('returns 401 when only authorization header is provided', async () => {
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .set('authorization', 'my-key')
         .send({ action: 'list' });
       expect(res.status).toBe(401);
@@ -295,7 +295,7 @@ describe('HTTP server integration', () => {
 
     it('returns 401 when only base URL header is provided', async () => {
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .set('x-threatlocker-base-url', 'https://api.example.com')
         .send({ action: 'list' });
       expect(res.status).toBe(401);
@@ -318,7 +318,7 @@ describe('HTTP server integration', () => {
     it('rejects browser requests when no ALLOWED_ORIGINS configured', async () => {
       delete process.env.ALLOWED_ORIGINS;
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .set('origin', 'https://attacker.example.com')
         .set(authHeaders)
         .send({ action: 'list' });
@@ -329,7 +329,7 @@ describe('HTTP server integration', () => {
     it('allows requests without origin header (non-browser)', async () => {
       // This will fail at the API call level (network error), not at origin validation
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .set(authHeaders)
         .send({ action: 'list' });
       // Should NOT be 403 - origin validation passes
@@ -339,7 +339,7 @@ describe('HTTP server integration', () => {
     it('allows browser requests from configured origin', async () => {
       process.env.ALLOWED_ORIGINS = 'https://trusted.example.com';
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .set('origin', 'https://trusted.example.com')
         .set(authHeaders)
         .send({ action: 'list' });
@@ -351,68 +351,68 @@ describe('HTTP server integration', () => {
   // ─── REST tool call - valid requests (will fail at network) ─────────────
 
   describe('POST /tools/:toolName - tool dispatch', () => {
-    it('dispatches to computers tool handler', async () => {
+    it('dispatches to threatlocker_computers tool handler', async () => {
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .set(authHeaders)
-        .send({ action: 'get' });
+        .send({ action: 'get', response_format: 'json' });
       // Missing computerId → BAD_REQUEST from handler, not 401/403
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
       expect(res.body.error.message).toContain('computerId');
     });
 
-    it('dispatches to applications tool handler', async () => {
+    it('dispatches to threatlocker_applications tool handler', async () => {
       const res = await request(app)
-        .post('/tools/applications')
+        .post('/tools/threatlocker_applications')
         .set(authHeaders)
-        .send({ action: 'get' });
+        .send({ action: 'get', response_format: 'json' });
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
       expect(res.body.error.message).toContain('applicationId');
     });
 
-    it('dispatches to policies tool handler', async () => {
+    it('dispatches to threatlocker_policies tool handler', async () => {
       const res = await request(app)
-        .post('/tools/policies')
+        .post('/tools/threatlocker_policies')
         .set(authHeaders)
-        .send({ action: 'get' });
+        .send({ action: 'get', response_format: 'json' });
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
       expect(res.body.error.message).toContain('policyId');
     });
 
-    it('dispatches to action_log tool handler', async () => {
+    it('dispatches to threatlocker_action_log tool handler', async () => {
       const res = await request(app)
-        .post('/tools/action_log')
+        .post('/tools/threatlocker_action_log')
         .set(authHeaders)
-        .send({ action: 'search' });
+        .send({ action: 'search', response_format: 'json' });
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
       expect(res.body.error.message).toContain('startDate');
     });
 
-    it('dispatches to approval_requests tool handler', async () => {
+    it('dispatches to threatlocker_approval_requests tool handler', async () => {
       const res = await request(app)
-        .post('/tools/approval_requests')
+        .post('/tools/threatlocker_approval_requests')
         .set(authHeaders)
         .send({});
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
     });
 
-    it('dispatches to organizations tool handler', async () => {
+    it('dispatches to threatlocker_organizations tool handler', async () => {
       const res = await request(app)
-        .post('/tools/organizations')
+        .post('/tools/threatlocker_organizations')
         .set(authHeaders)
         .send({});
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
     });
 
-    it('dispatches to maintenance_mode tool handler', async () => {
+    it('dispatches to threatlocker_maintenance_mode tool handler', async () => {
       const res = await request(app)
-        .post('/tools/maintenance_mode')
+        .post('/tools/threatlocker_maintenance_mode')
         .set(authHeaders)
         .send({ action: 'get_history' });
       expect(res.body.success).toBe(false);
@@ -421,66 +421,66 @@ describe('HTTP server integration', () => {
       expect(res.body.error.message).toContain('expected string');
     });
 
-    it('dispatches to scheduled_actions tool handler', async () => {
+    it('dispatches to threatlocker_scheduled_actions tool handler', async () => {
       const res = await request(app)
-        .post('/tools/scheduled_actions')
+        .post('/tools/threatlocker_scheduled_actions')
         .set(authHeaders)
         .send({});
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
     });
 
-    it('dispatches to system_audit tool handler', async () => {
+    it('dispatches to threatlocker_system_audit tool handler', async () => {
       const res = await request(app)
-        .post('/tools/system_audit')
+        .post('/tools/threatlocker_system_audit')
         .set(authHeaders)
         .send({});
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
     });
 
-    it('dispatches to tags tool handler', async () => {
+    it('dispatches to threatlocker_tags tool handler', async () => {
       const res = await request(app)
-        .post('/tools/tags')
+        .post('/tools/threatlocker_tags')
         .set(authHeaders)
         .send({});
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
     });
 
-    it('dispatches to reports tool handler', async () => {
+    it('dispatches to threatlocker_reports tool handler', async () => {
       const res = await request(app)
-        .post('/tools/reports')
+        .post('/tools/threatlocker_reports')
         .set(authHeaders)
         .send({});
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
     });
 
-    it('dispatches to computer_groups tool handler', async () => {
+    it('dispatches to threatlocker_computer_groups tool handler', async () => {
       const res = await request(app)
-        .post('/tools/computer_groups')
+        .post('/tools/threatlocker_computer_groups')
         .set(authHeaders)
         .send({});
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
     });
 
-    it('dispatches to storage_policies tool handler', async () => {
+    it('dispatches to threatlocker_storage_policies tool handler', async () => {
       const res = await request(app)
-        .post('/tools/storage_policies')
+        .post('/tools/threatlocker_storage_policies')
         .set(authHeaders)
-        .send({ action: 'get' });
+        .send({ action: 'get', response_format: 'json' });
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
       expect(res.body.error.message).toContain('storagePolicyId');
     });
 
-    it('dispatches to network_access_policies tool handler', async () => {
+    it('dispatches to threatlocker_network_access_policies tool handler', async () => {
       const res = await request(app)
-        .post('/tools/network_access_policies')
+        .post('/tools/threatlocker_network_access_policies')
         .set(authHeaders)
-        .send({ action: 'get' });
+        .send({ action: 'get', response_format: 'json' });
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
       expect(res.body.error.message).toContain('networkAccessPolicyId');
@@ -495,9 +495,9 @@ describe('HTTP server integration', () => {
       expect(res.body.error.code).toBe('BAD_REQUEST');
     });
 
-    it('dispatches to online_devices tool handler', async () => {
+    it('dispatches to threatlocker_online_devices tool handler', async () => {
       const res = await request(app)
-        .post('/tools/online_devices')
+        .post('/tools/threatlocker_online_devices')
         .set(authHeaders)
         .send({});
       expect(res.body.success).toBe(false);
@@ -508,34 +508,34 @@ describe('HTTP server integration', () => {
   // ─── response_format dispatch behavior ──────────────────────────────────
 
   describe('POST /tools/:toolName - response_format', () => {
-    it('returns markdown text when response_format=markdown', async () => {
-      // computers get without computerId returns BAD_REQUEST — should render as markdown error
+    it('returns markdown by default (no response_format)', async () => {
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .set(authHeaders)
-        .send({ action: 'get', response_format: 'markdown' });
+        .send({ action: 'get' });
+      // Default is now markdown
       expect(res.headers['content-type']).toContain('text/markdown');
       expect(res.text).toContain('# Error');
       expect(res.text).toContain('BAD_REQUEST');
     });
 
-    it('returns JSON by default (no response_format)', async () => {
+    it('returns JSON when response_format=json', async () => {
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .set(authHeaders)
-        .send({ action: 'get' });
+        .send({ action: 'get', response_format: 'json' });
       expect(res.headers['content-type']).toContain('application/json');
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('BAD_REQUEST');
     });
 
-    it('returns JSON when response_format=json', async () => {
+    it('returns markdown when response_format=markdown', async () => {
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .set(authHeaders)
-        .send({ action: 'get', response_format: 'json' });
-      expect(res.headers['content-type']).toContain('application/json');
-      expect(res.body.success).toBe(false);
+        .send({ action: 'get', response_format: 'markdown' });
+      expect(res.headers['content-type']).toContain('text/markdown');
+      expect(res.text).toContain('# Error');
     });
   });
 
@@ -572,7 +572,7 @@ describe('HTTP server integration', () => {
       process.env.ALLOWED_ORIGINS = 'https://trusted.example.com';
       app = createApp();
       const res = await request(app)
-        .options('/tools/computers')
+        .options('/tools/threatlocker_computers')
         .set('origin', 'https://trusted.example.com');
       expect(res.status).toBe(204);
       expect(res.headers['access-control-allow-origin']).toBe('https://trusted.example.com');
@@ -582,7 +582,7 @@ describe('HTTP server integration', () => {
       delete process.env.ALLOWED_ORIGINS;
       app = createApp();
       const res = await request(app)
-        .options('/tools/computers')
+        .options('/tools/threatlocker_computers')
         .set('origin', 'https://evil.example.com');
       expect(res.status).toBe(204);
       expect(res.headers['access-control-allow-origin']).toBeUndefined();
@@ -670,7 +670,7 @@ describe('HTTP server integration', () => {
   describe('POST /tools/:toolName - Zod validation', () => {
     it('rejects invalid type for pageSize (string instead of number)', async () => {
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .set(authHeaders)
         .send({ action: 'list', pageSize: 'not-a-number' });
       expect(res.status).toBe(400);
@@ -680,7 +680,7 @@ describe('HTTP server integration', () => {
 
     it('rejects groupBys array exceeding max length', async () => {
       const res = await request(app)
-        .post('/tools/action_log')
+        .post('/tools/threatlocker_action_log')
         .set(authHeaders)
         .send({ action: 'search', groupBys: Array(11).fill(1) });
       expect(res.status).toBe(400);
@@ -690,7 +690,7 @@ describe('HTTP server integration', () => {
 
     it('rejects searchText exceeding max length', async () => {
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .set(authHeaders)
         .send({ action: 'list', searchText: 'x'.repeat(1001) });
       expect(res.status).toBe(400);
@@ -705,7 +705,7 @@ describe('HTTP server integration', () => {
     it('rejects request bodies exceeding 1MB', async () => {
       const largeBody = { data: 'x'.repeat(1.5 * 1024 * 1024) };
       const res = await request(app)
-        .post('/tools/computers')
+        .post('/tools/threatlocker_computers')
         .set(authHeaders)
         .send(largeBody);
       expect(res.status).toBe(413);
