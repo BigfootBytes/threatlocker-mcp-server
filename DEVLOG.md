@@ -1,5 +1,9 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-13 — Extract shared output sub-schemas
+
+- Extracted `paginationOutputSchema` and `errorOutputSchema` as standalone Zod exports in `src/types/responses.ts` for per-tool output schema reuse
+
 ## 2026-02-13 — Improve Tool Descriptions & Schemas
 
 - **Critical bug fix**: Fixed maintenance mode type IDs — Installation Mode was listed as type 1 (duplicate of Monitor Only). Corrected to: Monitor Only=1, Installation Mode=2, Learning=3, Tamper Protection Disabled=6

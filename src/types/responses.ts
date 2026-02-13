@@ -53,6 +53,23 @@ export const apiResponseOutputSchema = {
   }).optional().describe('Error details when success is false'),
 };
 
+/** Reusable sub-schema for pagination in per-tool output schemas. */
+export const paginationOutputSchema = z.object({
+  page: z.number(),
+  pageSize: z.number(),
+  totalItems: z.number(),
+  totalPages: z.number(),
+  has_more: z.boolean().describe('Whether more pages are available'),
+  nextPage: z.number().nullable().describe('Next page number, or null if on the last page'),
+});
+
+/** Reusable sub-schema for error details in per-tool output schemas. */
+export const errorOutputSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  statusCode: z.number().optional(),
+});
+
 export function successResponse<T>(data: T, pagination?: Pagination): SuccessResponse<T> {
   return pagination ? { success: true, data, pagination } : { success: true, data };
 }
