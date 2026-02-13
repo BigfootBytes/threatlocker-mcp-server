@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient } from '../client.js';
-import { ApiResponse, errorResponse, validateGuid } from '../types/responses.js';
+import { ApiResponse, errorResponse, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof tagsZodSchema>>;
@@ -16,10 +16,6 @@ export async function handleTagsTool(
     tagType = 1,
     includeNetworkTagInMaster = true,
   } = input as ToolInput;
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'get': {
@@ -51,6 +47,22 @@ export const tagsZodSchema = {
   includeNetworkTagInMaster: z.boolean().optional().describe('Include network tags in master (default: true)'),
 };
 
+const tagObject = z.object({
+  tagId: z.string(),
+  name: z.string(),
+  tagType: z.number(),
+}).passthrough();
+
+export const tagsOutputZodSchema = {
+  success: z.boolean(),
+  data: z.union([
+    tagObject.describe('get: single tag with values'),
+    z.array(tagObject).describe('dropdown: array of available tags'),
+  ]).optional().describe('Response data — shape varies by action'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const tagsTool: ToolDefinition = {
   name: 'threatlocker_tags',
   title: 'ThreatLocker Tags',
@@ -76,5 +88,6 @@ Key response fields: tagId, name, tagType, values (IP/domain/port entries).
 Related tools: threatlocker_policies (use tags in policy rules), threatlocker_applications (ringfence with tags)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: tagsZodSchema,
+  outputZodSchema: tagsOutputZodSchema,
   handler: handleTagsTool,
 };

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination, validateDateRange, validateGuid } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateDateRange, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof systemAuditZodSchema>>;
@@ -24,10 +24,6 @@ export async function handleSystemAuditTool(
     searchText = '',
   } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'search': {
@@ -96,6 +92,23 @@ export const systemAuditZodSchema = {
   pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
+const systemAuditObject = z.object({
+  systemAuditId: z.string(),
+  username: z.string(),
+  action: z.string().describe('Create, Delete, Logon, Modify, Read'),
+  effectiveAction: z.string().describe('Denied or Permitted'),
+  details: z.string(),
+  ipAddress: z.string(),
+  dateTime: z.string(),
+}).passthrough();
+
+export const systemAuditOutputZodSchema = {
+  success: z.boolean(),
+  data: z.array(systemAuditObject).optional().describe('search/health_center: array of audit entries'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const systemAuditTool: ToolDefinition = {
   name: 'threatlocker_system_audit',
   title: 'ThreatLocker System Audit',
@@ -120,5 +133,6 @@ Key response fields: systemAuditId, username, action, effectiveAction, details, 
 Related tools: threatlocker_action_log (endpoint events, not portal events), threatlocker_organizations (filter by org)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: systemAuditZodSchema,
+  outputZodSchema: systemAuditOutputZodSchema,
   handler: handleSystemAuditTool,
 };

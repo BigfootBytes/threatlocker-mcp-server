@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof scheduledActionsZodSchema>>;
@@ -20,10 +20,6 @@ export async function handleScheduledActionsTool(
     isAscending = true,
   } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'list':
@@ -85,6 +81,26 @@ export const scheduledActionsZodSchema = {
   pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
+const scheduledActionObject = z.object({
+  scheduledAgentActionId: z.string(),
+  scheduledType: z.number(),
+  scheduledDateTime: z.string(),
+  computerName: z.string(),
+  computerGroupName: z.string(),
+  status: z.string(),
+}).passthrough();
+
+export const scheduledActionsOutputZodSchema = {
+  success: z.boolean(),
+  data: z.union([
+    z.array(scheduledActionObject).describe('list/search: array of scheduled actions'),
+    scheduledActionObject.describe('get: single scheduled action'),
+    z.array(z.object({}).passthrough()).describe('get_applies_to: array of scheduling targets'),
+  ]).optional().describe('Response data — shape varies by action'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const scheduledActionsTool: ToolDefinition = {
   name: 'threatlocker_scheduled_actions',
   title: 'ThreatLocker Scheduled Actions',
@@ -107,5 +123,6 @@ Key response fields: scheduledAgentActionId, scheduledType, scheduledDateTime, c
 Related tools: threatlocker_computers (see current versions), threatlocker_computer_groups (target groups for updates), threatlocker_organizations (filter by org)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: scheduledActionsZodSchema,
+  outputZodSchema: scheduledActionsOutputZodSchema,
   handler: handleScheduledActionsTool,
 };
