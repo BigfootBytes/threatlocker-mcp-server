@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof organizationsZodSchema>>;
@@ -17,10 +17,6 @@ export async function handleOrganizationsTool(
     isAscending = true,
   } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'list_children':
@@ -58,6 +54,24 @@ export const organizationsZodSchema = {
   pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
+const organizationObject = z.object({
+  organizationId: z.string(),
+  name: z.string(),
+  displayName: z.string(),
+  dateAdded: z.string(),
+  computerCount: z.number(),
+}).passthrough();
+
+export const organizationsOutputZodSchema = {
+  success: z.boolean(),
+  data: z.union([
+    z.array(organizationObject).describe('list_children/get_for_move_computers: array of organizations'),
+    z.object({}).passthrough().describe('get_auth_key: authentication key details'),
+  ]).optional().describe('Response data — shape varies by action'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const organizationsTool: ToolDefinition = {
   name: 'threatlocker_organizations',
   title: 'ThreatLocker Organizations',
@@ -81,5 +95,6 @@ Key response fields: organizationId, name, displayName, dateAdded, computerCount
 Related tools: threatlocker_computers (computers in org), threatlocker_computer_groups (groups in org), threatlocker_policies (policies in org)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: organizationsZodSchema,
+  outputZodSchema: organizationsOutputZodSchema,
   handler: handleOrganizationsTool,
 };

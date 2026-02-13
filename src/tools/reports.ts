@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient } from '../client.js';
-import { ApiResponse, errorResponse, validateGuid } from '../types/responses.js';
+import { ApiResponse, errorResponse, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof reportsZodSchema>>;
@@ -10,10 +10,6 @@ export async function handleReportsTool(
   input: Record<string, unknown>
 ): Promise<ApiResponse<unknown>> {
   const { action, reportId } = input as ToolInput;
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'list':
@@ -38,6 +34,22 @@ export const reportsZodSchema = {
   reportId: z.string().max(100).optional().describe('Report GUID (required for get_data action). Find via list action first.'),
 };
 
+const reportObject = z.object({
+  reportId: z.string(),
+  name: z.string(),
+  description: z.string(),
+}).passthrough();
+
+export const reportsOutputZodSchema = {
+  success: z.boolean(),
+  data: z.union([
+    z.array(reportObject).describe('list: array of available reports'),
+    z.object({}).passthrough().describe('get_data: dynamic report data (columns vary by report type)'),
+  ]).optional().describe('Response data — shape varies by action'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const reportsTool: ToolDefinition = {
   name: 'threatlocker_reports',
   title: 'ThreatLocker Reports',
@@ -57,5 +69,6 @@ Key response fields: reportId, name, description, reportData (dynamic columns pe
 Related tools: threatlocker_action_log (raw audit events), threatlocker_system_audit (portal audit trail), threatlocker_computers (device inventory)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: reportsZodSchema,
+  outputZodSchema: reportsOutputZodSchema,
   handler: handleReportsTool,
 };

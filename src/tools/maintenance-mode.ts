@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof maintenanceModeZodSchema>>;
@@ -14,10 +14,6 @@ export async function handleMaintenanceModeTool(
     computerId,
   } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   if (!computerId) {
     return errorResponse('BAD_REQUEST', 'computerId is required for all maintenance_mode actions');
@@ -45,6 +41,21 @@ export const maintenanceModeZodSchema = {
   pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
+const maintenanceModeObject = z.object({
+  maintenanceModeId: z.string(),
+  maintenanceTypeId: z.number().describe('1=MonitorOnly, 2=InstallationMode, 3=Learning, 6=TamperProtection'),
+  startDateTime: z.string(),
+  endDateTime: z.string(),
+  userName: z.string(),
+}).passthrough();
+
+export const maintenanceModeOutputZodSchema = {
+  success: z.boolean(),
+  data: z.array(maintenanceModeObject).optional().describe('get_history: array of maintenance mode records'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const maintenanceModeTool: ToolDefinition = {
   name: 'threatlocker_maintenance_mode',
   title: 'ThreatLocker Maintenance Mode',
@@ -69,5 +80,6 @@ Key response fields: maintenanceModeId, maintenanceTypeId, startDateTime, endDat
 Related tools: threatlocker_computers (get computer IDs, see current mode), threatlocker_computer_groups (group-level modes)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: maintenanceModeZodSchema,
+  outputZodSchema: maintenanceModeOutputZodSchema,
   handler: handleMaintenanceModeTool,
 };
