@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof approvalRequestsZodSchema>>;
@@ -19,10 +19,6 @@ export async function handleApprovalRequestsTool(
     showChildOrganizations = false,
   } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'list':
@@ -96,6 +92,27 @@ export const approvalRequestsZodSchema = {
   pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
+const approvalRequestObject = z.object({
+  approvalRequestId: z.string(),
+  username: z.string(),
+  fullPath: z.string(),
+  actionType: z.string(),
+  statusId: z.number().describe('1=Pending, 4=Approved, 6=Not Learned, 10=Ignored, 12=Added, 13=Escalated, 16=Self-Approved'),
+  computerName: z.string(),
+  requestDateTime: z.string(),
+}).passthrough();
+
+export const approvalRequestsOutputZodSchema = {
+  success: z.boolean(),
+  data: z.union([
+    z.array(approvalRequestObject).describe('list: array of approval requests'),
+    approvalRequestObject.describe('get/get_file_download_details/get_permit_application/get_storage_approval: single request'),
+    z.object({ count: z.number() }).passthrough().describe('count: pending request count'),
+  ]).optional().describe('Response data — shape varies by action'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const approvalRequestsTool: ToolDefinition = {
   name: 'threatlocker_approval_requests',
   title: 'ThreatLocker Approval Requests',
@@ -121,5 +138,6 @@ Key response fields: approvalRequestId, username, fullPath, actionType, statusId
 Related tools: threatlocker_action_log (see the deny event), threatlocker_applications (find matching apps), threatlocker_policies (create permits)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: approvalRequestsZodSchema,
+  outputZodSchema: approvalRequestsOutputZodSchema,
   handler: handleApprovalRequestsTool,
 };

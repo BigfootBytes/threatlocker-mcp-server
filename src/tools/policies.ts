@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof policiesZodSchema>>;
@@ -18,10 +18,6 @@ export async function handlePoliciesTool(
     includeDenies = false,
   } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'get': {
@@ -78,6 +74,25 @@ export const policiesZodSchema = {
   pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
+const policyObject = z.object({
+  policyId: z.string(),
+  name: z.string(),
+  policyActionId: z.number().describe('1=Permit, 2=Deny, 6=Permit+Ringfence'),
+  applicationId: z.string(),
+  computerGroupId: z.string(),
+  isEnabled: z.boolean(),
+}).passthrough();
+
+export const policiesOutputZodSchema = {
+  success: z.boolean(),
+  data: z.union([
+    policyObject.describe('get: single policy'),
+    z.array(policyObject).describe('list_by_application: array of policies'),
+  ]).optional().describe('Response data — shape varies by action'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const policiesTool: ToolDefinition = {
   name: 'threatlocker_policies',
   title: 'ThreatLocker Policies',
@@ -102,5 +117,6 @@ Key response fields: policyId, name, policyActionId, applicationId, computerGrou
 Related tools: threatlocker_applications (what the policy permits), threatlocker_computer_groups (where policy applies), threatlocker_action_log (see policy enforcement)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: policiesZodSchema,
+  outputZodSchema: policiesOutputZodSchema,
   handler: handlePoliciesTool,
 };

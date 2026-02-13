@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination, validateDateRange, validateGuid } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateDateRange, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof actionLogZodSchema>>;
@@ -25,10 +25,6 @@ export async function handleActionLogTool(
     simulateDeny = false,
   } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'search': {
@@ -133,6 +129,28 @@ export const actionLogZodSchema = {
   simulateDeny: z.boolean().optional().describe('Include what-if denies from Monitor Only mode computers (default: false)'),
 };
 
+const actionLogObject = z.object({
+  actionLogId: z.string(),
+  fullPath: z.string(),
+  processPath: z.string(),
+  hostname: z.string(),
+  username: z.string(),
+  actionType: z.string(),
+  policyName: z.string(),
+  applicationName: z.string(),
+}).passthrough();
+
+export const actionLogOutputZodSchema = {
+  success: z.boolean(),
+  data: z.union([
+    z.array(actionLogObject).describe('search/file_history: array of audit log entries'),
+    actionLogObject.describe('get: single audit log entry'),
+    z.object({}).passthrough().describe('get_file_download/get_policy_conditions/get_testing_details: detail object'),
+  ]).optional().describe('Response data — shape varies by action'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const actionLogTool: ToolDefinition = {
   name: 'threatlocker_action_log',
   title: 'ThreatLocker Action Log',
@@ -160,5 +178,6 @@ Key response fields: actionLogId, fullPath, processPath, hostname, username, act
 Related tools: threatlocker_computers (find computer IDs), threatlocker_applications (identify apps), threatlocker_approval_requests (handle denied software)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: actionLogZodSchema,
+  outputZodSchema: actionLogOutputZodSchema,
   handler: handleActionLogTool,
 };
