@@ -57,6 +57,19 @@ describe('tool registry', () => {
     }
   });
 
+  it.each(allTools.map(t => [t.name, t]))(
+    '%s has explicit outputZodSchema',
+    (_name, tool) => {
+      const t = tool as ToolDefinition;
+      expect(t.outputZodSchema, `${t.name} should define outputZodSchema`).toBeDefined();
+      // Must have the standard envelope fields
+      expect(t.outputZodSchema!.success).toBeDefined();
+      expect(t.outputZodSchema!.data).toBeDefined();
+      expect(t.outputZodSchema!.pagination).toBeDefined();
+      expect(t.outputZodSchema!.error).toBeDefined();
+    }
+  );
+
   it('contains all expected tool names', () => {
     const expectedNames = [
       'threatlocker_computers', 'threatlocker_computer_groups', 'threatlocker_applications', 'threatlocker_policies',
