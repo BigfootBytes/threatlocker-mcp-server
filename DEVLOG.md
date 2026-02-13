@@ -1,8 +1,14 @@
 # ThreatLocker MCP Server - Development Log
 
-## 2026-02-13 — Extract shared output sub-schemas
+## 2026-02-13 — Per-Tool Output Schemas & Code Polish
 
-- Extracted `paginationOutputSchema` and `errorOutputSchema` as standalone Zod exports in `src/types/responses.ts` for per-tool output schema reuse
+- Added per-tool `outputZodSchema` to all 16 tools with entity-specific typed `data` fields (replaces generic `z.any()`)
+- Extracted shared `paginationOutputSchema` and `errorOutputSchema` to `src/types/responses.ts` for reuse across all output schemas
+- All entity schemas use `.passthrough()` to preserve extra API fields; multi-action tools use `z.union()` for action-specific shapes
+- Removed unreachable `if (!action)` dead code guards from all 16 handlers (Zod enum validation runs before handler)
+- Added registry test verifying all 16 tools have explicit `outputZodSchema` with `success`, `data`, `pagination`, `error` fields
+- Fixed 2 test files (storage-policies, network-access-policies) that asserted on removed dead code paths
+- 804 tests passing across 48 test files
 
 ## 2026-02-13 — Improve Tool Descriptions & Schemas
 
