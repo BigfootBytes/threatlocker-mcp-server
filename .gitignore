@@ -14,5 +14,8 @@ coverage/
 # Worktrees
 .worktrees/
 
+# Development log (internal only)
+DEVLOG.md
+
 # Evaluation artifacts
 evaluation.xml
