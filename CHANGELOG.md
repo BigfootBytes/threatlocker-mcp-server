@@ -2,12 +2,12 @@
 
 All notable changes to the ThreatLocker MCP Server are documented here.
 
-## Unreleased
+## 1.0.0 (2026-02-13)
 
 ### Changed
 - Removed `threatlocker_` prefix from all tool names — MCP server namespace provides context, preventing double-prefixed names in clients
 - Added `license`, `repository`, and `keywords` fields to package.json
-- Updated SECURITY.md supported versions to 0.11.x
+- Updated SECURITY.md supported versions to 1.0.x
 
 ### Fixed
 - Fixed low-severity `qs` dependency vulnerability
