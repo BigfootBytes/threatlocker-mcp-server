@@ -2,6 +2,15 @@
 
 All notable changes to the ThreatLocker MCP Server are documented here.
 
+## 1.0.1 (2026-02-13)
+
+### Fixed
+- `approval_requests` list action now defaults `statusId` to `1` (Pending) when omitted — the ThreatLocker API requires this field and returned HTTP 500 without it
+- API error responses now surface ThreatLocker's detailed error messages (e.g., "No permission to view auth key") instead of generic HTTP status text (e.g., "Unauthorized")
+
+### Added
+- Live validation script (`scripts/validate-live.ts`) for testing all tool actions against the real API
+
 ## 1.0.0 (2026-02-13)
 
 ### Changed

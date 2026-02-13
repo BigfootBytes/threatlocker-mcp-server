@@ -79,6 +79,18 @@ export function parseRetryAfter(header: string | null): number | null {
   return Math.min(seconds * 1000, MAX_BACKOFF);
 }
 
+/** Extract the human-readable Message from a ThreatLocker JSON error body. */
+function extractErrorMessage(body: string | undefined): string | undefined {
+  if (!body) return undefined;
+  try {
+    const parsed = JSON.parse(body);
+    if (typeof parsed?.Message === 'string' && parsed.Message) {
+      return parsed.Message;
+    }
+  } catch { /* not JSON */ }
+  return undefined;
+}
+
 export class ThreatLockerClient {
   readonly baseUrl: string;
   private readonly apiKey: string;
@@ -191,7 +203,8 @@ export class ThreatLockerClient {
           statusText: response.statusText,
           body: errorBody?.substring(0, 500)
         });
-        return errorResponse(code, response.statusText, response.status);
+        const message = extractErrorMessage(errorBody) ?? response.statusText;
+        return errorResponse(code, message, response.status);
       }
 
       const data = await response.json();
@@ -231,7 +244,8 @@ export class ThreatLockerClient {
           statusText: response.statusText,
           body: errorBody?.substring(0, 500)
         });
-        return errorResponse(code, response.statusText, response.status);
+        const message = extractErrorMessage(errorBody) ?? response.statusText;
+        return errorResponse(code, message, response.status);
       }
 
       const data = await response.json();

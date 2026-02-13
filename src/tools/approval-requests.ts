@@ -25,7 +25,7 @@ export async function handleApprovalRequestsTool(
       return client.post(
         'ApprovalRequest/ApprovalRequestGetByParameters',
         {
-          statusId,
+          statusId: statusId ?? 1,
           searchText,
           orderBy,
           isAscending,
@@ -83,7 +83,7 @@ export async function handleApprovalRequestsTool(
 export const approvalRequestsZodSchema = {
   action: z.enum(['list', 'get', 'count', 'get_file_download_details', 'get_permit_application', 'get_storage_approval']).describe('list=search requests, get=single request details, count=pending count, get_file_download_details=file download info, get_permit_application=permit options, get_storage_approval=storage request details'),
   approvalRequestId: z.string().max(100).optional().describe('Approval request GUID (required for get, get_file_download_details, get_permit_application, get_storage_approval). Find via list action first.'),
-  statusId: z.union([z.literal(1), z.literal(4), z.literal(6), z.literal(10), z.literal(12), z.literal(13), z.literal(16)]).optional().describe('Filter by status: 1=Pending, 4=Approved, 6=Not Learned, 10=Ignored, 12=Added to Application, 13=Escalated, 16=Self-Approved'),
+  statusId: z.union([z.literal(1), z.literal(4), z.literal(6), z.literal(10), z.literal(12), z.literal(13), z.literal(16)]).optional().describe('Filter by status: 1=Pending (default for list), 4=Approved, 6=Not Learned, 10=Ignored, 12=Added to Application, 13=Escalated, 16=Self-Approved'),
   searchText: z.string().max(1000).optional().describe('Filter by text'),
   orderBy: z.enum(['username', 'devicetype', 'actiontype', 'path', 'actiondate', 'datetime']).optional().describe('Field to order by'),
   isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
