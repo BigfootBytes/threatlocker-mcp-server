@@ -39,10 +39,10 @@ export async function handleMaintenanceModeTool(
 }
 
 export const maintenanceModeZodSchema = {
-  action: z.enum(['get_history']).describe('Action to perform'),
-  computerId: z.string().max(100).describe('Computer ID (required)'),
+  action: z.enum(['get_history']).describe('get_history=paginated maintenance mode history for a computer'),
+  computerId: z.string().max(100).describe('Computer GUID (required). Find via threatlocker_computers list first.'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
 export const maintenanceModeTool: ToolDefinition = {
@@ -51,9 +51,9 @@ export const maintenanceModeTool: ToolDefinition = {
   description: `Query ThreatLocker maintenance mode history for computers.
 
 Maintenance mode temporarily changes a computer's protection level. Types include:
-- Installation Mode (1): Allows new software installs, auto-learns new applications
-- Learning Mode (3): Monitors and records software usage without blocking
 - Monitor Only (1): Logs but doesn't block (audit mode)
+- Installation Mode (2): Allows new software installs, auto-learns new applications
+- Learning Mode (3): Monitors and records software usage without blocking
 - Tamper Protection Disabled (6): Allows ThreatLocker service changes
 
 Common workflows:
@@ -66,7 +66,7 @@ Permissions: Edit Computers, Manage Application Control Installation Mode, Manag
 Pagination: get_history is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: maintenanceModeId, maintenanceTypeId, startDateTime, endDateTime, userName.
 
-Related tools: computers (get computer IDs, see current mode), computer_groups (group-level modes)`,
+Related tools: threatlocker_computers (get computer IDs, see current mode), threatlocker_computer_groups (group-level modes)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: maintenanceModeZodSchema,
   handler: handleMaintenanceModeTool,

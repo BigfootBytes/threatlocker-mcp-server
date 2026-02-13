@@ -116,21 +116,21 @@ export async function handleActionLogTool(
 }
 
 export const actionLogZodSchema = {
-  action: z.enum(['search', 'get', 'file_history', 'get_file_download', 'get_policy_conditions', 'get_testing_details']).describe('Action to perform'),
+  action: z.enum(['search', 'get', 'file_history', 'get_file_download', 'get_policy_conditions', 'get_testing_details']).describe('search=query logs with filters, get=single event details, file_history=all events for a file path, get_file_download=file download info, get_policy_conditions=policy conditions for permit, get_testing_details=testing environment details'),
   startDate: z.string().max(100).optional().describe('Start date for search (ISO 8601 UTC)'),
   endDate: z.string().max(100).optional().describe('End date for search (ISO 8601 UTC)'),
   actionId: z.union([z.literal(1), z.literal(2), z.literal(99)]).optional().describe('Filter by action: 1=Permit, 2=Deny, 99=Any Deny'),
   actionType: z.enum(['execute', 'install', 'network', 'registry', 'read', 'write', 'move', 'delete', 'baseline', 'powershell', 'elevate', 'configuration', 'dns']).optional().describe('Filter by action type'),
   hostname: z.string().max(1000).optional().describe('Filter by hostname (wildcards supported)'),
-  actionLogId: z.string().max(100).optional().describe('Action log ID (required for get, get_file_download, get_policy_conditions, get_testing_details)'),
+  actionLogId: z.string().max(100).optional().describe('Action log GUID (required for get, get_file_download, get_policy_conditions, get_testing_details). Find via search action first.'),
   fullPath: z.string().max(1000).optional().describe('File path for search filter or file_history (wildcards supported)'),
-  computerId: z.string().max(100).optional().describe('Computer ID to scope file_history'),
+  computerId: z.string().max(100).optional().describe('Computer GUID to scope file_history. Find via threatlocker_computers list first.'),
   showChildOrganizations: z.boolean().optional().describe('Include child organization logs (default: false)'),
-  onlyTrueDenies: z.boolean().optional().describe('Filter to actual denies only (default: false)'),
+  onlyTrueDenies: z.boolean().optional().describe('Exclude simulated denies from Monitor Only mode, show only real enforced blocks (default: false)'),
   groupBys: z.array(z.number()).max(10).optional().describe('Group by: 1=Username, 2=Process Path, 6=Policy Name, 8=App Name, 9=Action Type, 17=Asset Name, 70=Risk Score'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Results per page (default: 25)'),
-  simulateDeny: z.boolean().optional().describe('Include simulated denies from monitor mode (default: false)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
+  simulateDeny: z.boolean().optional().describe('Include what-if denies from Monitor Only mode computers (default: false)'),
 };
 
 export const actionLogTool: ToolDefinition = {
@@ -157,7 +157,7 @@ Pagination: search action is paginated (use fetchAllPages=true to auto-fetch all
 Performance: always use date filters — queries without startDate/endDate can be very slow on large organizations. Use groupBys to aggregate instead of fetching all raw rows.
 Key response fields: actionLogId, fullPath, processPath, hostname, username, actionType, policyName, applicationName.
 
-Related tools: computers (find computer IDs), applications (identify apps), approval_requests (handle denied software)`,
+Related tools: threatlocker_computers (find computer IDs), threatlocker_applications (identify apps), threatlocker_approval_requests (handle denied software)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: actionLogZodSchema,
   handler: handleActionLogTool,

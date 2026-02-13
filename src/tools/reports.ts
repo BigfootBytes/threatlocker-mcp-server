@@ -34,8 +34,8 @@ export async function handleReportsTool(
 }
 
 export const reportsZodSchema = {
-  action: z.enum(['list', 'get_data']).describe('Action to perform'),
-  reportId: z.string().max(100).optional().describe('Report ID (required for get_data action)'),
+  action: z.enum(['list', 'get_data']).describe('list=show available reports, get_data=run report and get results'),
+  reportId: z.string().max(100).optional().describe('Report GUID (required for get_data action). Find via list action first.'),
 };
 
 export const reportsTool: ToolDefinition = {
@@ -54,7 +54,7 @@ Common workflows:
 Permissions: View Reports.
 Key response fields: reportId, name, description, reportData (dynamic columns per report type).
 
-Related tools: action_log (raw audit events), system_audit (portal audit trail), computers (device inventory)`,
+Related tools: threatlocker_action_log (raw audit events), threatlocker_system_audit (portal audit trail), threatlocker_computers (device inventory)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: reportsZodSchema,
   handler: handleReportsTool,

@@ -49,14 +49,14 @@ export async function handleStoragePoliciesTool(
 }
 
 export const storagePoliciesZodSchema = {
-  action: z.enum(['get', 'list']).describe('Action to perform'),
-  storagePolicyId: z.string().max(100).optional().describe('Storage policy ID (required for get)'),
+  action: z.enum(['get', 'list']).describe('get=single policy by ID, list=search/list storage policies'),
+  storagePolicyId: z.string().max(100).optional().describe('Storage policy GUID (required for get). Find via list action first.'),
   searchText: z.string().max(1000).optional().describe('Search text to filter policies'),
-  appliesToId: z.string().max(100).optional().describe('Computer group ID to filter by'),
+  appliesToId: z.string().max(100).optional().describe('Computer group GUID to filter by. Find via threatlocker_computer_groups first.'),
   policyType: z.number().optional().describe('Filter by policy type'),
   osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
 export const storagePoliciesTool: ToolDefinition = {
@@ -76,7 +76,7 @@ Permissions: View Storage Control Policies, Edit Storage Control Policies.
 Pagination: list action is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: storagePolicyId, name, policyType, osType, computerGroupName, isEnabled.
 
-Related tools: policies (application control policies), computer_groups (where policy applies), applications (what the policy permits)`,
+Related tools: threatlocker_policies (application control policies), threatlocker_computer_groups (where policy applies), threatlocker_applications (what the policy permits)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: storagePoliciesZodSchema,
   handler: handleStoragePoliciesTool,

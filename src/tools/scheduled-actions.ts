@@ -73,16 +73,16 @@ export async function handleScheduledActionsTool(
 }
 
 export const scheduledActionsZodSchema = {
-  action: z.enum(['list', 'search', 'get', 'get_applies_to']).describe('Action to perform'),
-  scheduledActionId: z.string().max(100).optional().describe('Scheduled action ID (required for get)'),
+  action: z.enum(['list', 'search', 'get', 'get_applies_to']).describe('list=all scheduled actions, search=filtered search, get=single action details, get_applies_to=available scheduling targets'),
+  scheduledActionId: z.string().max(100).optional().describe('Scheduled action GUID (required for get). Find via list or search first.'),
   scheduledType: z.number().optional().describe('Scheduled type identifier (default: 1 for Version Update)'),
   includeChildren: z.boolean().optional().describe('Include child organizations (list action only)'),
-  organizationIds: z.array(z.string().max(100)).max(50).optional().describe('Filter by organization IDs'),
-  computerGroupIds: z.array(z.string().max(100)).max(50).optional().describe('Filter by computer group IDs'),
+  organizationIds: z.array(z.string().max(100)).max(50).optional().describe('Filter by organization GUIDs. Find via threatlocker_organizations first.'),
+  computerGroupIds: z.array(z.string().max(100)).max(50).optional().describe('Filter by computer group GUIDs. Find via threatlocker_computer_groups first.'),
   orderBy: z.enum(['scheduleddatetime', 'computername', 'computergroupname', 'organizationname']).optional().describe('Field to sort by'),
   isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
 export const scheduledActionsTool: ToolDefinition = {
@@ -104,7 +104,7 @@ Permissions: Edit Computers, Edit Computer Groups, View Computers.
 Pagination: search action is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: scheduledAgentActionId, scheduledType, scheduledDateTime, computerName, computerGroupName, status.
 
-Related tools: computers (see current versions), computer_groups (target groups for updates), organizations (filter by org)`,
+Related tools: threatlocker_computers (see current versions), threatlocker_computer_groups (target groups for updates), threatlocker_organizations (filter by org)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: scheduledActionsZodSchema,
   handler: handleScheduledActionsTool,

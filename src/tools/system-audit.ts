@@ -80,7 +80,7 @@ export async function handleSystemAuditTool(
 }
 
 export const systemAuditZodSchema = {
-  action: z.enum(['search', 'health_center']).describe('Action to perform'),
+  action: z.enum(['search', 'health_center']).describe('search=query audit logs with filters, health_center=health dashboard data'),
   startDate: z.string().max(100).optional().describe('Start date (ISO 8601 UTC)'),
   endDate: z.string().max(100).optional().describe('End date (ISO 8601 UTC)'),
   username: z.string().max(500).optional().describe('Filter by username (wildcards supported)'),
@@ -89,11 +89,11 @@ export const systemAuditZodSchema = {
   effectiveAction: z.enum(['Denied', 'Permitted']).optional().describe('Filter by effective action'),
   details: z.string().max(1000).optional().describe('Filter by details text (wildcards supported)'),
   viewChildOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
-  objectId: z.string().max(100).optional().describe('Filter by specific object ID'),
-  days: z.number().optional().describe('Number of days for health_center (default: 7)'),
+  objectId: z.string().max(100).optional().describe('Filter by specific object GUID'),
+  days: z.number().optional().describe('Number of days for health_center (default: 7, min: 1, max: 365)'),
   searchText: z.string().max(1000).optional().describe('Search text for health_center'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
 export const systemAuditTool: ToolDefinition = {
@@ -117,7 +117,7 @@ Permissions: View System Audit, View Health Center.
 Pagination: search and health_center actions are paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: systemAuditId, username, action, effectiveAction, details, ipAddress, dateTime.
 
-Related tools: action_log (endpoint events, not portal events), organizations (filter by org)`,
+Related tools: threatlocker_action_log (endpoint events, not portal events), threatlocker_organizations (filter by org)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: systemAuditZodSchema,
   handler: handleSystemAuditTool,

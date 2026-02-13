@@ -44,10 +44,10 @@ export async function handleTagsTool(
 }
 
 export const tagsZodSchema = {
-  action: z.enum(['get', 'dropdown']).describe('Action to perform'),
-  tagId: z.string().max(100).optional().describe('Tag ID (required for get)'),
+  action: z.enum(['get', 'dropdown']).describe('get=single tag details, dropdown=list all available tags for selection'),
+  tagId: z.string().max(100).optional().describe('Tag GUID (required for get). Find via dropdown action first.'),
   includeBuiltIns: z.boolean().optional().describe('Include ThreatLocker built-in tags (default: false)'),
-  tagType: z.number().optional().describe('Tag type filter (default: 1)'),
+  tagType: z.number().optional().describe('Tag type filter: 1=Network tags (default)'),
   includeNetworkTagInMaster: z.boolean().optional().describe('Include network tags in master (default: true)'),
 };
 
@@ -73,7 +73,7 @@ Parent organization tags appear as "parentOrgName\\tagName" format.
 Permissions: Edit Network Control Policies, Manage Tags, Edit Application Control Policies.
 Key response fields: tagId, name, tagType, values (IP/domain/port entries).
 
-Related tools: policies (use tags in policy rules), applications (ringfence with tags)`,
+Related tools: threatlocker_policies (use tags in policy rules), threatlocker_applications (ringfence with tags)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: tagsZodSchema,
   handler: handleTagsTool,

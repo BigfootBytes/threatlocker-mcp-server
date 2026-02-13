@@ -49,13 +49,13 @@ export async function handleOrganizationsTool(
 }
 
 export const organizationsZodSchema = {
-  action: z.enum(['list_children', 'get_auth_key', 'get_for_move_computers']).describe('Action to perform'),
+  action: z.enum(['list_children', 'get_auth_key', 'get_for_move_computers']).describe('list_children=list child orgs, get_auth_key=installation key for current org, get_for_move_computers=orgs available for computer relocation'),
   searchText: z.string().max(1000).optional().describe('Filter by name (for list_children)'),
   includeAllChildren: z.boolean().optional().describe('Include nested children (default: false)'),
   orderBy: z.enum(['billingMethod', 'businessClassificationName', 'dateAdded', 'name']).optional().describe('Field to order by'),
   isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
 export const organizationsTool: ToolDefinition = {
@@ -78,7 +78,7 @@ Permissions: View Organizations, Edit Organizations, Super Admin - Child.
 Pagination: list_children is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: organizationId, name, displayName, dateAdded, computerCount.
 
-Related tools: computers (computers in org), computer_groups (groups in org), policies (policies in org)`,
+Related tools: threatlocker_computers (computers in org), threatlocker_computer_groups (groups in org), threatlocker_policies (policies in org)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: organizationsZodSchema,
   handler: handleOrganizationsTool,

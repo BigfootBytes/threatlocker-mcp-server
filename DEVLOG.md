@@ -1,5 +1,19 @@
 # ThreatLocker MCP Server - Development Log
 
+## 2026-02-13 — Improve Tool Descriptions & Schemas
+
+- **Critical bug fix**: Fixed maintenance mode type IDs — Installation Mode was listed as type 1 (duplicate of Monitor Only). Corrected to: Monitor Only=1, Installation Mode=2, Learning=3, Tamper Protection Disabled=6
+- **Action enum descriptions**: Replaced generic "Action to perform" with per-action summaries in all 16 tools (e.g., `list=search computers, get=details by ID, checkins=connection history`)
+- **GUID format hints**: Changed "ID" to "GUID" with discovery hints across all ID parameters (e.g., `'Computer GUID (required). Find via threatlocker_computers list first.'`)
+- **Enum value meanings**: Added inline value docs to `statusId`, `tagType`, `onlyTrueDenies`, `simulateDeny`, `includeDenies` parameter descriptions
+- **Pagination constraints**: Added "max: 500" to all `pageSize` descriptions across 12 tools
+- **installKey schema fix**: Changed `z.string().max(500)` to `z.string().length(24)` in computer-groups to match `validateInstallKey` enforcement
+- **Days constraint**: Added "min: 1, max: 365" to system-audit `days` parameter description
+- **Related tools prefix**: Changed shorthand tool references to full `threatlocker_` prefixed names in all 16 tool descriptions
+- **No-list-all warning**: Added note to policies tool that there is no list-all action — must use `threatlocker_applications` first
+- No handler logic changes — description/schema only
+- 772 tests passing across 48 test files
+
 ## 2026-02-12 — Deduplicate Resources + MCP Prompts
 
 - **Resource deduplication**: Extracted shared `ResourceDefinition` interface and `allResources` array into `src/resources/registry.ts` — both `server.ts` (MCP registration) and `http.ts` (REST endpoints) now import from one source, eliminating duplicated URIs, descriptions, and data logic

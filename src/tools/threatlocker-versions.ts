@@ -25,7 +25,7 @@ export async function handleThreatLockerVersionsTool(
 }
 
 export const threatlockerVersionsZodSchema = {
-  action: z.enum(['list']).describe('Action to perform'),
+  action: z.enum(['list']).describe('list=get all available ThreatLocker agent versions'),
 };
 
 export const threatlockerVersionsTool: ToolDefinition = {
@@ -46,7 +46,7 @@ Permissions: Edit Computers, Edit Computer Groups, View Computers, Install Compu
 No pagination — returns all versions in a single response.
 Key response fields: label (version string), value (version ID), isEnabled, dateTime (release date), isDefault, OSTypes.
 
-Related tools: computers (see installed versions per machine), scheduled_actions (schedule version updates), computer_groups (group-level version settings)`,
+Related tools: threatlocker_computers (see installed versions per machine), threatlocker_scheduled_actions (schedule version updates), threatlocker_computer_groups (group-level version settings)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: threatlockerVersionsZodSchema,
   handler: handleThreatLockerVersionsTool,

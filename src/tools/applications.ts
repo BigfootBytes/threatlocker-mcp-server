@@ -122,8 +122,8 @@ export async function handleApplicationsTool(
 }
 
 export const applicationsZodSchema = {
-  action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy']).describe('Action to perform'),
-  applicationId: z.string().max(100).optional().describe('Application ID (required for get, research, files, get_for_network_policy)'),
+  action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy']).describe('search=find applications, get=details by ID, research=ThreatLocker security analysis, files=list file rules in app, match=find apps by file hash/cert/path, get_for_maintenance=apps for maintenance mode, get_for_network_policy=app for network policy'),
+  applicationId: z.string().max(100).optional().describe('Application GUID (required for get, research, files, get_for_network_policy). Find via search action first.'),
   searchText: z.string().max(1000).optional().describe('Search text for search and files actions'),
   searchBy: z.enum(['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries']).optional().describe('Field to search by (default: app)'),
   osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
@@ -135,7 +135,7 @@ export const applicationsZodSchema = {
   permittedApplications: z.boolean().optional().describe('Only show apps with active permit policies (default: false)'),
   countries: z.array(z.string().max(10)).max(20).optional().describe('ISO country codes to filter by (use with searchBy=countries)'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
   hash: z.string().max(500).optional().describe('SHA256 hash for match action'),
   path: z.string().max(1000).optional().describe('Full file path for match action'),
   processPath: z.string().max(1000).optional().describe('Process path for match action'),
@@ -167,7 +167,7 @@ Permissions: Edit Application Control Applications.
 Pagination: search and files actions are paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: applicationId, name, osType, computerCount, policyCount. Research fields: concernRating, reviewRating, categories, countriesWhereCodeCompiled.
 
-Related tools: policies (see policies using this app), action_log (see app activity), approval_requests (pending approvals for this app)`,
+Related tools: threatlocker_policies (see policies using this app), threatlocker_action_log (see app activity), threatlocker_approval_requests (pending approvals for this app)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: applicationsZodSchema,
   handler: handleApplicationsTool,

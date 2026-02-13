@@ -88,18 +88,18 @@ export async function handleComputersTool(
 }
 
 export const computersZodSchema = {
-  action: z.enum(['list', 'get', 'checkins', 'get_install_info']).describe('Action to perform'),
-  computerId: z.string().max(100).optional().describe('Computer ID (required for get and checkins)'),
+  action: z.enum(['list', 'get', 'checkins', 'get_install_info']).describe('list=search computers, get=details by ID, checkins=connection history, get_install_info=deployment info'),
+  computerId: z.string().max(100).optional().describe('Computer GUID (required for get and checkins). Find via list action first.'),
   searchText: z.string().max(1000).optional().describe('Search text for list action'),
   searchBy: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional().describe('Field to search by: 1=Computer/Asset Name, 2=Username, 3=Computer Group Name, 4=Last Check-in IP, 5=Organization Name'),
   action_filter: z.enum(['Secure', 'Installation', 'Learning', 'MonitorOnly']).optional().describe('Filter by computer mode for list action'),
-  computerGroup: z.string().max(100).optional().describe('Computer group ID for list action'),
+  computerGroup: z.string().max(100).optional().describe('Computer group GUID for list action. Find via threatlocker_computer_groups first.'),
   orderBy: z.enum(['computername', 'group', 'action', 'lastcheckin', 'computerinstalldate', 'deniedcountthreedays', 'updatechannel', 'threatlockerversion']).optional().describe('Field to sort by (default: computername)'),
   isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
   childOrganizations: z.boolean().optional().describe('Include child organizations (default: false)'),
   kindOfAction: z.enum(['Computer Mode', 'TamperProtectionDisabled', 'NeedsReview', 'ReadyToSecure', 'BaselineNotUploaded', 'Update Channel']).optional().describe('Additional filter for computer state'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
   hideHeartbeat: z.boolean().optional().describe('Hide heartbeat entries for checkins action'),
 };
 
@@ -120,7 +120,7 @@ Permissions: View Computers, Edit Computers (for modifications), Install Compute
 Pagination: list and checkins actions are paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: computerId, computerName, computerGroupName, lastCheckin, action (Secure/Installation/Learning/MonitorOnly), threatLockerVersion.
 
-Related tools: computer_groups (manage groups), maintenance_mode (maintenance history), action_log (audit events)`,
+Related tools: threatlocker_computer_groups (manage groups), threatlocker_maintenance_mode (maintenance history), threatlocker_action_log (audit events)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: computersZodSchema,
   handler: handleComputersTool,

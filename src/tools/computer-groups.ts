@@ -84,7 +84,7 @@ export async function handleComputerGroupsTool(
 }
 
 export const computerGroupsZodSchema = {
-  action: z.enum(['list', 'dropdown', 'dropdown_with_org', 'get_for_permit', 'get_by_install_key']).describe('Action to perform'),
+  action: z.enum(['list', 'dropdown', 'dropdown_with_org', 'get_for_permit', 'get_by_install_key']).describe('list=full details with computers, dropdown=simple list for selection, dropdown_with_org=includes parent/child orgs, get_for_permit=groups for approval workflow, get_by_install_key=get group by 24-char install key'),
   osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
   includeGlobal: z.boolean().optional().describe('Include global application-permitting group (list action)'),
   includeAllComputers: z.boolean().optional().describe('Include all computers in response (list action)'),
@@ -95,11 +95,11 @@ export const computerGroupsZodSchema = {
   includeIngestors: z.boolean().optional().describe('Include ingestors (list action)'),
   includeAccessDevices: z.boolean().optional().describe('Include access devices (list action)'),
   includeRemovedComputers: z.boolean().optional().describe('Include removed computers (list action)'),
-  computerGroupId: z.string().max(100).optional().describe('Filter by specific computer group ID (list action)'),
+  computerGroupId: z.string().max(100).optional().describe('Filter by specific computer group GUID (list action)'),
   hideGlobals: z.boolean().optional().describe('Hide global groups (dropdown action)'),
   includeAvailableOrganizations: z.boolean().optional().describe('Include child and parent organizations (dropdown_with_org action)'),
   includeAllPolicies: z.boolean().optional().describe('Include all policies attached to groups (list action)'),
-  installKey: z.string().max(500).optional().describe('24-character install key (required for get_by_install_key)'),
+  installKey: z.string().length(24).optional().describe('24-character install key (required for get_by_install_key)'),
 };
 
 export const computerGroupsTool: ToolDefinition = {
@@ -120,7 +120,7 @@ Common workflows:
 Permissions: Super Admin (for list), Edit Computers, Edit Computer Groups, View Computers.
 Key response fields: computerGroupId, name, osType, computerCount, organizationId.
 
-Related tools: computers (list computers in groups), policies (policies applied to groups)`,
+Related tools: threatlocker_computers (list computers in groups), threatlocker_policies (policies applied to groups)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: computerGroupsZodSchema,
   handler: handleComputerGroupsTool,

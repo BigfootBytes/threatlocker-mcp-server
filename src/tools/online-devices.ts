@@ -29,9 +29,9 @@ export async function handleOnlineDevicesTool(
 }
 
 export const onlineDevicesZodSchema = {
-  action: z.enum(['list']).describe('Action to perform'),
+  action: z.enum(['list']).describe('list=get currently online devices'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
-  pageSize: z.number().optional().describe('Results per page (default: 25)'),
+  pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
 export const onlineDevicesTool: ToolDefinition = {
@@ -51,7 +51,7 @@ Permissions: View Computers.
 Pagination: list action is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: computerName, computerGroupName, lastCheckin, ipAddress.
 
-Related tools: computers (full inventory with details, modes, groups), computer_groups (group membership and structure)`,
+Related tools: threatlocker_computers (full inventory with details, modes, groups), threatlocker_computer_groups (group membership and structure)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: onlineDevicesZodSchema,
   handler: handleOnlineDevicesTool,
