@@ -13,3 +13,6 @@ coverage/
 
 # Worktrees
 .worktrees/
+
+# Evaluation artifacts
+evaluation.xml
