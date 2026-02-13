@@ -14,6 +14,10 @@ coverage/
 # Worktrees
 .worktrees/
 
+# Internal docs (plans, designs, API reference)
+docs/
+OfficialAPI.md
+
 # Development log (internal only)
 DEVLOG.md
 
