@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof computersZodSchema>>;
@@ -23,10 +23,6 @@ export async function handleComputersTool(
     hideHeartbeat = false,
   } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'list': {
@@ -103,6 +99,31 @@ export const computersZodSchema = {
   hideHeartbeat: z.boolean().optional().describe('Hide heartbeat entries for checkins action'),
 };
 
+const computerObject = z.object({
+  computerId: z.string(),
+  computerName: z.string(),
+  computerGroupName: z.string(),
+  lastCheckin: z.string(),
+  action: z.string().describe('Secure, Installation, Learning, or MonitorOnly'),
+  threatLockerVersion: z.string(),
+}).passthrough();
+
+export const computersOutputZodSchema = {
+  success: z.boolean(),
+  data: z.union([
+    z.array(computerObject).describe('list: array of computers'),
+    computerObject.describe('get: single computer detail'),
+    z.array(z.object({
+      computerId: z.string(),
+      checkinType: z.string(),
+      dateTime: z.string(),
+    }).passthrough()).describe('checkins: array of check-in records'),
+    z.object({}).passthrough().describe('get_install_info: installation details'),
+  ]).optional().describe('Response data — shape varies by action'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const computersTool: ToolDefinition = {
   name: 'threatlocker_computers',
   title: 'ThreatLocker Computers',
@@ -123,5 +144,6 @@ Key response fields: computerId, computerName, computerGroupName, lastCheckin, a
 Related tools: threatlocker_computer_groups (manage groups), threatlocker_maintenance_mode (maintenance history), threatlocker_action_log (audit events)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: computersZodSchema,
+  outputZodSchema: computersOutputZodSchema,
   handler: handleComputersTool,
 };

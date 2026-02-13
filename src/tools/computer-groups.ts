@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient } from '../client.js';
-import { ApiResponse, errorResponse, validateGuid, validateInstallKey } from '../types/responses.js';
+import { ApiResponse, errorResponse, validateGuid, validateInstallKey, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof computerGroupsZodSchema>>;
@@ -27,10 +27,6 @@ export async function handleComputerGroupsTool(
     includeAllPolicies = false,
     installKey,
   } = input as ToolInput;
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'list': {
@@ -102,6 +98,25 @@ export const computerGroupsZodSchema = {
   installKey: z.string().length(24).optional().describe('24-character install key (required for get_by_install_key)'),
 };
 
+const computerGroupObject = z.object({
+  computerGroupId: z.string(),
+  name: z.string(),
+  osType: z.number(),
+  computerCount: z.number(),
+  organizationId: z.string(),
+}).passthrough();
+
+export const computerGroupsOutputZodSchema = {
+  success: z.boolean(),
+  data: z.union([
+    z.object({}).passthrough().describe('list: nested object with groups, computers, policies'),
+    z.array(computerGroupObject).describe('dropdown/dropdown_with_org/get_for_permit: array of groups'),
+    computerGroupObject.describe('get_by_install_key: single group'),
+  ]).optional().describe('Response data — shape varies by action'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const computerGroupsTool: ToolDefinition = {
   name: 'threatlocker_computer_groups',
   title: 'ThreatLocker Computer Groups',
@@ -123,5 +138,6 @@ Key response fields: computerGroupId, name, osType, computerCount, organizationI
 Related tools: threatlocker_computers (list computers in groups), threatlocker_policies (policies applied to groups)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: computerGroupsZodSchema,
+  outputZodSchema: computerGroupsOutputZodSchema,
   handler: handleComputerGroupsTool,
 };

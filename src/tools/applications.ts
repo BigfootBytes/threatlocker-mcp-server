@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination, validateGuid, validateSha256 } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid, validateSha256, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof applicationsZodSchema>>;
@@ -30,10 +30,6 @@ export async function handleApplicationsTool(
     createdBy,
   } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'search':
@@ -144,6 +140,39 @@ export const applicationsZodSchema = {
   createdBy: z.string().max(1000).optional().describe('Created by path for match action'),
 };
 
+const applicationObject = z.object({
+  applicationId: z.string(),
+  name: z.string(),
+  osType: z.number(),
+  computerCount: z.number(),
+  policyCount: z.number(),
+}).passthrough();
+
+const researchObject = z.object({
+  productName: z.string(),
+  productDescription: z.string(),
+  concernRating: z.number(),
+  reviewRating: z.number(),
+  categories: z.array(z.string()),
+  countriesWhereCodeCompiled: z.array(z.string()),
+}).passthrough();
+
+export const applicationsOutputZodSchema = {
+  success: z.boolean(),
+  data: z.union([
+    z.array(applicationObject).describe('search/match/get_for_maintenance: array of applications'),
+    applicationObject.describe('get/get_for_network_policy: single application'),
+    researchObject.describe('research: ThreatLocker security analysis'),
+    z.array(z.object({
+      fullPath: z.string(),
+      hash: z.string(),
+      cert: z.string(),
+    }).passthrough()).describe('files: array of file rules'),
+  ]).optional().describe('Response data — shape varies by action'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const applicationsTool: ToolDefinition = {
   name: 'threatlocker_applications',
   title: 'ThreatLocker Applications',
@@ -170,5 +199,6 @@ Key response fields: applicationId, name, osType, computerCount, policyCount. Re
 Related tools: threatlocker_policies (see policies using this app), threatlocker_action_log (see app activity), threatlocker_approval_requests (pending approvals for this app)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: applicationsZodSchema,
+  outputZodSchema: applicationsOutputZodSchema,
   handler: handleApplicationsTool,
 };
