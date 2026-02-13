@@ -1,15 +1,15 @@
 services:
   # HTTP mode - credentials passed per-request
-  threatlocker-mcp-http:
-    image: ghcr.io/bigfootbytes/threatlocker-mcp:latest
+  threatlocker-mcp-server-http:
+    image: ghcr.io/bigfootbytes/threatlocker-mcp-server:latest
     environment:
       - TRANSPORT=http
     ports:
       - "8080:8080"
 
   # Stdio mode - for local MCP client use
-  threatlocker-mcp-stdio:
-    image: ghcr.io/bigfootbytes/threatlocker-mcp:latest
+  threatlocker-mcp-server-stdio:
+    image: ghcr.io/bigfootbytes/threatlocker-mcp-server:latest
     env_file:
       - .env
     stdin_open: true

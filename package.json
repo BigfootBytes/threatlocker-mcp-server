@@ -5,7 +5,7 @@
   "license": "GPL-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/BigfootBytes/threatlocker-mcp.git"
+    "url": "https://github.com/BigfootBytes/threatlocker-mcp-server.git"
   },
   "keywords": [
     "threatlocker",

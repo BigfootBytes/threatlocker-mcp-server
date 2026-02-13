@@ -56,14 +56,14 @@ This way, ThreatLocker prevents any other process from reading your API keys, ev
 ### Option 1: Docker (Recommended)
 
 ```bash
-docker pull ghcr.io/bigfootbytes/threatlocker-mcp:latest
+docker pull ghcr.io/bigfootbytes/threatlocker-mcp-server:latest
 ```
 
 ### Option 2: From Source
 
 ```bash
-git clone https://github.com/BigfootBytes/threatlocker-mcp.git
-cd threatlocker-mcp
+git clone https://github.com/BigfootBytes/threatlocker-mcp-server.git
+cd threatlocker-mcp-server
 npm install
 npm run build
 ```
@@ -87,7 +87,7 @@ Add to your MCP config file:
   "mcpServers": {
     "threatlocker": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "ghcr.io/bigfootbytes/threatlocker-mcp:latest"],
+      "args": ["run", "-i", "--rm", "ghcr.io/bigfootbytes/threatlocker-mcp-server:latest"],
       "env": {
         "THREATLOCKER_API_KEY": "your-api-key",
         "THREATLOCKER_BASE_URL": "https://portalapi.g.threatlocker.com/portalapi",
@@ -104,7 +104,7 @@ Add to your MCP config file:
   "mcpServers": {
     "threatlocker": {
       "command": "node",
-      "args": ["/path/to/threatlocker-mcp/dist/index.js"],
+      "args": ["/path/to/threatlocker-mcp-server/dist/index.js"],
       "env": {
         "THREATLOCKER_API_KEY": "your-api-key",
         "THREATLOCKER_BASE_URL": "https://portalapi.g.threatlocker.com/portalapi"
@@ -184,7 +184,7 @@ Add to your MCP config file:
 For remote deployments, run in HTTP mode:
 
 ```bash
-docker run -d -p 8080:8080 -e TRANSPORT=http ghcr.io/bigfootbytes/threatlocker-mcp:latest
+docker run -d -p 8080:8080 -e TRANSPORT=http ghcr.io/bigfootbytes/threatlocker-mcp-server:latest
 ```
 
 ### Endpoints

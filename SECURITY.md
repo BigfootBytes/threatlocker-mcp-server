@@ -13,7 +13,7 @@ Only the latest minor release receives security updates.
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, report them via [GitHub Security Advisories](https://github.com/BigfootBytes/threatlocker-mcp/security/advisories/new).
+Instead, report them via [GitHub Security Advisories](https://github.com/BigfootBytes/threatlocker-mcp-server/security/advisories/new).
 
 Please include:
 
