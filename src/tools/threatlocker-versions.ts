@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient } from '../client.js';
-import { ApiResponse, errorResponse } from '../types/responses.js';
+import { ApiResponse, errorResponse, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof threatlockerVersionsZodSchema>>;
@@ -10,10 +10,6 @@ export async function handleThreatLockerVersionsTool(
   input: Record<string, unknown>
 ): Promise<ApiResponse<unknown>> {
   const { action } = input as ToolInput;
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'list':
@@ -26,6 +22,20 @@ export async function handleThreatLockerVersionsTool(
 
 export const threatlockerVersionsZodSchema = {
   action: z.enum(['list']).describe('list=get all available ThreatLocker agent versions'),
+};
+
+export const threatlockerVersionsOutputZodSchema = {
+  success: z.boolean(),
+  data: z.array(z.object({
+    label: z.string().describe('Version string (e.g., "9.3.3")'),
+    value: z.string().describe('ThreatLockerVersionId'),
+    isEnabled: z.boolean().describe('Whether this version is installable'),
+    dateTime: z.string().describe('When version was added to portal'),
+    isDefault: z.boolean().describe('Default version for new computer groups'),
+    OSTypes: z.number().describe('Operating system type identifier'),
+  }).passthrough()).optional().describe('list: array of agent versions'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
 };
 
 export const threatlockerVersionsTool: ToolDefinition = {
@@ -49,5 +59,6 @@ Key response fields: label (version string), value (version ID), isEnabled, date
 Related tools: threatlocker_computers (see installed versions per machine), threatlocker_scheduled_actions (schedule version updates), threatlocker_computer_groups (group-level version settings)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: threatlockerVersionsZodSchema,
+  outputZodSchema: threatlockerVersionsOutputZodSchema,
   handler: handleThreatLockerVersionsTool,
 };

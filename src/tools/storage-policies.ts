@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromJsonHeader } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof storagePoliciesZodSchema>>;
@@ -11,10 +11,6 @@ export async function handleStoragePoliciesTool(
 ): Promise<ApiResponse<unknown>> {
   const { action, storagePolicyId, searchText, appliesToId, policyType, osType } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'get': {
@@ -59,6 +55,25 @@ export const storagePoliciesZodSchema = {
   pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
+const storagePolicyObject = z.object({
+  storagePolicyId: z.string(),
+  name: z.string(),
+  policyType: z.number(),
+  osType: z.number(),
+  computerGroupName: z.string(),
+  isEnabled: z.boolean(),
+}).passthrough();
+
+export const storagePoliciesOutputZodSchema = {
+  success: z.boolean(),
+  data: z.union([
+    storagePolicyObject.describe('get: single storage policy'),
+    z.array(storagePolicyObject).describe('list: array of storage policies'),
+  ]).optional().describe('Response data — shape varies by action'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const storagePoliciesTool: ToolDefinition = {
   name: 'threatlocker_storage_policies',
   title: 'ThreatLocker Storage Policies',
@@ -79,5 +94,6 @@ Key response fields: storagePolicyId, name, policyType, osType, computerGroupNam
 Related tools: threatlocker_policies (application control policies), threatlocker_computer_groups (where policy applies), threatlocker_applications (what the policy permits)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: storagePoliciesZodSchema,
+  outputZodSchema: storagePoliciesOutputZodSchema,
   handler: handleStoragePoliciesTool,
 };

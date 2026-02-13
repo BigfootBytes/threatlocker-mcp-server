@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient, extractPaginationFromJsonHeader } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination, validateGuid } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof networkAccessPoliciesZodSchema>>;
@@ -11,10 +11,6 @@ export async function handleNetworkAccessPoliciesTool(
 ): Promise<ApiResponse<unknown>> {
   const { action, networkAccessPolicyId, searchText, appliesToId } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'get': {
@@ -55,6 +51,24 @@ export const networkAccessPoliciesZodSchema = {
   pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
+const networkAccessPolicyObject = z.object({
+  networkAccessPolicyId: z.string(),
+  name: z.string(),
+  computerGroupName: z.string(),
+  isEnabled: z.boolean(),
+  applicationName: z.string(),
+}).passthrough();
+
+export const networkAccessPoliciesOutputZodSchema = {
+  success: z.boolean(),
+  data: z.union([
+    networkAccessPolicyObject.describe('get: single network access policy'),
+    z.array(networkAccessPolicyObject).describe('list: array of network access policies'),
+  ]).optional().describe('Response data — shape varies by action'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
+};
+
 export const networkAccessPoliciesTool: ToolDefinition = {
   name: 'threatlocker_network_access_policies',
   title: 'ThreatLocker Network Access Policies',
@@ -75,5 +89,6 @@ Key response fields: networkAccessPolicyId, name, computerGroupName, isEnabled, 
 Related tools: threatlocker_policies (application control policies), threatlocker_computer_groups (where policy applies), threatlocker_tags (network tags used in policies)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: networkAccessPoliciesZodSchema,
+  outputZodSchema: networkAccessPoliciesOutputZodSchema,
   handler: handleNetworkAccessPoliciesTool,
 };

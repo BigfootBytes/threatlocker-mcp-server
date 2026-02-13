@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ThreatLockerClient } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination } from '../types/responses.js';
+import { ApiResponse, errorResponse, clampPagination, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof onlineDevicesZodSchema>>;
@@ -11,10 +11,6 @@ export async function handleOnlineDevicesTool(
 ): Promise<ApiResponse<unknown>> {
   const { action } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
-
-  if (!action) {
-    return errorResponse('BAD_REQUEST', 'action is required');
-  }
 
   switch (action) {
     case 'list':
@@ -32,6 +28,18 @@ export const onlineDevicesZodSchema = {
   action: z.enum(['list']).describe('list=get currently online devices'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
+};
+
+export const onlineDevicesOutputZodSchema = {
+  success: z.boolean(),
+  data: z.array(z.object({
+    computerName: z.string(),
+    computerGroupName: z.string(),
+    lastCheckin: z.string(),
+    ipAddress: z.string(),
+  }).passthrough()).optional().describe('list: array of online device objects'),
+  pagination: paginationOutputSchema.optional(),
+  error: errorOutputSchema.optional(),
 };
 
 export const onlineDevicesTool: ToolDefinition = {
@@ -54,5 +62,6 @@ Key response fields: computerName, computerGroupName, lastCheckin, ipAddress.
 Related tools: threatlocker_computers (full inventory with details, modes, groups), threatlocker_computer_groups (group membership and structure)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: onlineDevicesZodSchema,
+  outputZodSchema: onlineDevicesOutputZodSchema,
   handler: handleOnlineDevicesTool,
 };

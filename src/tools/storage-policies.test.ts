@@ -25,7 +25,7 @@ describe('storage_policies tool', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.code).toBe('BAD_REQUEST');
-      expect(result.error.message).toBe('action is required');
+      expect(result.error.message).toContain('Unknown action');
     }
   });
 
