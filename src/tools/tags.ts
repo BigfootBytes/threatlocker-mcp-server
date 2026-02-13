@@ -53,11 +53,16 @@ const tagObject = z.object({
   tagType: z.number(),
 }).passthrough();
 
+const dropdownItem = z.object({
+  label: z.string(),
+  value: z.string(),
+}).passthrough();
+
 export const tagsOutputZodSchema = {
   success: z.boolean(),
   data: z.union([
     tagObject.describe('get: single tag with values'),
-    z.array(tagObject).describe('dropdown: array of available tags'),
+    z.array(dropdownItem).describe('dropdown: array of dropdown items'),
   ]).optional().describe('Response data — shape varies by action'),
   pagination: paginationOutputSchema.optional(),
   error: errorOutputSchema.optional(),

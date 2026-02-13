@@ -62,10 +62,16 @@ const organizationObject = z.object({
   computerCount: z.number(),
 }).passthrough();
 
+const dropdownItem = z.object({
+  label: z.string(),
+  value: z.string(),
+}).passthrough();
+
 export const organizationsOutputZodSchema = {
   success: z.boolean(),
   data: z.union([
-    z.array(organizationObject).describe('list_children/get_for_move_computers: array of organizations'),
+    z.array(organizationObject).describe('list_children: array of organizations'),
+    z.array(dropdownItem).describe('get_for_move_computers: array of dropdown items'),
     z.object({}).passthrough().describe('get_auth_key: authentication key details'),
   ]).optional().describe('Response data — shape varies by action'),
   pagination: paginationOutputSchema.optional(),

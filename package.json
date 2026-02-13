@@ -1,6 +1,6 @@
 {
   "name": "threatlocker-mcp-server",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "MCP server for ThreatLocker API",
   "license": "GPL-3.0",
   "repository": {

@@ -102,9 +102,13 @@ export const computersZodSchema = {
 const computerObject = z.object({
   computerId: z.string(),
   computerName: z.string(),
-  computerGroupName: z.string(),
-  lastCheckin: z.string(),
+  hostname: z.string(),
+  group: z.string().describe('Computer group name'),
+  organizationId: z.string(),
+  osType: z.number(),
   action: z.string().describe('Secure, Installation, Learning, or MonitorOnly'),
+  mode: z.string(),
+  lastCheckin: z.string(),
   threatLockerVersion: z.string(),
 }).passthrough();
 

@@ -34,16 +34,15 @@ export const reportsZodSchema = {
   reportId: z.string().max(100).optional().describe('Report GUID (required for get_data action). Find via list action first.'),
 };
 
-const reportObject = z.object({
-  reportId: z.string(),
-  name: z.string(),
-  description: z.string(),
+const reportCategoryObject = z.object({
+  category: z.string(),
+  reports: z.array(z.object({}).passthrough()),
 }).passthrough();
 
 export const reportsOutputZodSchema = {
   success: z.boolean(),
   data: z.union([
-    z.array(reportObject).describe('list: array of available reports'),
+    z.array(reportCategoryObject).describe('list: array of report categories, each with reports array'),
     z.object({}).passthrough().describe('get_data: dynamic report data (columns vary by report type)'),
   ]).optional().describe('Response data — shape varies by action'),
   pagination: paginationOutputSchema.optional(),

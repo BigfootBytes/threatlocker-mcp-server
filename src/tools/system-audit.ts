@@ -92,19 +92,32 @@ export const systemAuditZodSchema = {
   pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
 
-const systemAuditObject = z.object({
+const systemAuditSearchObject = z.object({
   systemAuditId: z.string(),
-  username: z.string(),
+  emailAddress: z.string(),
   action: z.string().describe('Create, Delete, Logon, Modify, Read'),
   effectiveAction: z.string().describe('Denied or Permitted'),
-  details: z.string(),
+  details: z.object({}).passthrough(),
   ipAddress: z.string(),
   dateTime: z.string(),
+  organizationId: z.string(),
+}).passthrough();
+
+const healthCenterObject = z.object({
+  systemAuditId: z.string(),
+  emailAddress: z.string(),
+  dateTime: z.string(),
+  effectiveAction: z.string(),
+  ipAddress: z.string(),
+  organizationId: z.string(),
 }).passthrough();
 
 export const systemAuditOutputZodSchema = {
   success: z.boolean(),
-  data: z.array(systemAuditObject).optional().describe('search/health_center: array of audit entries'),
+  data: z.union([
+    z.array(systemAuditSearchObject).describe('search: array of audit entries'),
+    z.array(healthCenterObject).describe('health_center: array of health center entries'),
+  ]).optional().describe('Response data — shape varies by action'),
   pagination: paginationOutputSchema.optional(),
   error: errorOutputSchema.optional(),
 };

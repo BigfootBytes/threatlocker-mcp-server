@@ -95,11 +95,12 @@ export const approvalRequestsZodSchema = {
 const approvalRequestObject = z.object({
   approvalRequestId: z.string(),
   username: z.string(),
-  fullPath: z.string(),
-  actionType: z.string(),
+  hostname: z.string(),
+  path: z.string(),
   statusId: z.number().describe('1=Pending, 4=Approved, 6=Not Learned, 10=Ignored, 12=Added, 13=Escalated, 16=Self-Approved'),
-  computerName: z.string(),
-  requestDateTime: z.string(),
+  dateTime: z.string(),
+  organizationId: z.string(),
+  computerId: z.string(),
 }).passthrough();
 
 export const approvalRequestsOutputZodSchema = {
@@ -107,7 +108,7 @@ export const approvalRequestsOutputZodSchema = {
   data: z.union([
     z.array(approvalRequestObject).describe('list: array of approval requests'),
     approvalRequestObject.describe('get/get_file_download_details/get_permit_application/get_storage_approval: single request'),
-    z.object({ count: z.number() }).passthrough().describe('count: pending request count'),
+    z.number().describe('count: pending request count'),
   ]).optional().describe('Response data — shape varies by action'),
   pagination: paginationOutputSchema.optional(),
   error: errorOutputSchema.optional(),

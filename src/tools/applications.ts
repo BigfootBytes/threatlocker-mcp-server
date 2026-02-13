@@ -144,8 +144,10 @@ const applicationObject = z.object({
   applicationId: z.string(),
   name: z.string(),
   osType: z.number(),
-  computerCount: z.number(),
-  policyCount: z.number(),
+  isBuiltIn: z.boolean(),
+  computerCounts: z.number(),
+  reviewRating: z.number().nullable(),
+  concernRating: z.number().nullable(),
 }).passthrough();
 
 const researchObject = z.object({
@@ -160,7 +162,8 @@ const researchObject = z.object({
 export const applicationsOutputZodSchema = {
   success: z.boolean(),
   data: z.union([
-    z.array(applicationObject).describe('search/match/get_for_maintenance: array of applications'),
+    z.array(applicationObject).describe('search/get_for_maintenance: array of applications'),
+    z.object({ matchingApplications: z.array(z.object({}).passthrough()), hasMatching: z.boolean() }).passthrough().describe('match: matching applications result'),
     applicationObject.describe('get/get_for_network_policy: single application'),
     researchObject.describe('research: ThreatLocker security analysis'),
     z.array(z.object({

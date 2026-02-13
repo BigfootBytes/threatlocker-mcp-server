@@ -130,14 +130,18 @@ export const actionLogZodSchema = {
 };
 
 const actionLogObject = z.object({
-  actionLogId: z.string(),
+  actionLogId: z.number(),
+  eActionLogId: z.string(),
   fullPath: z.string(),
   processPath: z.string(),
   hostname: z.string(),
   username: z.string(),
   actionType: z.string(),
+  actionId: z.number(),
+  action: z.string(),
   policyName: z.string(),
-  applicationName: z.string(),
+  dateTime: z.string(),
+  hash: z.string(),
 }).passthrough();
 
 export const actionLogOutputZodSchema = {

@@ -2,6 +2,26 @@
 
 All notable changes to the ThreatLocker MCP Server are documented here.
 
+## 1.0.2 (2026-02-13)
+
+### Fixed
+- Fixed output schemas across all 16 tools to match actual ThreatLocker API response field names — `structuredContent` in MCP responses was failing validation because declared schemas had incorrect field names, wrong types, and missing nullable annotations
+  - `computers`: `computerGroupName` → `group`, added `hostname`, `mode`, `osType`, `organizationId`
+  - `computer_groups`: split into action-specific schemas (list returns `label/value/items`, dropdown returns dropdown items, `get_for_permit` returns group objects)
+  - `applications`: `computerCount` → `computerCounts`, removed nonexistent `policyCount`, made `reviewRating`/`concernRating` nullable, separated `match` response shape
+  - `action_log`: `actionLogId` type changed from `string` to `number`, added `eActionLogId`, `action`, `actionId`, `dateTime`, `hash`
+  - `approval_requests`: `fullPath` → `path`, `computerName` → `hostname`, `requestDateTime` → `dateTime`, `count` returns bare number not object
+  - `organizations`: `get_for_move_computers` returns dropdown items, not organization objects
+  - `reports`: `list` returns `{category, reports[]}` groups, not flat report array
+  - `system_audit`: `username` → `emailAddress`, `details` type changed from `string` to `object`, split search and health_center into separate schemas
+  - `tags`: `dropdown` returns dropdown items (`label/value`), not tag objects
+  - `storage_policies`: `policyType` type changed from `number` to `string`, removed nonexistent `computerGroupName`, added `policyActionId`, `appliesToId`, `organizationId`
+  - `network_access_policies`: removed nonexistent `applicationName`/`computerGroupName`, added `policyActionId`, `organizationId`, `osType`, `direction`
+  - `versions`: `OSTypes` → `osType` (matching actual API casing)
+
+### Added
+- Schema audit script (`scripts/schema-audit.ts`) for validating output schemas against live API responses
+
 ## 1.0.1 (2026-02-13)
 
 ### Fixed
