@@ -66,9 +66,9 @@ export async function handlePoliciesTool(
 export const policiesZodSchema = {
   action: z.enum(['get', 'list_by_application']).describe('get=single policy by ID, list_by_application=all policies for an application'),
   policyId: z.string().max(100).optional().describe('Policy GUID (required for get)'),
-  applicationId: z.string().max(100).optional().describe('Application GUID (required for list_by_application). Find via threatlocker_applications search first.'),
-  organizationId: z.string().max(100).optional().describe('Organization GUID (required for list_by_application). Find via threatlocker_organizations first.'),
-  appliesToId: z.string().max(100).optional().describe('Computer group GUID to filter by. Find via threatlocker_computer_groups first.'),
+  applicationId: z.string().max(100).optional().describe('Application GUID (required for list_by_application). Find via applications search first.'),
+  organizationId: z.string().max(100).optional().describe('Organization GUID (required for list_by_application). Find via organizations first.'),
+  appliesToId: z.string().max(100).optional().describe('Computer group GUID to filter by. Find via computer_groups first.'),
   includeDenies: z.boolean().optional().describe('Include deny policies (default: false)'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
@@ -94,11 +94,11 @@ export const policiesOutputZodSchema = {
 };
 
 export const policiesTool: ToolDefinition = {
-  name: 'threatlocker_policies',
+  name: 'policies',
   title: 'ThreatLocker Policies',
   description: `Inspect ThreatLocker policies.
 
-Note: There is no list-all-policies action. You must first find an applicationId using threatlocker_applications, then use list_by_application.
+Note: There is no list-all-policies action. You must first find an applicationId using applications, then use list_by_application.
 
 Policies define what applications can run on which computer groups. A policy links an application (set of file rules) to a computer group with an action (permit/deny/ringfence).
 
@@ -114,7 +114,7 @@ Permissions: View Application Control Policies, Edit Application Control Policie
 Pagination: list_by_application is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: policyId, name, policyActionId, applicationId, computerGroupId, isEnabled.
 
-Related tools: threatlocker_applications (what the policy permits), threatlocker_computer_groups (where policy applies), threatlocker_action_log (see policy enforcement)`,
+Related tools: applications (what the policy permits), computer_groups (where policy applies), action_log (see policy enforcement)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: policiesZodSchema,
   outputZodSchema: policiesOutputZodSchema,

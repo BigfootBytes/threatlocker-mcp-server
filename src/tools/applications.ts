@@ -174,7 +174,7 @@ export const applicationsOutputZodSchema = {
 };
 
 export const applicationsTool: ToolDefinition = {
-  name: 'threatlocker_applications',
+  name: 'applications',
   title: 'ThreatLocker Applications',
   description: `Search and inspect ThreatLocker applications.
 
@@ -196,7 +196,7 @@ Permissions: Edit Application Control Applications.
 Pagination: search and files actions are paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: applicationId, name, osType, computerCount, policyCount. Research fields: concernRating, reviewRating, categories, countriesWhereCodeCompiled.
 
-Related tools: threatlocker_policies (see policies using this app), threatlocker_action_log (see app activity), threatlocker_approval_requests (pending approvals for this app)`,
+Related tools: policies (see policies using this app), action_log (see app activity), approval_requests (pending approvals for this app)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: applicationsZodSchema,
   outputZodSchema: applicationsOutputZodSchema,

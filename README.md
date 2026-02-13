@@ -38,7 +38,7 @@ Since API keys are stored in plain text, you can use ThreatLocker's own Storage 
 
 1. In ThreatLocker Portal, navigate to **Application Control > Storage Control**
 2. Create a **Deny** policy that blocks **all applications** from reading the config files listed above
-3. Create **Permit** policies that allow only the specific applications that need access:
+3. Create **Permit** policies that allow only the specific applications that need access. Example:
    - `node.exe` / `node` — for the MCP server process
    - `Claude Desktop.exe` / `Claude Desktop` — for Claude Desktop
    - `claude` — for Claude Code CLI
@@ -155,7 +155,7 @@ Add to your MCP config file:
 | `tags` | - | :white_check_mark: | - | - | Network and policy tags |
 | `storage_policies` | - | :white_check_mark: | - | - | Storage control policies |
 | `network_access_policies` | - | :white_check_mark: | - | - | Network access control policies |
-| `threatlocker_versions` | - | :white_check_mark: | - | - | Available ThreatLocker agent versions |
+| `versions` | - | :white_check_mark: | - | - | Available ThreatLocker agent versions |
 | `online_devices` | - | :white_check_mark: | - | - | Currently online/connected devices |
 
 ### Tool Details
@@ -176,7 +176,7 @@ Add to your MCP config file:
 | `tags` | `get`, `dropdown` |
 | `storage_policies` | `get`, `list` |
 | `network_access_policies` | `get`, `list` |
-| `threatlocker_versions` | `list` |
+| `versions` | `list` |
 | `online_devices` | `list` |
 
 ## HTTP Mode (Remote Server)

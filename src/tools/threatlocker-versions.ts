@@ -39,7 +39,7 @@ export const threatlockerVersionsOutputZodSchema = {
 };
 
 export const threatlockerVersionsTool: ToolDefinition = {
-  name: 'threatlocker_versions',
+  name: 'versions',
   title: 'ThreatLocker Versions',
   description: `Query available ThreatLocker agent versions.
 
@@ -56,7 +56,7 @@ Permissions: Edit Computers, Edit Computer Groups, View Computers, Install Compu
 No pagination — returns all versions in a single response.
 Key response fields: label (version string), value (version ID), isEnabled, dateTime (release date), isDefault, OSTypes.
 
-Related tools: threatlocker_computers (see installed versions per machine), threatlocker_scheduled_actions (schedule version updates), threatlocker_computer_groups (group-level version settings)`,
+Related tools: computers (see installed versions per machine), scheduled_actions (schedule version updates), computer_groups (group-level version settings)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: threatlockerVersionsZodSchema,
   outputZodSchema: threatlockerVersionsOutputZodSchema,

@@ -73,7 +73,7 @@ export const organizationsOutputZodSchema = {
 };
 
 export const organizationsTool: ToolDefinition = {
-  name: 'threatlocker_organizations',
+  name: 'organizations',
   title: 'ThreatLocker Organizations',
   description: `Query ThreatLocker organizations.
 
@@ -92,7 +92,7 @@ Permissions: View Organizations, Edit Organizations, Super Admin - Child.
 Pagination: list_children is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: organizationId, name, displayName, dateAdded, computerCount.
 
-Related tools: threatlocker_computers (computers in org), threatlocker_computer_groups (groups in org), threatlocker_policies (policies in org)`,
+Related tools: computers (computers in org), computer_groups (groups in org), policies (policies in org)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: organizationsZodSchema,
   outputZodSchema: organizationsOutputZodSchema,

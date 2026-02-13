@@ -118,7 +118,7 @@ export const computerGroupsOutputZodSchema = {
 };
 
 export const computerGroupsTool: ToolDefinition = {
-  name: 'threatlocker_computer_groups',
+  name: 'computer_groups',
   title: 'ThreatLocker Computer Groups',
   description: `List and inspect ThreatLocker computer groups.
 
@@ -135,7 +135,7 @@ Common workflows:
 Permissions: Super Admin (for list), Edit Computers, Edit Computer Groups, View Computers.
 Key response fields: computerGroupId, name, osType, computerCount, organizationId.
 
-Related tools: threatlocker_computers (list computers in groups), threatlocker_policies (policies applied to groups)`,
+Related tools: computers (list computers in groups), policies (policies applied to groups)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: computerGroupsZodSchema,
   outputZodSchema: computerGroupsOutputZodSchema,

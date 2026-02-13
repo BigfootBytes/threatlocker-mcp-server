@@ -43,7 +43,7 @@ export const onlineDevicesOutputZodSchema = {
 };
 
 export const onlineDevicesTool: ToolDefinition = {
-  name: 'threatlocker_online_devices',
+  name: 'online_devices',
   title: 'ThreatLocker Online Devices',
   description: `Query ThreatLocker online devices.
 
@@ -59,7 +59,7 @@ Permissions: View Computers.
 Pagination: list action is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: computerName, computerGroupName, lastCheckin, ipAddress.
 
-Related tools: threatlocker_computers (full inventory with details, modes, groups), threatlocker_computer_groups (group membership and structure)`,
+Related tools: computers (full inventory with details, modes, groups), computer_groups (group membership and structure)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: onlineDevicesZodSchema,
   outputZodSchema: onlineDevicesOutputZodSchema,

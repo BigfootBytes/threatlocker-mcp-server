@@ -15,7 +15,7 @@ describe('approval_requests tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(approvalRequestsTool.name).toBe('threatlocker_approval_requests');
+    expect(approvalRequestsTool.name).toBe('approval_requests');
     expect(approvalRequestsZodSchema.action.options).toContain('list');
     expect(approvalRequestsZodSchema.action.options).toContain('get');
     expect(approvalRequestsZodSchema.action.options).toContain('count');

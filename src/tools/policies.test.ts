@@ -15,7 +15,7 @@ describe('policies tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(policiesTool.name).toBe('threatlocker_policies');
+    expect(policiesTool.name).toBe('policies');
     expect(policiesZodSchema.action.options).toContain('get');
     expect(policiesZodSchema.action.options).toContain('list_by_application');
   });

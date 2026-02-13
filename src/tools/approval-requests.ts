@@ -114,7 +114,7 @@ export const approvalRequestsOutputZodSchema = {
 };
 
 export const approvalRequestsTool: ToolDefinition = {
-  name: 'threatlocker_approval_requests',
+  name: 'approval_requests',
   title: 'ThreatLocker Approval Requests',
   description: `Query ThreatLocker approval requests.
 
@@ -135,7 +135,7 @@ Permissions: View Approvals, Approve for Entire Organization/Group/Single Comput
 Pagination: list action is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: approvalRequestId, username, fullPath, actionType, statusId, computerName, requestDateTime.
 
-Related tools: threatlocker_action_log (see the deny event), threatlocker_applications (find matching apps), threatlocker_policies (create permits)`,
+Related tools: action_log (see the deny event), applications (find matching apps), policies (create permits)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: approvalRequestsZodSchema,
   outputZodSchema: approvalRequestsOutputZodSchema,

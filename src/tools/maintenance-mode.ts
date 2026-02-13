@@ -36,7 +36,7 @@ export async function handleMaintenanceModeTool(
 
 export const maintenanceModeZodSchema = {
   action: z.enum(['get_history']).describe('get_history=paginated maintenance mode history for a computer'),
-  computerId: z.string().max(100).describe('Computer GUID (required). Find via threatlocker_computers list first.'),
+  computerId: z.string().max(100).describe('Computer GUID (required). Find via computers list first.'),
   pageNumber: z.number().optional().describe('Page number (default: 1)'),
   pageSize: z.number().optional().describe('Results per page (default: 25, max: 500)'),
 };
@@ -57,7 +57,7 @@ export const maintenanceModeOutputZodSchema = {
 };
 
 export const maintenanceModeTool: ToolDefinition = {
-  name: 'threatlocker_maintenance_mode',
+  name: 'maintenance_mode',
   title: 'ThreatLocker Maintenance Mode',
   description: `Query ThreatLocker maintenance mode history for computers.
 
@@ -77,7 +77,7 @@ Permissions: Edit Computers, Manage Application Control Installation Mode, Manag
 Pagination: get_history is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: maintenanceModeId, maintenanceTypeId, startDateTime, endDateTime, userName.
 
-Related tools: threatlocker_computers (get computer IDs, see current mode), threatlocker_computer_groups (group-level modes)`,
+Related tools: computers (get computer IDs, see current mode), computer_groups (group-level modes)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: maintenanceModeZodSchema,
   outputZodSchema: maintenanceModeOutputZodSchema,

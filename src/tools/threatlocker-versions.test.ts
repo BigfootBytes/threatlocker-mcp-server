@@ -4,7 +4,7 @@ import { ThreatLockerClient } from '../client.js';
 
 vi.mock('../client.js');
 
-describe('threatlocker_versions tool', () => {
+describe('versions tool', () => {
   let mockClient: ThreatLockerClient;
 
   beforeEach(() => {
@@ -14,7 +14,7 @@ describe('threatlocker_versions tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(threatlockerVersionsTool.name).toBe('threatlocker_versions');
+    expect(threatlockerVersionsTool.name).toBe('versions');
     expect(threatlockerVersionsZodSchema.action.options).toContain('list');
   });
 

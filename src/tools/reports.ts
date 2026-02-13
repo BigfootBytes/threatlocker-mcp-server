@@ -51,7 +51,7 @@ export const reportsOutputZodSchema = {
 };
 
 export const reportsTool: ToolDefinition = {
-  name: 'threatlocker_reports',
+  name: 'reports',
   title: 'ThreatLocker Reports',
   description: `Query and run ThreatLocker reports.
 
@@ -66,7 +66,7 @@ Common workflows:
 Permissions: View Reports.
 Key response fields: reportId, name, description, reportData (dynamic columns per report type).
 
-Related tools: threatlocker_action_log (raw audit events), threatlocker_system_audit (portal audit trail), threatlocker_computers (device inventory)`,
+Related tools: action_log (raw audit events), system_audit (portal audit trail), computers (device inventory)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: reportsZodSchema,
   outputZodSchema: reportsOutputZodSchema,

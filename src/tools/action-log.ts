@@ -120,7 +120,7 @@ export const actionLogZodSchema = {
   hostname: z.string().max(1000).optional().describe('Filter by hostname (wildcards supported)'),
   actionLogId: z.string().max(100).optional().describe('Action log GUID (required for get, get_file_download, get_policy_conditions, get_testing_details). Find via search action first.'),
   fullPath: z.string().max(1000).optional().describe('File path for search filter or file_history (wildcards supported)'),
-  computerId: z.string().max(100).optional().describe('Computer GUID to scope file_history. Find via threatlocker_computers list first.'),
+  computerId: z.string().max(100).optional().describe('Computer GUID to scope file_history. Find via computers list first.'),
   showChildOrganizations: z.boolean().optional().describe('Include child organization logs (default: false)'),
   onlyTrueDenies: z.boolean().optional().describe('Exclude simulated denies from Monitor Only mode, show only real enforced blocks (default: false)'),
   groupBys: z.array(z.number()).max(10).optional().describe('Group by: 1=Username, 2=Process Path, 6=Policy Name, 8=App Name, 9=Action Type, 17=Asset Name, 70=Risk Score'),
@@ -152,7 +152,7 @@ export const actionLogOutputZodSchema = {
 };
 
 export const actionLogTool: ToolDefinition = {
-  name: 'threatlocker_action_log',
+  name: 'action_log',
   title: 'ThreatLocker Action Log',
   description: `Query ThreatLocker unified audit logs.
 
@@ -175,7 +175,7 @@ Pagination: search action is paginated (use fetchAllPages=true to auto-fetch all
 Performance: always use date filters — queries without startDate/endDate can be very slow on large organizations. Use groupBys to aggregate instead of fetching all raw rows.
 Key response fields: actionLogId, fullPath, processPath, hostname, username, actionType, policyName, applicationName.
 
-Related tools: threatlocker_computers (find computer IDs), threatlocker_applications (identify apps), threatlocker_approval_requests (handle denied software)`,
+Related tools: computers (find computer IDs), applications (identify apps), approval_requests (handle denied software)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: actionLogZodSchema,
   outputZodSchema: actionLogOutputZodSchema,

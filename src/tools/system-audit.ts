@@ -110,7 +110,7 @@ export const systemAuditOutputZodSchema = {
 };
 
 export const systemAuditTool: ToolDefinition = {
-  name: 'threatlocker_system_audit',
+  name: 'system_audit',
   title: 'ThreatLocker System Audit',
   description: `Query ThreatLocker portal audit logs.
 
@@ -130,7 +130,7 @@ Permissions: View System Audit, View Health Center.
 Pagination: search and health_center actions are paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: systemAuditId, username, action, effectiveAction, details, ipAddress, dateTime.
 
-Related tools: threatlocker_action_log (endpoint events, not portal events), threatlocker_organizations (filter by org)`,
+Related tools: action_log (endpoint events, not portal events), organizations (filter by org)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: systemAuditZodSchema,
   outputZodSchema: systemAuditOutputZodSchema,

@@ -15,7 +15,7 @@ describe('reports tool', () => {
   });
 
   it('has correct schema', () => {
-    expect(reportsTool.name).toBe('threatlocker_reports');
+    expect(reportsTool.name).toBe('reports');
     expect(reportsZodSchema.action.options).toContain('list');
     expect(reportsZodSchema.action.options).toContain('get_data');
   });

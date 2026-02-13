@@ -64,7 +64,7 @@ export const tagsOutputZodSchema = {
 };
 
 export const tagsTool: ToolDefinition = {
-  name: 'threatlocker_tags',
+  name: 'tags',
   title: 'ThreatLocker Tags',
   description: `Query ThreatLocker tags for network and policy management.
 
@@ -85,7 +85,7 @@ Parent organization tags appear as "parentOrgName\\tagName" format.
 Permissions: Edit Network Control Policies, Manage Tags, Edit Application Control Policies.
 Key response fields: tagId, name, tagType, values (IP/domain/port entries).
 
-Related tools: threatlocker_policies (use tags in policy rules), threatlocker_applications (ringfence with tags)`,
+Related tools: policies (use tags in policy rules), applications (ringfence with tags)`,
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   zodSchema: tagsZodSchema,
   outputZodSchema: tagsOutputZodSchema,
