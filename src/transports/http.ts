@@ -50,9 +50,9 @@ export function extractCredentials(req: Request): ClientCredentials | null {
   }
 
   // Strip "Bearer " prefix if present (Claude Desktop may add it automatically)
-  const bearerMatch = apiKey.match(/^Bearer\s+(.+)$/i);
-  if (bearerMatch) {
-    apiKey = bearerMatch[1];
+  const lower = apiKey.toLowerCase();
+  if (lower.startsWith('bearer ')) {
+    apiKey = apiKey.slice(apiKey.indexOf(' ') + 1).trim();
   }
 
   return { apiKey, baseUrl, organizationId };
