@@ -162,29 +162,22 @@ export async function handleApplicationsTool(
         try {
           const ruleHash = rule.hash || '';
           const isHashOnly = !!ruleHash && !rule.fullPath && !rule.cert && !rule.processPath;
-          const filePayload = {
+          // Match the portal's minimal PrepareForInsert payload shape
+          const filePayload: Record<string, unknown> = {
             applicationFileId: 0,
             applicationId,
-            fullPath: rule.fullPath || '',
-            cert: rule.cert || '',
-            hash: ruleHash,
-            processPath: rule.processPath || '',
-            notes: rule.notes || '',
-            installedBy: rule.installedBy || '',
-            keyFile: false,
-            isHashOnly,
             osType,
-            originalFullPath: null,
-            originalCert: null,
-            originalHash: null,
-            originalProcessPath: null,
-            originalNotes: null,
-            originalInstalledBy: null,
-            originalKeyFile: false,
-            minSize: null,
-            maxSize: null,
-            updateStatus: 0,
+            status: 1,
+            isHashOnly,
+            expanded: false,
+            unsavedChanges: false,
           };
+          if (rule.fullPath) filePayload.fullPath = rule.fullPath;
+          if (rule.cert) filePayload.cert = rule.cert;
+          if (ruleHash) filePayload.hash = ruleHash;
+          if (rule.processPath) filePayload.processPath = rule.processPath;
+          if (rule.installedBy) filePayload.installedBy = rule.installedBy;
+          if (rule.notes) filePayload.notes = rule.notes;
 
           // Step 1: Prepare — validates the rule and auto-generates notes/timestamp
           const prepareResult = await client.post<Record<string, unknown>>(
