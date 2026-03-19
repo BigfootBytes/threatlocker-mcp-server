@@ -6,7 +6,7 @@ An MCP (Model Context Protocol) server for interacting with the ThreatLocker Por
 
 This server exposes ThreatLocker Portal functionality as MCP tools, enabling AI assistants to query computers, applications, policies, audit logs, and more. It supports both local (stdio) and remote (HTTP/SSE) transports.
 
-**Current Status:** Read-only operations. Write operations (creating policies, approving requests, etc.) are not yet implemented.
+**Current Status:** Full read/write support for applications and policies. Set `THREATLOCKER_READ_ONLY=true` to enforce read-only mode.
 
 ## Disclaimer
 
@@ -125,6 +125,7 @@ Add to your MCP config file:
 | `PORT` | No | `8080` | HTTP server port |
 | `LOG_LEVEL` | No | `INFO` | Logging: `ERROR`, `INFO`, `DEBUG` |
 | `ALLOWED_ORIGINS` | No | - | CORS origins (comma-separated) |
+| `THREATLOCKER_READ_ONLY` | No | - | Set to `true`, `1`, or `yes` to block all write operations server-wide |
 
 *Required for stdio mode. HTTP mode uses per-request headers.
 
