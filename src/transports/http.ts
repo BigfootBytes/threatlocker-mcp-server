@@ -6,7 +6,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ThreatLockerClient } from '../client.js';
-import { toolsByName, allToolsWithSchema } from '../tools/registry.js';
+import { toolsByName, allToolsWithSchema, isWriteBlocked } from '../tools/registry.js';
 import { createMcpServer, CHARACTER_LIMIT, LogFn, fetchAllPagesLoop } from '../server.js';
 import { formatAsMarkdown } from '../formatters.js';
 import { VERSION } from '../version.js';
@@ -292,6 +292,16 @@ export function createApp(): ReturnType<typeof express> {
       }
 
       const { response_format: rawFormat, fetchAllPages: rawFetchAll, ...toolArgs } = args;
+
+      const action = toolArgs.action as string | undefined;
+      if (action && isWriteBlocked(tool.writeActions, action)) {
+        res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Server is in read-only mode (THREATLOCKER_READ_ONLY is set). Write operations are disabled.' },
+        });
+        return;
+      }
+
       const responseFormat = rawFormat === 'json' ? 'json' : 'markdown'; // default: markdown
       const result = rawFetchAll
         ? await fetchAllPagesLoop(tool.handler, client, toolArgs, log as LogFn, tool.name)

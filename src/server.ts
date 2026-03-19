@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ThreatLockerClient } from './client.js';
-import { allTools, ToolDefinition } from './tools/registry.js';
-import { ApiResponse, apiResponseOutputSchema, SuccessResponse } from './types/responses.js';
+import { allTools, ToolDefinition, isWriteBlocked } from './tools/registry.js';
+import { ApiResponse, apiResponseOutputSchema, SuccessResponse, errorResponse } from './types/responses.js';
 import { formatAsMarkdown } from './formatters.js';
 import { VERSION } from './version.js';
 import { allResources } from './resources/registry.js';
@@ -100,6 +100,17 @@ export function createMcpServer(client: ThreatLockerClient, log?: LogFn): McpSer
       async (args) => {
         const { response_format, fetchAllPages, ...toolArgs } = args as Record<string, unknown>;
         const format = response_format === 'json' ? 'json' : 'markdown';
+
+        const action = toolArgs.action as string | undefined;
+        if (action && isWriteBlocked(tool.writeActions, action)) {
+          const result = errorResponse('FORBIDDEN', 'Server is in read-only mode (THREATLOCKER_READ_ONLY is set). Write operations are disabled.');
+          const text = format === 'markdown' ? formatAsMarkdown(result) : JSON.stringify(result, null, 2);
+          return {
+            content: [{ type: 'text' as const, text }],
+            structuredContent: result as unknown as Record<string, unknown>,
+            isError: true,
+          };
+        }
 
         log?.('DEBUG', `Tool call: ${tool.name}`, { args: toolArgs, fetchAllPages, baseUrl: client.baseUrl });
 

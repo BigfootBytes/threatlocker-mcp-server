@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { allTools, toolsByName, allToolsWithSchema, ToolDefinition } from './registry.js';
+import { describe, it, expect, afterEach } from 'vitest';
+import { allTools, toolsByName, allToolsWithSchema, ToolDefinition, isWriteBlocked } from './registry.js';
 
 describe('tool registry', () => {
   it('has exactly 16 tools', () => {
@@ -37,9 +37,9 @@ describe('tool registry', () => {
       expect(t.zodSchema.action).toBeDefined();
       // annotations must include all four hints
       expect(t.annotations).toBeDefined();
-      expect(t.annotations!.readOnlyHint).toBe(true);
+      expect(typeof t.annotations!.readOnlyHint).toBe('boolean');
       expect(t.annotations!.destructiveHint).toBe(false);
-      expect(t.annotations!.idempotentHint).toBe(true);
+      expect(typeof t.annotations!.idempotentHint).toBe('boolean');
       expect(t.annotations!.openWorldHint).toBe(true);
     }
   );
@@ -81,5 +81,62 @@ describe('tool registry', () => {
     for (const name of expectedNames) {
       expect(toolsByName.has(name), `missing tool: ${name}`).toBe(true);
     }
+  });
+});
+
+describe('isWriteBlocked', () => {
+  const originalEnv = process.env.THREATLOCKER_READ_ONLY;
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env.THREATLOCKER_READ_ONLY;
+    } else {
+      process.env.THREATLOCKER_READ_ONLY = originalEnv;
+    }
+  });
+
+  it('returns false when THREATLOCKER_READ_ONLY is not set', () => {
+    delete process.env.THREATLOCKER_READ_ONLY;
+    expect(isWriteBlocked(new Set(['create']), 'create')).toBe(false);
+  });
+
+  it('returns false when THREATLOCKER_READ_ONLY is empty string', () => {
+    process.env.THREATLOCKER_READ_ONLY = '';
+    expect(isWriteBlocked(new Set(['create']), 'create')).toBe(false);
+  });
+
+  it('returns true when THREATLOCKER_READ_ONLY=true and action is write', () => {
+    process.env.THREATLOCKER_READ_ONLY = 'true';
+    expect(isWriteBlocked(new Set(['create', 'update', 'delete']), 'create')).toBe(true);
+  });
+
+  it('returns true when THREATLOCKER_READ_ONLY=1', () => {
+    process.env.THREATLOCKER_READ_ONLY = '1';
+    expect(isWriteBlocked(new Set(['create']), 'create')).toBe(true);
+  });
+
+  it('returns true when THREATLOCKER_READ_ONLY=yes', () => {
+    process.env.THREATLOCKER_READ_ONLY = 'yes';
+    expect(isWriteBlocked(new Set(['create']), 'create')).toBe(true);
+  });
+
+  it('returns true when THREATLOCKER_READ_ONLY=TRUE (case insensitive)', () => {
+    process.env.THREATLOCKER_READ_ONLY = 'TRUE';
+    expect(isWriteBlocked(new Set(['create']), 'create')).toBe(true);
+  });
+
+  it('returns false when action is a read action even in read-only mode', () => {
+    process.env.THREATLOCKER_READ_ONLY = 'true';
+    expect(isWriteBlocked(new Set(['create']), 'search')).toBe(false);
+  });
+
+  it('returns false when writeActions is undefined', () => {
+    process.env.THREATLOCKER_READ_ONLY = 'true';
+    expect(isWriteBlocked(undefined, 'search')).toBe(false);
+  });
+
+  it('returns false for non-truthy values like "false"', () => {
+    process.env.THREATLOCKER_READ_ONLY = 'false';
+    expect(isWriteBlocked(new Set(['create']), 'create')).toBe(false);
   });
 });

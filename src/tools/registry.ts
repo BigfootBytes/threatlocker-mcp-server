@@ -11,6 +11,15 @@ export interface ToolDefinition {
   zodSchema: Record<string, z.ZodTypeAny>;
   outputZodSchema?: Record<string, z.ZodTypeAny>;
   handler: (client: ThreatLockerClient, input: Record<string, unknown>) => Promise<ApiResponse<unknown>>;
+  writeActions?: Set<string>;
+}
+
+/** Check if a write action is blocked by THREATLOCKER_READ_ONLY env var. */
+export function isWriteBlocked(writeActions: Set<string> | undefined, action: string): boolean {
+  if (!writeActions || !writeActions.has(action)) return false;
+  const readOnly = process.env.THREATLOCKER_READ_ONLY;
+  if (!readOnly) return false;
+  return /^(true|1|yes)$/i.test(readOnly);
 }
 
 /** Convert a Zod shape record to JSON Schema (stripping Zod-specific $schema and additionalProperties). */
