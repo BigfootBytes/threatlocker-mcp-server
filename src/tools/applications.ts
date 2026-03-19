@@ -5,28 +5,6 @@ import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof applicationsZodSchema>>;
 
-/** Build a full applicationFileUpdates entry from a simplified file rule input. */
-function buildFileRule(rule: Record<string, string>): Record<string, unknown> {
-  const hash = rule.hash || '';
-  const isHashOnly = !!hash && !rule.fullPath && !rule.cert && !rule.processPath;
-  return {
-    applicationFileId: 0,
-    fullPath: rule.fullPath || '',
-    processPath: rule.processPath || '',
-    installedBy: rule.installedBy || '',
-    cert: rule.cert || '',
-    hash,
-    notes: rule.notes || '',
-    updateStatus: 1,
-    keyFile: false,
-    isHashOnly,
-    originalFullPath: '',
-    originalCert: '',
-    originalHash: '',
-    originalProcessPath: '',
-  };
-}
-
 export async function handleApplicationsTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -137,7 +115,6 @@ export async function handleApplicationsTool(
     case 'create': {
       const appName = input.name as string | undefined;
       const appDescription = input.description as string | undefined;
-      const appFileRules = input.fileRules as Array<Record<string, string>> | undefined;
       if (!appName) {
         return errorResponse('BAD_REQUEST', 'name is required for create action');
       }
@@ -145,14 +122,13 @@ export async function handleApplicationsTool(
         name: appName,
         osType,
         description: appDescription || '',
-        applicationFileUpdates: (appFileRules || []).map(rule => buildFileRule(rule)),
+        applicationFileUpdates: [],
       });
     }
 
     case 'update': {
       const appName = input.name as string | undefined;
       const appDescription = input.description as string | undefined;
-      const appFileRules = input.fileRules as Array<Record<string, string>> | undefined;
       if (!applicationId) {
         return errorResponse('BAD_REQUEST', 'applicationId is required for update action');
       }
@@ -161,16 +137,86 @@ export async function handleApplicationsTool(
       if (!appName) {
         return errorResponse('BAD_REQUEST', 'name is required for update action');
       }
-      const body: Record<string, unknown> = {
+      return client.put('Application/ApplicationUpdateById', {
         applicationId,
         name: appName,
         osType,
         description: appDescription || '',
-      };
-      if (appFileRules) {
-        body.applicationFileUpdates = appFileRules.map(rule => buildFileRule(rule));
+      });
+    }
+
+    case 'add_file': {
+      if (!applicationId) {
+        return errorResponse('BAD_REQUEST', 'applicationId is required for add_file action');
       }
-      return client.put('Application/ApplicationUpdateById', body);
+      const guidError = validateGuid(applicationId, 'applicationId');
+      if (guidError) return guidError;
+
+      const fileRules = input.fileRules as Array<Record<string, string>> | undefined;
+      if (!fileRules || fileRules.length === 0) {
+        return errorResponse('BAD_REQUEST', 'fileRules array is required for add_file action');
+      }
+
+      const results: Array<{ rule: Record<string, string>; success: boolean; data?: unknown; error?: string }> = [];
+      for (const rule of fileRules) {
+        const ruleHash = rule.hash || '';
+        const isHashOnly = !!ruleHash && !rule.fullPath && !rule.cert && !rule.processPath;
+        const filePayload = {
+          applicationFileId: 0,
+          applicationId,
+          fullPath: rule.fullPath || '',
+          cert: rule.cert || '',
+          hash: ruleHash,
+          processPath: rule.processPath || '',
+          notes: rule.notes || '',
+          installedBy: rule.installedBy || '',
+          keyFile: false,
+          isHashOnly,
+          osType,
+          originalFullPath: null,
+          originalCert: null,
+          originalHash: null,
+          originalProcessPath: null,
+          originalNotes: null,
+          originalInstalledBy: null,
+          originalKeyFile: false,
+          minSize: null,
+          maxSize: null,
+          updateStatus: 0,
+        };
+
+        // Step 1: Prepare — validates the rule and auto-generates notes/timestamp
+        const prepareResult = await client.post<Record<string, unknown>>(
+          'ApplicationFile/ApplicationFilePrepareForInsert',
+          filePayload
+        );
+        if (!prepareResult.success) {
+          results.push({ rule, success: false, error: prepareResult.error.message });
+          continue;
+        }
+
+        // Step 2: Insert — commits the prepared object
+        const insertResult = await client.post(
+          'ApplicationFile/ApplicationFileInsert',
+          prepareResult.data
+        );
+        if (!insertResult.success) {
+          results.push({ rule, success: false, error: insertResult.error.message });
+          continue;
+        }
+        results.push({ rule, success: true, data: insertResult.data });
+      }
+
+      const allSucceeded = results.every(r => r.success);
+      const summary = {
+        total: results.length,
+        succeeded: results.filter(r => r.success).length,
+        failed: results.filter(r => !r.success).length,
+        results,
+      };
+      return allSucceeded
+        ? { success: true, data: summary }
+        : { success: true, data: summary }; // partial success is still success at the tool level
     }
 
     case 'delete':
@@ -197,7 +243,7 @@ export async function handleApplicationsTool(
 }
 
 export const applicationsZodSchema = {
-  action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy', 'create', 'update', 'delete', 'delete_confirm']).describe('search=find applications, get=details by ID, research=ThreatLocker security analysis, files=list file rules in app, match=find apps by file hash/cert/path, get_for_maintenance=apps for maintenance mode, get_for_network_policy=app for network policy, create=create custom application, update=update application, delete=delete applications (no policies), delete_confirm=force delete (with policies)'),
+  action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy', 'create', 'update', 'add_file', 'delete', 'delete_confirm']).describe('search=find applications, get=details by ID, research=ThreatLocker security analysis, files=list file rules in app, match=find apps by file hash/cert/path, get_for_maintenance=apps for maintenance mode, get_for_network_policy=app for network policy, create=create custom application (metadata only), update=update app name/description, add_file=add file rules to application (two-step prepare+insert), delete=delete applications (no policies), delete_confirm=force delete (with policies)'),
   applicationId: z.string().max(100).optional().describe('Application GUID (required for get, research, files, get_for_network_policy). Find via search action first.'),
   searchText: z.string().max(1000).optional().describe('Search text for search and files actions'),
   searchBy: z.enum(['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries']).optional().describe('Field to search by (default: app)'),
@@ -226,7 +272,7 @@ export const applicationsZodSchema = {
     cert: z.string().max(500).optional().describe('Certificate subject'),
     hash: z.string().max(500).optional().describe('SHA256 hash'),
     notes: z.string().max(2000).optional().describe('Notes'),
-  })).max(50).optional().describe('File rules for create/update. Each defines a matching condition (hash, path, cert, etc.)'),
+  })).max(50).optional().describe('File rules for add_file action. Each defines a matching condition (hash, path, cert, etc.). Processed via two-step prepare+insert API.'),
   applications: z.array(z.object({
     applicationId: z.string().max(100),
     name: z.string().max(200),
@@ -291,8 +337,9 @@ Common workflows:
 - Find matching apps by file properties: action=match, hash="...", path="...", cert="..."
 - Get apps for maintenance mode: action=get_for_maintenance
 - Get app for network policy: action=get_for_network_policy, applicationId="..."
-- Create custom application: action=create, name="My App", osType=1, fileRules=[{fullPath:"...", hash:"..."}]
-- Update application: action=update, applicationId="...", name="...", osType=1
+- Create custom application: action=create, name="My App", osType=1
+- Update application metadata: action=update, applicationId="...", name="...", osType=1
+- Add file rules to application: action=add_file, applicationId="...", osType=1, fileRules=[{hash:"..."}, {fullPath:"...", cert:"..."}]
 - Delete application (no policies): action=delete, applications=[{applicationId:"...", name:"...", organizationId:"...", osType:1}]
 - Force delete (with policies): action=delete_confirm, applications=[...]
 
@@ -305,5 +352,5 @@ Related tools: policies (see policies using this app), action_log (see app activ
   zodSchema: applicationsZodSchema,
   outputZodSchema: applicationsOutputZodSchema,
   handler: handleApplicationsTool,
-  writeActions: new Set(['create', 'update', 'delete', 'delete_confirm']),
+  writeActions: new Set(['create', 'update', 'add_file', 'delete', 'delete_confirm']),
 };

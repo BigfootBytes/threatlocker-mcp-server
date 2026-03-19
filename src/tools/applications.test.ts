@@ -23,6 +23,7 @@ describe('applications tool', () => {
     expect(applicationsZodSchema.action.options).toContain('files');
     expect(applicationsZodSchema.action.options).toContain('create');
     expect(applicationsZodSchema.action.options).toContain('update');
+    expect(applicationsZodSchema.action.options).toContain('add_file');
     expect(applicationsZodSchema.action.options).toContain('delete');
     expect(applicationsZodSchema.action.options).toContain('delete_confirm');
   });
@@ -195,7 +196,6 @@ describe('applications tool', () => {
         name: 'My App',
         osType: 1,
         description: 'Test app',
-        fileRules: [{ fullPath: 'C:\\app.exe', hash: 'a'.repeat(64) }],
       });
       expect(mockClient.post).toHaveBeenCalledWith(
         'Application/ApplicationInsert',
@@ -203,21 +203,8 @@ describe('applications tool', () => {
           name: 'My App',
           osType: 1,
           description: 'Test app',
-          applicationFileUpdates: [expect.objectContaining({
-            fullPath: 'C:\\app.exe',
-            hash: 'a'.repeat(64),
-            updateStatus: 1,
-          })],
+          applicationFileUpdates: [],
         })
-      );
-    });
-
-    it('sends empty applicationFileUpdates when no fileRules provided', async () => {
-      vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
-      await handleApplicationsTool(mockClient, { action: 'create', name: 'My App', osType: 1 });
-      expect(mockClient.post).toHaveBeenCalledWith(
-        'Application/ApplicationInsert',
-        expect.objectContaining({ applicationFileUpdates: [] })
       );
     });
   });
@@ -268,6 +255,103 @@ describe('applications tool', () => {
           description: 'Updated desc',
         })
       );
+    });
+  });
+
+  describe('add_file action', () => {
+    it('returns error when applicationId is missing', async () => {
+      const result = await handleApplicationsTool(mockClient, {
+        action: 'add_file',
+        fileRules: [{ hash: 'a'.repeat(64) }],
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('applicationId');
+    });
+
+    it('returns error when fileRules is missing', async () => {
+      const result = await handleApplicationsTool(mockClient, {
+        action: 'add_file',
+        applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('fileRules');
+    });
+
+    it('calls PrepareForInsert then FileInsert for each rule', async () => {
+      const prepared = { applicationFileId: 0, hash: 'a'.repeat(64), notes: 'auto-generated' };
+      const inserted = { applicationFileId: 123, hash: 'a'.repeat(64) };
+      vi.mocked(mockClient.post)
+        .mockResolvedValueOnce({ success: true, data: prepared })
+        .mockResolvedValueOnce({ success: true, data: inserted });
+
+      const result = await handleApplicationsTool(mockClient, {
+        action: 'add_file',
+        applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+        osType: 1,
+        fileRules: [{ hash: 'a'.repeat(64) }],
+      });
+
+      expect(mockClient.post).toHaveBeenCalledTimes(2);
+      expect(mockClient.post).toHaveBeenNthCalledWith(1,
+        'ApplicationFile/ApplicationFilePrepareForInsert',
+        expect.objectContaining({
+          applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+          hash: 'a'.repeat(64),
+          isHashOnly: true,
+        })
+      );
+      expect(mockClient.post).toHaveBeenNthCalledWith(2,
+        'ApplicationFile/ApplicationFileInsert',
+        prepared
+      );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = result.data as { succeeded: number; failed: number };
+        expect(data.succeeded).toBe(1);
+        expect(data.failed).toBe(0);
+      }
+    });
+
+    it('sets isHashOnly=false when path is provided', async () => {
+      vi.mocked(mockClient.post)
+        .mockResolvedValueOnce({ success: true, data: {} })
+        .mockResolvedValueOnce({ success: true, data: {} });
+
+      await handleApplicationsTool(mockClient, {
+        action: 'add_file',
+        applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+        osType: 1,
+        fileRules: [{ fullPath: 'C:\\app.exe', cert: 'CN=Test' }],
+      });
+
+      expect(mockClient.post).toHaveBeenNthCalledWith(1,
+        'ApplicationFile/ApplicationFilePrepareForInsert',
+        expect.objectContaining({ isHashOnly: false, fullPath: 'C:\\app.exe', cert: 'CN=Test' })
+      );
+    });
+
+    it('reports partial failures without stopping', async () => {
+      vi.mocked(mockClient.post)
+        .mockResolvedValueOnce({ success: false, error: { code: 'BAD_REQUEST', message: 'Invalid hash' } })
+        .mockResolvedValueOnce({ success: true, data: { prepared: true } })
+        .mockResolvedValueOnce({ success: true, data: { inserted: true } });
+
+      const result = await handleApplicationsTool(mockClient, {
+        action: 'add_file',
+        applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+        osType: 1,
+        fileRules: [
+          { hash: 'bad' },
+          { hash: 'a'.repeat(64) },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = result.data as { succeeded: number; failed: number };
+        expect(data.succeeded).toBe(1);
+        expect(data.failed).toBe(1);
+      }
     });
   });
 
