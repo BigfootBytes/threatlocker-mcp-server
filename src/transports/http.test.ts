@@ -835,3 +835,50 @@ describe('HTTP server integration', () => {
     });
   });
 });
+
+// ─── Read-only guard integration tests ──────────────────────────────────────
+
+describe('read-only guard via REST API', () => {
+  const originalEnv = process.env.THREATLOCKER_READ_ONLY;
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env.THREATLOCKER_READ_ONLY;
+    } else {
+      process.env.THREATLOCKER_READ_ONLY = originalEnv;
+    }
+  });
+
+  it('returns 403 for write action when THREATLOCKER_READ_ONLY=true', async () => {
+    process.env.THREATLOCKER_READ_ONLY = 'true';
+    const app = createApp();
+    global.fetch = vi.fn();
+
+    const res = await request(app)
+      .post('/tools/applications')
+      .set(authHeaders)
+      .send({ action: 'create', name: 'Test', osType: 1 });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('FORBIDDEN');
+    expect(res.body.error.message).toContain('read-only');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('allows read actions when THREATLOCKER_READ_ONLY=true', async () => {
+    process.env.THREATLOCKER_READ_ONLY = 'true';
+    const app = createApp();
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+      headers: new Headers(),
+    });
+
+    const res = await request(app)
+      .post('/tools/applications')
+      .set(authHeaders)
+      .send({ action: 'search', searchText: 'chrome' });
+
+    expect(res.status).toBe(200);
+  });
+});

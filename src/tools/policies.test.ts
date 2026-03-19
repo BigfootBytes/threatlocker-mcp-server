@@ -19,6 +19,11 @@ describe('policies tool', () => {
     expect(policiesTool.name).toBe('policies');
     expect(policiesZodSchema.action.options).toContain('get');
     expect(policiesZodSchema.action.options).toContain('list_by_application');
+    expect(policiesZodSchema.action.options).toContain('create');
+    expect(policiesZodSchema.action.options).toContain('update');
+    expect(policiesZodSchema.action.options).toContain('delete');
+    expect(policiesZodSchema.action.options).toContain('copy');
+    expect(policiesZodSchema.action.options).toContain('deploy');
   });
 
   it('returns error for missing action', async () => {

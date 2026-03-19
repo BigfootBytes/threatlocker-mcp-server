@@ -21,6 +21,10 @@ describe('applications tool', () => {
     expect(applicationsZodSchema.action.options).toContain('get');
     expect(applicationsZodSchema.action.options).toContain('research');
     expect(applicationsZodSchema.action.options).toContain('files');
+    expect(applicationsZodSchema.action.options).toContain('create');
+    expect(applicationsZodSchema.action.options).toContain('update');
+    expect(applicationsZodSchema.action.options).toContain('delete');
+    expect(applicationsZodSchema.action.options).toContain('delete_confirm');
   });
 
   it('returns error for missing action', async () => {
