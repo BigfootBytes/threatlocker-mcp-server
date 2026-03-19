@@ -358,6 +358,73 @@ describe('ThreatLockerClient.post', () => {
   });
 });
 
+describe('ThreatLockerClient.put', () => {
+  let client: ThreatLockerClient;
+
+  beforeEach(() => {
+    client = new ThreatLockerClient({
+      apiKey: 'test-api-key',
+      baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+      maxRetries: 0,
+    });
+  });
+
+  it('returns success response for 200', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ policyId: '123', name: 'updated' }),
+      headers: new Headers(),
+    });
+
+    const result = await client.put('Policy/PolicyUpdateById', { policyId: '123', name: 'updated' });
+    expect(result).toEqual({ success: true, data: { policyId: '123', name: 'updated' } });
+  });
+
+  it('sends PUT method with JSON body', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+      headers: new Headers(),
+    });
+
+    await client.put('Test/Endpoint', { name: 'test' });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ name: 'test' }),
+      })
+    );
+  });
+
+  it('returns error response for non-OK status', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      text: async () => '',
+    });
+
+    const result = await client.put('Test/Endpoint', {});
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+      expect(result.error.statusCode).toBe(400);
+    }
+  });
+
+  it('returns NETWORK_ERROR when fetch throws', async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
+
+    const result = await client.put('Test/Endpoint', {});
+    expect(result).toEqual({
+      success: false,
+      error: { code: 'NETWORK_ERROR', message: 'ECONNREFUSED' },
+    });
+  });
+});
+
 describe('extractPaginationFromHeaders', () => {
   it('returns pagination when totalItems and totalPages are present', () => {
     const headers = new Headers({
