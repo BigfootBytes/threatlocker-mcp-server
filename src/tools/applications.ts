@@ -157,66 +157,76 @@ export async function handleApplicationsTool(
         return errorResponse('BAD_REQUEST', 'fileRules array is required for add_file action');
       }
 
-      const results: Array<{ rule: Record<string, string>; success: boolean; data?: unknown; error?: string }> = [];
+      const results: Array<{ success: boolean; applicationFileId?: unknown; fullPath?: string; hash?: string; error?: string }> = [];
       for (const rule of fileRules) {
-        const ruleHash = rule.hash || '';
-        const isHashOnly = !!ruleHash && !rule.fullPath && !rule.cert && !rule.processPath;
-        const filePayload = {
-          applicationFileId: 0,
-          applicationId,
-          fullPath: rule.fullPath || '',
-          cert: rule.cert || '',
-          hash: ruleHash,
-          processPath: rule.processPath || '',
-          notes: rule.notes || '',
-          installedBy: rule.installedBy || '',
-          keyFile: false,
-          isHashOnly,
-          osType,
-          originalFullPath: null,
-          originalCert: null,
-          originalHash: null,
-          originalProcessPath: null,
-          originalNotes: null,
-          originalInstalledBy: null,
-          originalKeyFile: false,
-          minSize: null,
-          maxSize: null,
-          updateStatus: 0,
-        };
+        try {
+          const ruleHash = rule.hash || '';
+          const isHashOnly = !!ruleHash && !rule.fullPath && !rule.cert && !rule.processPath;
+          const filePayload = {
+            applicationFileId: 0,
+            applicationId,
+            fullPath: rule.fullPath || '',
+            cert: rule.cert || '',
+            hash: ruleHash,
+            processPath: rule.processPath || '',
+            notes: rule.notes || '',
+            installedBy: rule.installedBy || '',
+            keyFile: false,
+            isHashOnly,
+            osType,
+            originalFullPath: null,
+            originalCert: null,
+            originalHash: null,
+            originalProcessPath: null,
+            originalNotes: null,
+            originalInstalledBy: null,
+            originalKeyFile: false,
+            minSize: null,
+            maxSize: null,
+            updateStatus: 0,
+          };
 
-        // Step 1: Prepare — validates the rule and auto-generates notes/timestamp
-        const prepareResult = await client.post<Record<string, unknown>>(
-          'ApplicationFile/ApplicationFilePrepareForInsert',
-          filePayload
-        );
-        if (!prepareResult.success) {
-          results.push({ rule, success: false, error: prepareResult.error.message });
-          continue;
-        }
+          // Step 1: Prepare — validates the rule and auto-generates notes/timestamp
+          const prepareResult = await client.post<Record<string, unknown>>(
+            'ApplicationFile/ApplicationFilePrepareForInsert',
+            filePayload
+          );
+          if (!prepareResult.success) {
+            results.push({ success: false, fullPath: rule.fullPath, hash: rule.hash, error: prepareResult.error.message });
+            continue;
+          }
 
-        // Step 2: Insert — commits the prepared object
-        const insertResult = await client.post(
-          'ApplicationFile/ApplicationFileInsert',
-          prepareResult.data
-        );
-        if (!insertResult.success) {
-          results.push({ rule, success: false, error: insertResult.error.message });
-          continue;
+          // Step 2: Insert — commits the prepared object
+          const insertResult = await client.post<Record<string, unknown>>(
+            'ApplicationFile/ApplicationFileInsert',
+            prepareResult.data
+          );
+          if (!insertResult.success) {
+            results.push({ success: false, fullPath: rule.fullPath, hash: rule.hash, error: insertResult.error.message });
+            continue;
+          }
+          const inserted = insertResult.data;
+          results.push({
+            success: true,
+            applicationFileId: inserted?.applicationFileId,
+            fullPath: (inserted?.fullPath as string) || rule.fullPath,
+            hash: (inserted?.hash as string) || rule.hash,
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Unknown error';
+          results.push({ success: false, fullPath: rule.fullPath, hash: rule.hash, error: message });
         }
-        results.push({ rule, success: true, data: insertResult.data });
       }
 
-      const allSucceeded = results.every(r => r.success);
-      const summary = {
-        total: results.length,
-        succeeded: results.filter(r => r.success).length,
-        failed: results.filter(r => !r.success).length,
-        results,
+      return {
+        success: true,
+        data: {
+          total: results.length,
+          succeeded: results.filter(r => r.success).length,
+          failed: results.filter(r => !r.success).length,
+          results,
+        },
       };
-      return allSucceeded
-        ? { success: true, data: summary }
-        : { success: true, data: summary }; // partial success is still success at the tool level
     }
 
     case 'delete':
