@@ -5,6 +5,28 @@ import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof applicationsZodSchema>>;
 
+/** Build a full applicationFileUpdates entry from a simplified file rule input. */
+function buildFileRule(rule: Record<string, string>): Record<string, unknown> {
+  const hash = rule.hash || '';
+  const isHashOnly = !!hash && !rule.fullPath && !rule.cert && !rule.processPath;
+  return {
+    applicationFileId: 0,
+    fullPath: rule.fullPath || '',
+    processPath: rule.processPath || '',
+    installedBy: rule.installedBy || '',
+    cert: rule.cert || '',
+    hash,
+    notes: rule.notes || '',
+    updateStatus: 1,
+    keyFile: false,
+    isHashOnly,
+    originalFullPath: '',
+    originalCert: '',
+    originalHash: '',
+    originalProcessPath: '',
+  };
+}
+
 export async function handleApplicationsTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -123,15 +145,7 @@ export async function handleApplicationsTool(
         name: appName,
         osType,
         description: appDescription || '',
-        applicationFileUpdates: (appFileRules || []).map(rule => ({
-          fullPath: rule.fullPath || '',
-          processPath: rule.processPath || '',
-          installedBy: rule.installedBy || '',
-          cert: rule.cert || '',
-          hash: rule.hash || '',
-          notes: rule.notes || '',
-          updateStatus: 1,
-        })),
+        applicationFileUpdates: (appFileRules || []).map(rule => buildFileRule(rule)),
       });
     }
 
@@ -154,15 +168,7 @@ export async function handleApplicationsTool(
         description: appDescription || '',
       };
       if (appFileRules) {
-        body.applicationFileUpdates = appFileRules.map(rule => ({
-          fullPath: rule.fullPath || '',
-          processPath: rule.processPath || '',
-          installedBy: rule.installedBy || '',
-          cert: rule.cert || '',
-          hash: rule.hash || '',
-          notes: rule.notes || '',
-          updateStatus: 1,
-        }));
+        body.applicationFileUpdates = appFileRules.map(rule => buildFileRule(rule));
       }
       return client.put('Application/ApplicationUpdateById', body);
     }
