@@ -11,6 +11,7 @@ describe('applications tool', () => {
     mockClient = {
       post: vi.fn(),
       get: vi.fn(),
+      put: vi.fn(),
     } as unknown as ThreatLockerClient;
   });
 
@@ -172,5 +173,141 @@ describe('applications tool', () => {
     if (!result.success) {
       expect(result.error.message).toContain('applicationId');
     }
+  });
+
+  describe('create action', () => {
+    it('returns error when name is missing', async () => {
+      const result = await handleApplicationsTool(mockClient, { action: 'create', osType: 1 });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('name');
+      }
+    });
+
+    it('calls ApplicationInsert with correct body', async () => {
+      vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: { applicationId: 'new-id' } });
+      await handleApplicationsTool(mockClient, {
+        action: 'create',
+        name: 'My App',
+        osType: 1,
+        description: 'Test app',
+        fileRules: [{ fullPath: 'C:\\app.exe', hash: 'a'.repeat(64) }],
+      });
+      expect(mockClient.post).toHaveBeenCalledWith(
+        'Application/ApplicationInsert',
+        expect.objectContaining({
+          name: 'My App',
+          osType: 1,
+          description: 'Test app',
+          applicationFileUpdates: [expect.objectContaining({
+            fullPath: 'C:\\app.exe',
+            hash: 'a'.repeat(64),
+            updateStatus: 1,
+          })],
+        })
+      );
+    });
+
+    it('sends empty applicationFileUpdates when no fileRules provided', async () => {
+      vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+      await handleApplicationsTool(mockClient, { action: 'create', name: 'My App', osType: 1 });
+      expect(mockClient.post).toHaveBeenCalledWith(
+        'Application/ApplicationInsert',
+        expect.objectContaining({ applicationFileUpdates: [] })
+      );
+    });
+  });
+
+  describe('update action', () => {
+    it('returns error when applicationId is missing', async () => {
+      const result = await handleApplicationsTool(mockClient, { action: 'update', name: 'X', osType: 1 });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('applicationId');
+    });
+
+    it('returns error when name is missing', async () => {
+      const result = await handleApplicationsTool(mockClient, {
+        action: 'update',
+        applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+        osType: 1,
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('name');
+    });
+
+    it('returns error for invalid applicationId GUID', async () => {
+      const result = await handleApplicationsTool(mockClient, {
+        action: 'update',
+        applicationId: 'not-a-guid',
+        name: 'Test',
+        osType: 1,
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('applicationId must be a valid GUID');
+    });
+
+    it('calls ApplicationUpdateById with PUT', async () => {
+      vi.mocked(mockClient.put).mockResolvedValue({ success: true, data: {} });
+      await handleApplicationsTool(mockClient, {
+        action: 'update',
+        applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+        name: 'Updated App',
+        osType: 1,
+        description: 'Updated desc',
+      });
+      expect(mockClient.put).toHaveBeenCalledWith(
+        'Application/ApplicationUpdateById',
+        expect.objectContaining({
+          applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+          name: 'Updated App',
+          osType: 1,
+          description: 'Updated desc',
+        })
+      );
+    });
+  });
+
+  describe('delete action', () => {
+    it('returns error when applications array is missing', async () => {
+      const result = await handleApplicationsTool(mockClient, { action: 'delete' });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('applications');
+    });
+
+    it('returns error when applications array is empty', async () => {
+      const result = await handleApplicationsTool(mockClient, { action: 'delete', applications: [] });
+      expect(result.success).toBe(false);
+    });
+
+    it('returns error for invalid GUID in applications array', async () => {
+      const result = await handleApplicationsTool(mockClient, {
+        action: 'delete',
+        applications: [{ applicationId: 'bad-guid', name: 'Test', organizationId: '12345678-1234-1234-1234-123456789abc', osType: 1 }],
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('applicationId must be a valid GUID');
+    });
+
+    it('calls ApplicationUpdateForDelete with correct body', async () => {
+      vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: true });
+      const apps = [{ applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', name: 'Test', organizationId: '12345678-1234-1234-1234-123456789abc', osType: 1 }];
+      await handleApplicationsTool(mockClient, { action: 'delete', applications: apps });
+      expect(mockClient.post).toHaveBeenCalledWith(
+        'Application/ApplicationUpdateForDelete',
+        { applications: apps }
+      );
+    });
+  });
+
+  describe('delete_confirm action', () => {
+    it('calls ApplicationConfirmUpdateForDelete', async () => {
+      vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: true });
+      const apps = [{ applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', name: 'Test', organizationId: '12345678-1234-1234-1234-123456789abc', osType: 1 }];
+      await handleApplicationsTool(mockClient, { action: 'delete_confirm', applications: apps });
+      expect(mockClient.post).toHaveBeenCalledWith(
+        'Application/ApplicationConfirmUpdateForDelete',
+        { applications: apps }
+      );
+    });
   });
 });
