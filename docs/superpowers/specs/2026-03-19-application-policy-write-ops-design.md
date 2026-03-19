@@ -47,6 +47,8 @@ if (process.env.THREATLOCKER_READ_ONLY?.match(/^(true|1|yes)$/i) && tool.writeAc
 
 **Why centralized:** Keeps handlers clean; no per-action boilerplate. Adding a new write action to any tool just means adding it to the set.
 
+**HTTP transport coverage:** The REST API path in `src/transports/http.ts` (`POST /tools/:toolName`) calls `tool.handler` directly, bypassing `server.ts`. Extract the read-only check into a shared utility function (e.g., `isWriteBlocked(tool, action)` in `registry.ts`) that both `server.ts` and `http.ts` call before invoking the handler.
+
 ### 2. Client: Add `put` Method
 
 Add `put<T>(endpoint, body)` to `ThreatLockerClient`. Same implementation as `post` (JSON body, retry logic, error handling) but with `method: 'PUT'`. No pagination extraction needed for PUT responses since they return single objects.
@@ -88,8 +90,9 @@ async put<T>(endpoint: string, body: unknown): Promise<ApiResponse<T>>
 
 **Optional inputs:**
 - `description` (string, max 2000)
+- `fileRules` (array, max 50) — same structure as `create`. When provided, these replace the existing file rules. When omitted, file rules are not changed.
 
-**Request body:** `{ applicationId, name, description, osType }`
+**Request body:** `{ applicationId, name, description, osType, applicationFileUpdates: [...] }`
 
 #### `delete` — `POST Application/ApplicationUpdateForDelete`
 
@@ -98,11 +101,23 @@ For applications with no attached policies.
 **Required inputs:**
 - `applications` (array, 1-50) — each: `{ applicationId, name, organizationId, osType }`
 
+**Validation:** Handler must iterate each element and call `validateGuid()` on `applicationId` and `organizationId` before sending the request.
+
+**Zod schema for the array field:**
+```typescript
+applications: z.array(z.object({
+  applicationId: z.string().max(100),
+  name: z.string().max(200),
+  organizationId: z.string().max(100),
+  osType: z.number(),
+})).min(1).max(50).optional()
+```
+
 #### `delete_confirm` — `POST Application/ApplicationConfirmUpdateForDelete`
 
 For applications that have attached policies (force delete).
 
-**Required inputs:** Same as `delete`.
+**Required inputs:** Same as `delete`. Same validation.
 
 ### 4. Policies Tool — New Actions
 
@@ -112,7 +127,7 @@ For applications that have attached policies (force delete).
 - `name` (string, max 200)
 - `applicationIds` (array of GUIDs, 1-50) — mapped to `applicationIdList`
 - `computerGroupId` (GUID)
-- `osType` (1|2|3|5) — no "All" for policy creation
+- `osType` (1|2|3|5) — ThreatLocker requires a specific OS type for policies; `0` (All) is rejected by the API
 - `policyActionId` (1|2|6) — Permit, Deny, Permit+Ringfence
 
 **Optional inputs:**
@@ -138,12 +153,14 @@ For applications that have attached policies (force delete).
 
 **Optional inputs:** Same optional fields as `create`.
 
-**Important:** All fields must be provided. Omitted optional fields reset to defaults. The handler's description will warn about this.
+**Important:** This is a full-replace PUT — all fields must be provided. Omitted optional fields reset to API defaults, which can unintentionally remove existing settings. The tool description must warn: "Use action=get first to read current values, then provide all fields when updating."
 
 #### `delete` — `PUT Policy/PolicyUpdateForDeleteByIds`
 
 **Required inputs:**
 - `policyIds` (array of GUIDs, 1-50)
+
+**Validation:** Handler must call `validateGuid()` on each element.
 
 **Request body:** `{ policyIds: [{ policyId: "..." }, ...] }`
 
@@ -167,14 +184,14 @@ For applications that have attached policies (force delete).
 }
 ```
 
-#### `deploy` — `POST DeployPolicyQueue/DeployPolicyQueueInsert`
+#### `deploy` — Deploy pending policy changes
 
 **Required inputs:**
 - `organizationId` (GUID)
 
 **Request body:** `{ organizationId: "..." }`
 
-**Note:** The exact endpoint path is not fully documented in the KB. The CLAUDE.md says "deploy via DeployPolicyQueue endpoints." We'll use `DeployPolicyQueue/DeployPolicyQueueInsert` based on ThreatLocker's naming conventions. If the exact path differs, it's a one-line fix.
+**Endpoint discovery required:** The exact endpoint path is not documented in the KB or Swagger specs. The CLAUDE.md says "deploy via DeployPolicyQueue endpoints" without specifying the path. Implementation must probe the API to find the correct endpoint. Candidate: `POST DeployPolicyQueue/DeployPolicyQueueInsert`. If the endpoint cannot be verified, defer this action to a follow-up and document it as a known gap — the other write operations are still valuable without it.
 
 ### 5. Tool Annotations Update
 
@@ -195,7 +212,15 @@ Both tool descriptions need updating to document the new actions and workflows. 
 
 ### 7. Output Schemas Update
 
-New Zod output types for write responses. The ThreatLocker API typically returns the created/updated object on success, or a simple success acknowledgment for deletes. We'll use `.passthrough()` on response objects to handle varying API response shapes.
+Write responses use the existing object shapes with `.passthrough()`:
+
+- **create/update** (applications): returns the same `applicationObject` shape already defined
+- **create/update** (policies): returns the same `policyObject` shape already defined
+- **delete** (both): returns `z.any()` — API may return a boolean, empty object, or acknowledgment
+- **copy** (policies): returns `z.any()` — API response shape is undocumented
+- **deploy**: returns `z.any()` — API response shape is undocumented
+
+The existing `z.union()` in each tool's output schema gets additional branches for the new actions. Using `.passthrough()` on object types and `z.any()` for undocumented responses avoids brittle coupling to exact API response shapes.
 
 ## File Changes
 
@@ -204,9 +229,10 @@ New Zod output types for write responses. The ThreatLocker API typically returns
 | `src/client.ts` | Add `put()` method |
 | `src/tools/registry.ts` | Add `writeActions?: Set<string>` to `ToolDefinition` |
 | `src/server.ts` | Add read-only guard in registration wrapper |
+| `src/transports/http.ts` | Add read-only guard in REST API path |
 | `src/tools/applications.ts` | Add `create`, `update`, `delete`, `delete_confirm` actions + schemas |
 | `src/tools/policies.ts` | Add `create`, `update`, `delete`, `copy`, `deploy` actions + schemas |
-| `src/index.ts` | No changes needed (env var read at runtime in server.ts) |
+| `src/index.ts` | No changes needed (env var read at runtime) |
 | Tests | New tests for all write actions + read-only guard |
 
 ## Testing Strategy
