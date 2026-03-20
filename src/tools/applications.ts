@@ -222,6 +222,65 @@ export async function handleApplicationsTool(
       };
     }
 
+    case 'remove_file': {
+      if (!applicationId) {
+        return errorResponse('BAD_REQUEST', 'applicationId is required for remove_file action');
+      }
+      const guidError = validateGuid(applicationId, 'applicationId');
+      if (guidError) return guidError;
+
+      const fileIds = input.applicationFileIds as number[] | undefined;
+      if (!fileIds || fileIds.length === 0) {
+        return errorResponse('BAD_REQUEST', 'applicationFileIds array is required for remove_file action');
+      }
+
+      // Fetch all file rules for this application to get the full objects needed by the delete endpoint
+      const filesResult = await client.get<Array<Record<string, unknown>>>(
+        'ApplicationFile/ApplicationFileGetByApplicationId',
+        { applicationId, pageNumber: '1', pageSize: '500' }
+      );
+      if (!filesResult.success) {
+        return errorResponse('BAD_REQUEST', `Failed to fetch file rules: ${filesResult.error.message}`);
+      }
+
+      const allFiles = Array.isArray(filesResult.data) ? filesResult.data : [];
+      const fileMap = new Map(allFiles.map(f => [f.applicationFileId as number, f]));
+
+      const results: Array<{ success: boolean; applicationFileId: number; error?: string }> = [];
+      for (const fileId of fileIds) {
+        try {
+          const fileObj = fileMap.get(fileId);
+          if (!fileObj) {
+            results.push({ success: false, applicationFileId: fileId, error: `File rule ${fileId} not found in application` });
+            continue;
+          }
+
+          const deleteResult = await client.post(
+            'ApplicationFile/ApplicationFileDeleteById',
+            fileObj
+          );
+          if (!deleteResult.success) {
+            results.push({ success: false, applicationFileId: fileId, error: deleteResult.error.message });
+            continue;
+          }
+          results.push({ success: true, applicationFileId: fileId });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Unknown error';
+          results.push({ success: false, applicationFileId: fileId, error: message });
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          total: results.length,
+          succeeded: results.filter(r => r.success).length,
+          failed: results.filter(r => !r.success).length,
+          results,
+        },
+      };
+    }
+
     case 'delete':
     case 'delete_confirm': {
       const apps = input.applications as Array<{ applicationId: string; name: string; organizationId: string; osType: number }> | undefined;
@@ -246,7 +305,7 @@ export async function handleApplicationsTool(
 }
 
 export const applicationsZodSchema = {
-  action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy', 'create', 'update', 'add_file', 'delete', 'delete_confirm']).describe('search=find applications, get=details by ID, research=ThreatLocker security analysis, files=list file rules in app, match=find apps by file hash/cert/path, get_for_maintenance=apps for maintenance mode, get_for_network_policy=app for network policy, create=create custom application (metadata only), update=update app name/description, add_file=add file rules to application (two-step prepare+insert), delete=delete applications (no policies), delete_confirm=force delete (with policies)'),
+  action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy', 'create', 'update', 'add_file', 'remove_file', 'delete', 'delete_confirm']).describe('search=find applications, get=details by ID, research=ThreatLocker security analysis, files=list file rules in app, match=find apps by file hash/cert/path, get_for_maintenance=apps for maintenance mode, get_for_network_policy=app for network policy, create=create custom application (metadata only), update=update app name/description, add_file=add file rules to application, remove_file=remove file rules by ID, delete=delete applications (no policies), delete_confirm=force delete (with policies)'),
   applicationId: z.string().max(100).optional().describe('Application GUID (required for get, research, files, get_for_network_policy). Find via search action first.'),
   searchText: z.string().max(1000).optional().describe('Search text for search and files actions'),
   searchBy: z.enum(['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries']).optional().describe('Field to search by (default: app)'),
@@ -276,6 +335,7 @@ export const applicationsZodSchema = {
     hash: z.string().max(500).optional().describe('SHA256 hash'),
     notes: z.string().max(2000).optional().describe('Notes'),
   })).max(50).optional().describe('File rules for add_file action. Each defines a matching condition (hash, path, cert, etc.). Processed via two-step prepare+insert API.'),
+  applicationFileIds: z.array(z.number()).min(1).max(50).optional().describe('File rule IDs to remove (required for remove_file). Get IDs via action=files first.'),
   applications: z.array(z.object({
     applicationId: z.string().max(100),
     name: z.string().max(200),
@@ -343,6 +403,7 @@ Common workflows:
 - Create custom application: action=create, name="My App", osType=1
 - Update application metadata: action=update, applicationId="...", name="...", osType=1
 - Add file rules to application: action=add_file, applicationId="...", osType=1, fileRules=[{hash:"..."}, {fullPath:"...", cert:"..."}]
+- Remove file rules from application: action=remove_file, applicationId="...", applicationFileIds=[7111524894, 7111524907] (get IDs via action=files)
 - Delete application (no policies): action=delete, applications=[{applicationId:"...", name:"...", organizationId:"...", osType:1}]
 - Force delete (with policies): action=delete_confirm, applications=[...]
 
@@ -355,5 +416,5 @@ Related tools: policies (see policies using this app), action_log (see app activ
   zodSchema: applicationsZodSchema,
   outputZodSchema: applicationsOutputZodSchema,
   handler: handleApplicationsTool,
-  writeActions: new Set(['create', 'update', 'add_file', 'delete', 'delete_confirm']),
+  writeActions: new Set(['create', 'update', 'add_file', 'remove_file', 'delete', 'delete_confirm']),
 };

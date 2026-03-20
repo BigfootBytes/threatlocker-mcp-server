@@ -24,6 +24,7 @@ describe('applications tool', () => {
     expect(applicationsZodSchema.action.options).toContain('create');
     expect(applicationsZodSchema.action.options).toContain('update');
     expect(applicationsZodSchema.action.options).toContain('add_file');
+    expect(applicationsZodSchema.action.options).toContain('remove_file');
     expect(applicationsZodSchema.action.options).toContain('delete');
     expect(applicationsZodSchema.action.options).toContain('delete_confirm');
   });
@@ -351,6 +352,70 @@ describe('applications tool', () => {
         const data = result.data as { succeeded: number; failed: number };
         expect(data.succeeded).toBe(1);
         expect(data.failed).toBe(1);
+      }
+    });
+  });
+
+  describe('remove_file action', () => {
+    it('returns error when applicationId is missing', async () => {
+      const result = await handleApplicationsTool(mockClient, {
+        action: 'remove_file',
+        applicationFileIds: [123],
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('applicationId');
+    });
+
+    it('returns error when applicationFileIds is missing', async () => {
+      const result = await handleApplicationsTool(mockClient, {
+        action: 'remove_file',
+        applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('applicationFileIds');
+    });
+
+    it('fetches files then deletes matching ones', async () => {
+      const fileObj = { applicationFileId: 123, applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', fullPath: 'C:\\test.exe' };
+      vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [fileObj] });
+      vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: fileObj });
+
+      const result = await handleApplicationsTool(mockClient, {
+        action: 'remove_file',
+        applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+        applicationFileIds: [123],
+      });
+
+      expect(mockClient.get).toHaveBeenCalledWith(
+        'ApplicationFile/ApplicationFileGetByApplicationId',
+        expect.objectContaining({ applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' })
+      );
+      expect(mockClient.post).toHaveBeenCalledWith(
+        'ApplicationFile/ApplicationFileDeleteById',
+        fileObj
+      );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = result.data as { succeeded: number; failed: number };
+        expect(data.succeeded).toBe(1);
+        expect(data.failed).toBe(0);
+      }
+    });
+
+    it('reports error for file IDs not found in application', async () => {
+      vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
+
+      const result = await handleApplicationsTool(mockClient, {
+        action: 'remove_file',
+        applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+        applicationFileIds: [999],
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = result.data as { succeeded: number; failed: number; results: Array<{ error?: string }> };
+        expect(data.failed).toBe(1);
+        expect(data.results[0].error).toContain('not found');
       }
     });
   });
