@@ -17,6 +17,7 @@ export async function handleActionLogTool(
     actionType,
     hostname,
     actionLogId,
+    sourceTableId = 2,
     fullPath,
     computerId,
     showChildOrganizations = false,
@@ -63,7 +64,7 @@ export async function handleActionLogTool(
       }
       const guidError = validateGuid(actionLogId, 'actionLogId');
       if (guidError) return guidError;
-      return client.get('ActionLog/ActionLogGetByIdV2', { actionLogId });
+      return client.get('ActionLog/ActionLogGetByIdV2', { eActionLogId: actionLogId, sourceTableId: String(sourceTableId) });
     }
 
     case 'file_history': {
@@ -85,7 +86,7 @@ export async function handleActionLogTool(
       }
       const guidError = validateGuid(actionLogId, 'actionLogId');
       if (guidError) return guidError;
-      return client.get('ActionLog/ActionLogGetFileDownloadDetailsById', { actionLogId });
+      return client.get('ActionLog/ActionLogGetFileDownloadDetailsById', { eActionLogId: actionLogId, sourceTableId: String(sourceTableId) });
     }
 
     case 'get_policy_conditions': {
@@ -119,6 +120,7 @@ export const actionLogZodSchema = {
   actionType: z.enum(['execute', 'install', 'network', 'registry', 'read', 'write', 'move', 'delete', 'baseline', 'powershell', 'elevate', 'configuration', 'dns']).optional().describe('Filter by action type'),
   hostname: z.string().max(1000).optional().describe('Filter by hostname (wildcards supported)'),
   actionLogId: z.string().max(100).optional().describe('Action log GUID (required for get, get_file_download, get_policy_conditions, get_testing_details). Find via search action first.'),
+  sourceTableId: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).optional().describe('Source table for get/get_file_download: 1=ActionLog, 2=DenyActionLog (default), 3=BaselineActionLog, 4=EventLogActionLog'),
   fullPath: z.string().max(1000).optional().describe('File path for search filter or file_history (wildcards supported)'),
   computerId: z.string().max(100).optional().describe('Computer GUID to scope file_history. Find via computers list first.'),
   showChildOrganizations: z.boolean().optional().describe('Include child organization logs (default: false)'),
@@ -133,7 +135,7 @@ const actionLogObject = z.object({
   actionLogId: z.number(),
   eActionLogId: z.string(),
   fullPath: z.string(),
-  processPath: z.string(),
+  processPath: z.string().nullable(),
   hostname: z.string(),
   username: z.string(),
   actionType: z.string(),

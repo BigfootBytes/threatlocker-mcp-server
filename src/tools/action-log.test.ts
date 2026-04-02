@@ -86,7 +86,7 @@ describe('action_log tool', () => {
     await handleActionLogTool(mockClient, { action: 'get', actionLogId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'ActionLog/ActionLogGetByIdV2',
-      { actionLogId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }
+      { eActionLogId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', sourceTableId: '2' }
     );
   });
 
@@ -109,7 +109,7 @@ describe('action_log tool', () => {
     await handleActionLogTool(mockClient, { action: 'get_file_download', actionLogId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'ActionLog/ActionLogGetFileDownloadDetailsById',
-      { actionLogId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }
+      { eActionLogId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', sourceTableId: '2' }
     );
   });
 
