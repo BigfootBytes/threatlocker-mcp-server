@@ -282,6 +282,12 @@ IMPORTANT: Update is a full replace — use action=get first to read current val
 
 Policy actions: Permit (allow), Deny (block), Ringfence (allow but restrict network/storage access)
 
+Pitfalls:
+- Precedence is first-match-wins (Global > Global Group > Entire Org > Computer > Computer Group). New policies land at the bottom unless orderBefore=true.
+- monitorMode=1 (Secured) creates an explicit deny that overrides Learning Mode; monitorMode=2 is Monitor Only.
+- allowRequest/killRunningProcesses are only valid with policyActionId=2 (Deny).
+- Ringfence requires policyActionId=6; the ringfencingOptions payload is not yet exposed (a bare ringfence policy will have no restrictions).
+
 Permissions: View Application Control Policies, Edit Application Control Policies.
 Pagination: list_by_application is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: policyId, name, policyActionId, applicationId, computerGroupId, isEnabled.

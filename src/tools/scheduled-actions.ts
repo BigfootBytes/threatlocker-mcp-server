@@ -132,6 +132,10 @@ Common workflows:
 
 Scheduled action types: Version Update (scheduledType=1).
 
+Pitfalls:
+- isAscending is inverted by the API: true (or omitted) sorts descending (high to low); set false for ascending.
+- search (GetByParameters) is keyed by scheduledId — pass it to filter to a specific scheduled action's computers; use list for the top-level set.
+
 Permissions: Edit Computers, Edit Computer Groups, View Computers.
 Pagination: search action is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: scheduledAgentActionId, scheduledType, scheduledDateTime, computerName, computerGroupName, status.

@@ -212,6 +212,12 @@ Common workflows:
 - Get policy conditions for permit: action=get_policy_conditions, actionLogId="..."
 - Get testing environment details: action=get_testing_details, actionLogId="..."
 
+Pitfalls:
+- onlyTrueDenies/simulateDeny only filter when used alone or together; they force actionId=99 internally. "True" deny = enforced block; "simulated" = would-have-blocked on a Monitor/Learning computer.
+- When calling get/get_file_download, pass the sourceTableId matching the row the eActionLogId came from (default 2=DenyActionLog will miss permit/baseline/eventlog events).
+- groupBys takes at most 2 fields; prefer it over fetching raw rows for aggregation.
+- username/deviceType are NOT supported search filters here (the V2 endpoint ignores them); pivot on hostname/fullPath/policyId or use groupBys=[1] to break down by user.
+
 Permissions: View Unified Audit.
 Pagination: search action is paginated (use fetchAllPages=true to auto-fetch all pages).
 Performance: always use date filters — queries without startDate/endDate can be very slow on large organizations. Use groupBys to aggregate instead of fetching all raw rows.

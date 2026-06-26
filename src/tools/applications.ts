@@ -410,6 +410,12 @@ Common workflows:
 - Delete application (no policies): action=delete, applications=[{applicationId:"...", name:"...", organizationId:"...", osType:1}]
 - Force delete (with policies): action=delete_confirm, applications=[...]
 
+Pitfalls:
+- Hash-only file rules must contain only the hash (no path/cert); file paths need double-escaped backslashes in JSON.
+- create makes metadata only — add file rules in a follow-up add_file call; then build a policy and deploy it.
+- remove_file needs applicationFileId values from action=files first.
+- Built-in applications take policy precedence over custom apps.
+
 Permissions: Edit Application Control Applications.
 Pagination: search and files actions are paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: applicationId, name, osType, computerCount, policyCount. Research fields: concernRating, reviewRating, categories, countriesWhereCodeCompiled.

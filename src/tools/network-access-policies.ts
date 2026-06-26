@@ -84,6 +84,11 @@ Common workflows:
 - Filter by computer group: action=list, appliesToId="group-id"
 - Get policy details by ID: action=get, networkAccessPolicyId="..."
 
+Pitfalls:
+- Network Control has no Global policy level (unlike application control).
+- Tag-based rules need the tag label + id resolved via the tags tool (dropdown); parent-org tags use the "ParentOrg\\TagName" format.
+- direction: 1=Inbound, 2=Outbound; policyActionId: 1=Permit, 2=Deny.
+
 Permissions: Edit Network Control Policies, View Network Control Policies.
 Pagination: list action is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: networkAccessPolicyId, name, computerGroupName, isEnabled, applicationName.

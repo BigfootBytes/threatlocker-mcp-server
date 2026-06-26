@@ -92,6 +92,10 @@ Tags are used in:
 
 Parent organization tags appear as "parentOrgName\\tagName" format.
 
+Pitfalls:
+- Use dropdown to get the label+value (tagId) needed when building network/ringfence policy payloads.
+- Parent-organization tags use the "ParentOrg\\TagName" format.
+
 Permissions: Edit Network Control Policies, Manage Tags, Edit Application Control Policies.
 Key response fields: tagId, name, tagType, values (IP/domain/port entries).
 

@@ -89,6 +89,10 @@ Common workflows:
 - Filter by computer group: action=list, appliesToId="group-id"
 - Get policy details by ID: action=get, storagePolicyId="..."
 
+Pitfalls:
+- Read-only tool: storage policy creation/editing is not available via the public API (no documented write endpoint).
+- Storage policies are first-match top-down — permits must be ordered above denies.
+
 Permissions: View Storage Control Policies, Edit Storage Control Policies.
 Pagination: list action is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: storagePolicyId, name, policyType, osType, computerGroupName, isEnabled.

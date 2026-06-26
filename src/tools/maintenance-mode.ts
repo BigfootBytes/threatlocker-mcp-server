@@ -73,6 +73,11 @@ Common workflows:
 
 Maintenance mode history shows who enabled it, when, duration, and what applications were learned during that time.
 
+Pitfalls:
+- Learning Mode (3) requires a "Default - (Group Name)" Default Deny policy to exist in the group, or it silently does nothing.
+- Isolation (14) and Lockdown (15) require ThreatLocker Detect and Agent >= 8.2.
+- usersList entries are "DOMAIN\\USERNAME" and only apply when allUsers=false; default window is 1 hour if no end time is given.
+
 Permissions: Edit Computers, Manage Application Control Installation Mode, Manage Application Control Learning Mode.
 Pagination: get_history is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: maintenanceModeId, maintenanceTypeId, startDateTime, endDateTime, userName.

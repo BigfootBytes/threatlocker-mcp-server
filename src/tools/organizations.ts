@@ -94,6 +94,9 @@ Common workflows:
 
 The organizationId is needed for many API calls (policies, applications, etc.) to scope the request to a specific organization.
 
+Pitfalls:
+- get_auth_key returns the install/auth key used to deploy agents and to resolve groups via computer_groups get_by_install_key.
+
 Permissions: View Organizations, Edit Organizations, Super Admin - Child.
 Pagination: list_children is paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: organizationId, name, displayName, dateAdded, computerCount.

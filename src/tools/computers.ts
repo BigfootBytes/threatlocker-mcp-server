@@ -141,6 +141,10 @@ Common workflows:
 - View check-in history: action=checkins, computerId="..."
 - Get installation info for new deployments: action=get_install_info
 
+Pitfalls:
+- get returns the editable computer record, not live protection state; read current mode/isolation from list results or maintenance_mode history.
+- This is the triage entry point: find a box here, grab its computerId/organizationId/computerGroupId, then hand off to maintenance_mode, approval_requests, or action_log.
+
 Permissions: View Computers, Edit Computers (for modifications), Install Computers (for install info).
 Pagination: list and checkins actions are paginated (use fetchAllPages=true to auto-fetch all pages).
 Key response fields: computerId, computerName, computerGroupName, lastCheckin, action (Secure/Installation/Learning/MonitorOnly), threatLockerVersion.
