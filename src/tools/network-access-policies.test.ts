@@ -29,6 +29,39 @@ describe('network_access_policies tool', () => {
     }
   });
 
+  it('create posts NetworkAccessPolicyInsert with required fields and is a write action', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleNetworkAccessPoliciesTool(mockClient, {
+      action: 'create',
+      name: 'Block RDP out',
+      computerGroupId: '12345678-1234-1234-1234-123456789abc',
+      direction: 2,
+      policyActionId: 2,
+      ports: ['3389'],
+    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'NetworkAccessPolicy/NetworkAccessPolicyInsert',
+      expect.objectContaining({
+        name: 'Block RDP out',
+        computerGroupId: '12345678-1234-1234-1234-123456789abc',
+        direction: 2,
+        policyActionId: 2,
+        protocol: 3,
+        status: 1,
+        networkAccessRulePortDtos: ['3389'],
+      })
+    );
+    expect(networkAccessPoliciesTool.writeActions?.has('create')).toBe(true);
+  });
+
+  it('create requires direction', async () => {
+    const result = await handleNetworkAccessPoliciesTool(mockClient, {
+      action: 'create', name: 'x', computerGroupId: '12345678-1234-1234-1234-123456789abc', policyActionId: 1,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.message).toContain('direction');
+  });
+
   it('returns error for unknown action', async () => {
     const result = await handleNetworkAccessPoliciesTool(mockClient, { action: 'delete' as any });
     expect(result.success).toBe(false);

@@ -63,6 +63,15 @@ export async function handleApprovalRequestsTool(
       });
     }
 
+    case 'take_ownership': {
+      if (!approvalRequestId) {
+        return errorResponse('BAD_REQUEST', 'approvalRequestId is required for take_ownership action');
+      }
+      const guidError = validateGuid(approvalRequestId, 'approvalRequestId');
+      if (guidError) return guidError;
+      return client.post('ApprovalRequest/ApprovalRequestUpdateForTakeOwnership', { approvalRequestId });
+    }
+
     case 'count':
       return client.get('ApprovalRequest/ApprovalRequestGetCount', {});
 
@@ -99,7 +108,7 @@ export async function handleApprovalRequestsTool(
 }
 
 export const approvalRequestsZodSchema = {
-  action: z.enum(['list', 'get', 'count', 'get_file_download_details', 'get_permit_application', 'get_storage_approval', 'reject']).describe('list=search requests, get=single request details, count=pending count, get_file_download_details=file download info, get_permit_application=permit options, get_storage_approval=storage request details, reject=reject a pending request with a reason'),
+  action: z.enum(['list', 'get', 'count', 'get_file_download_details', 'get_permit_application', 'get_storage_approval', 'reject', 'take_ownership']).describe('list=search requests, get=single request details, count=pending count, get_file_download_details=file download info, get_permit_application=permit options, get_storage_approval=storage request details, reject=reject a pending request with a reason, take_ownership=assign a request to yourself'),
   rejectReason: z.string().max(2000).optional().describe('Reason shown to the requestor when rejecting (reject action).'),
   responseSubject: z.string().max(500).optional().describe('Optional response email subject for reject.'),
   responseReason: z.string().max(2000).optional().describe('Optional response email body for reject.'),
@@ -172,6 +181,6 @@ Related tools: action_log (see the deny event), applications (find matching apps
   annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
   zodSchema: approvalRequestsZodSchema,
   outputZodSchema: approvalRequestsOutputZodSchema,
-  writeActions: new Set(['reject']),
+  writeActions: new Set(['reject', 'take_ownership']),
   handler: handleApprovalRequestsTool,
 };

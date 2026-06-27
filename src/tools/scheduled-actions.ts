@@ -69,6 +69,38 @@ export async function handleScheduledActionsTool(
       return client.get('ScheduledAgentAction/GetForHydration', { scheduledActionId });
     }
 
+    case 'schedule': {
+      const targetVersionId = input.targetVersionId as string | undefined;
+      const appliesTo = input.appliesTo as Array<{ appliesToId: string; appliesToTypeId: number }> | undefined;
+      const batchAmount = input.batchAmount as number | undefined;
+      if (!targetVersionId) {
+        return errorResponse('BAD_REQUEST', 'targetVersionId is required for schedule action (get it from the versions tool value field)');
+      }
+      const verGuidError = validateGuid(targetVersionId, 'targetVersionId');
+      if (verGuidError) return verGuidError;
+      if (!appliesTo || appliesTo.length === 0) {
+        return errorResponse('BAD_REQUEST', 'appliesTo is required for schedule action (each: {appliesToId, appliesToTypeId})');
+      }
+      for (const t of appliesTo) {
+        const idError = validateGuid(t.appliesToId, 'appliesTo.appliesToId');
+        if (idError) return idError;
+      }
+      // batchAmount is technically optional in the API, but omitting it updates the
+      // ENTIRE target fleet simultaneously with no window — require it to prevent that footgun.
+      if (!batchAmount) {
+        return errorResponse('BAD_REQUEST', 'batchAmount is required for schedule action (25/50/100/250/500). Omitting it would update the entire target fleet simultaneously with no window.');
+      }
+      return client.post('ScheduledAgentAction', {
+        scheduledType: 1,
+        scheduledTypePayload: JSON.stringify({ targetVersionId }),
+        appliesTo,
+        batchAmount,
+        startDate: input.startDate,
+        windowStartTime: input.windowStartTime,
+        windowEndTime: input.windowEndTime,
+      });
+    }
+
     case 'get_applies_to': {
       const params: Record<string, string> = { includeChildren: String(includeChildren) };
       if (osType !== undefined) params.osType = String(osType);
@@ -82,7 +114,16 @@ export async function handleScheduledActionsTool(
 }
 
 export const scheduledActionsZodSchema = {
-  action: z.enum(['list', 'search', 'get', 'get_applies_to']).describe('list=all scheduled actions, search=filtered search, get=single action details, get_applies_to=available scheduling targets'),
+  action: z.enum(['list', 'search', 'get', 'get_applies_to', 'schedule']).describe('list=all scheduled actions, search=filtered search, get=single action details, get_applies_to=available scheduling targets, schedule=schedule a batched agent version update'),
+  targetVersionId: z.string().max(100).optional().describe('ThreatLocker version GUID to roll out (schedule action). Get it from the versions tool value field.'),
+  appliesTo: z.array(z.object({
+    appliesToId: z.string().max(100).describe('GUID of the org/group/computer to target'),
+    appliesToTypeId: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(6)]).describe('1=Organization, 2=Computer Group, 3=Computer, 6=Global Computer Group'),
+  })).max(100).optional().describe('Targets for schedule action. Resolve ids via get_applies_to.'),
+  batchAmount: z.union([z.literal(25), z.literal(50), z.literal(100), z.literal(250), z.literal(500)]).optional().describe('Computers updated per batch (REQUIRED for schedule). Omitting it would update the whole fleet at once.'),
+  startDate: z.string().max(100).optional().describe('When the rollout starts (ISO 8601). Defaults to now.'),
+  windowStartTime: z.string().max(10).optional().describe('Daily window start, 24h "HH:MM".'),
+  windowEndTime: z.string().max(10).optional().describe('Daily window end, 24h "HH:MM".'),
   scheduledActionId: z.string().max(100).optional().describe('Scheduled action GUID (required for get). Find via list or search first.'),
   scheduledId: z.string().max(100).optional().describe('Filter search to the computers within a specific scheduled action (GUID). Find via list first.'),
   searchText: z.string().max(1000).optional().describe('Free-text filter for search (e.g. computer name).'),
@@ -141,7 +182,8 @@ Pagination: search action is paginated (use fetchAllPages=true to auto-fetch all
 Key response fields: scheduledAgentActionId, scheduledType, scheduledDateTime, computerName, computerGroupName, status.
 
 Related tools: computers (see current versions), computer_groups (target groups for updates), organizations (filter by org)`,
-  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  writeActions: new Set(['schedule']),
   zodSchema: scheduledActionsZodSchema,
   outputZodSchema: scheduledActionsOutputZodSchema,
   handler: handleScheduledActionsTool,

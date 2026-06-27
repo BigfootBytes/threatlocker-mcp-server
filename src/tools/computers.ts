@@ -101,6 +101,22 @@ export async function handleComputersTool(
       });
     }
 
+    case 'baseline_rescan': {
+      const detail = buildComputerDetail(input);
+      if ('error' in detail) return detail.error;
+      return client.post('Computer/ComputerUpdateBaselineRescan', {
+        computerDetailDtos: [detail.value],
+        enableLearning: input.enableLearning ?? false,
+      });
+    }
+
+    case 'restart_service': {
+      const detail = buildComputerDetail(input);
+      if ('error' in detail) return detail.error;
+      // Endpoint expects a bare array of computer detail records.
+      return client.post('Computer/ComputerUpdateShouldRestartByIds', [detail.value]);
+    }
+
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
@@ -129,7 +145,8 @@ function buildComputerDetail(
 }
 
 export const computersZodSchema = {
-  action: z.enum(['list', 'get', 'checkins', 'get_install_info', 'isolate', 'lockdown', 'enable_protection']).describe('list=search computers, get=details by ID, checkins=connection history, get_install_info=deployment info, isolate=cut network (Detect+Agent>=8.2), lockdown=block executions+isolate, enable_protection=re-secure / clear isolation'),
+  action: z.enum(['list', 'get', 'checkins', 'get_install_info', 'isolate', 'lockdown', 'enable_protection', 'baseline_rescan', 'restart_service']).describe('list=search computers, get=details by ID, checkins=connection history, get_install_info=deployment info, isolate=cut network (Detect+Agent>=8.2), lockdown=block executions+isolate, enable_protection=re-secure / clear isolation, baseline_rescan=re-profile system files, restart_service=restart the ThreatLocker agent service'),
+  enableLearning: z.boolean().optional().describe('Enable a learning window during baseline_rescan (default: false).'),
   computerId: z.string().max(100).optional().describe('Computer GUID (required for get, checkins, isolate, lockdown, enable_protection). Find via list action first.'),
   organizationId: z.string().max(100).optional().describe('Owning organization GUID (required for isolate/lockdown/enable_protection).'),
   startDate: z.string().max(100).optional().describe('Isolation/lockdown window start (ISO 8601 UTC).'),
@@ -202,7 +219,7 @@ Key response fields: computerId, computerName, computerGroupName, lastCheckin, a
 
 Related tools: computer_groups (manage groups), maintenance_mode (maintenance history), action_log (audit events)`,
   annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
-  writeActions: new Set(['isolate', 'lockdown', 'enable_protection']),
+  writeActions: new Set(['isolate', 'lockdown', 'enable_protection', 'baseline_rescan', 'restart_service']),
   zodSchema: computersZodSchema,
   outputZodSchema: computersOutputZodSchema,
   handler: handleComputersTool,

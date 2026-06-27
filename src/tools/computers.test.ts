@@ -79,6 +79,32 @@ describe('computers tool', () => {
     if (!result.success) expect(result.error.message).toContain('organizationId');
   });
 
+  it('baseline_rescan posts ComputerUpdateBaselineRescan with the detail and learning flag', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleComputersTool(mockClient, { action: 'baseline_rescan', computerId: cId, organizationId: orgId, enableLearning: true });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'Computer/ComputerUpdateBaselineRescan',
+      expect.objectContaining({
+        enableLearning: true,
+        computerDetailDtos: [expect.objectContaining({ computerId: cId, organizationId: orgId })],
+      })
+    );
+  });
+
+  it('restart_service posts a bare array to ComputerUpdateShouldRestartByIds', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleComputersTool(mockClient, { action: 'restart_service', computerId: cId, organizationId: orgId });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'Computer/ComputerUpdateShouldRestartByIds',
+      [expect.objectContaining({ computerId: cId, organizationId: orgId })]
+    );
+  });
+
+  it('registers baseline_rescan and restart_service as write actions', () => {
+    expect(computersTool.writeActions?.has('baseline_rescan')).toBe(true);
+    expect(computersTool.writeActions?.has('restart_service')).toBe(true);
+  });
+
   it('returns error for get without computerId', async () => {
     const result = await handleComputersTool(mockClient, { action: 'get' });
     expect(result.success).toBe(false);

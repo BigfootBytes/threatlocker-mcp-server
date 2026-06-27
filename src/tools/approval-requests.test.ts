@@ -90,6 +90,16 @@ describe('approval_requests tool', () => {
     if (!result.success) expect(result.error.message).toContain('approvalRequestId');
   });
 
+  it('take_ownership posts the request id to UpdateForTakeOwnership', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleApprovalRequestsTool(mockClient, { action: 'take_ownership', approvalRequestId: 'c3d4e5f6-a7b8-9012-cdef-123456789012' });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'ApprovalRequest/ApprovalRequestUpdateForTakeOwnership',
+      expect.objectContaining({ approvalRequestId: 'c3d4e5f6-a7b8-9012-cdef-123456789012' })
+    );
+    expect(approvalRequestsTool.writeActions?.has('take_ownership')).toBe(true);
+  });
+
   it('returns error for get without approvalRequestId', async () => {
     const result = await handleApprovalRequestsTool(mockClient, { action: 'get' });
     expect(result.success).toBe(false);
