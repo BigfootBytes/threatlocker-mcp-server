@@ -75,6 +75,34 @@ export async function fetchAllPagesLoop(
   return result;
 }
 
+/**
+ * Bound a successful array response so its serialized size stays under `maxChars`.
+ * Some endpoints (e.g. a grouped action_log search) return very wide rows; the full
+ * `data` array is echoed in `structuredContent`, which can exceed the client's token
+ * limit and fail the whole call. We drop trailing rows until it fits — each retained
+ * row keeps its full shape, so it still satisfies the tool's output schema. Returns
+ * the (possibly trimmed) result plus the number of rows dropped (0 if untouched).
+ */
+export function capResultData(
+  result: ApiResponse<unknown>,
+  maxChars: number = CHARACTER_LIMIT,
+): { result: ApiResponse<unknown>; droppedRows: number } {
+  if (!result.success || !Array.isArray(result.data)) return { result, droppedRows: 0 };
+  const data = result.data;
+  if (JSON.stringify(result).length <= maxChars) return { result, droppedRows: 0 };
+
+  let keep = data.length;
+  while (keep > 0) {
+    const trial = { ...result, data: data.slice(0, keep) };
+    if (JSON.stringify(trial).length <= maxChars) break;
+    keep = Math.max(0, keep - Math.max(1, Math.ceil(keep * 0.2)));
+  }
+  return {
+    result: { ...result, data: data.slice(0, keep) },
+    droppedRows: data.length - keep,
+  };
+}
+
 export function createMcpServer(client: ThreatLockerClient, log?: LogFn): McpServer {
   const server = new McpServer({
     name: 'threatlocker-mcp-server',
@@ -128,21 +156,30 @@ export function createMcpServer(client: ThreatLockerClient, log?: LogFn): McpSer
           log?.('DEBUG', `Tool success: ${tool.name}`, { resultCount: count, pagination: result.pagination });
         }
 
+        // Bound oversized array responses so structuredContent stays under the client's
+        // token limit (a full grouped result can be 100s of KB and fail the whole call).
+        const { result: bounded, droppedRows } = capResultData(result);
+
         let text = format === 'markdown'
-          ? formatAsMarkdown(result)
-          : JSON.stringify(result, null, 2);
+          ? formatAsMarkdown(bounded)
+          : JSON.stringify(bounded, null, 2);
+
+        if (droppedRows > 0) {
+          text += format === 'markdown'
+            ? `\n\n---\n**${droppedRows} more row(s) omitted** to fit the response size limit. Use a smaller \`pageSize\`, add filters, or use \`groupBys\` to aggregate.`
+            : `\n\n--- ${droppedRows} more row(s) omitted to fit the response size limit. Use a smaller pageSize, add filters, or groupBys to aggregate. ---`;
+        }
 
         if (text.length > CHARACTER_LIMIT) {
-          const truncated = text.slice(0, CHARACTER_LIMIT);
           const notice = format === 'markdown'
             ? '\n\n---\n**Output truncated** (exceeded 50,000 characters). Use a smaller `pageSize` or add filters to narrow results.'
             : '\n\n--- OUTPUT TRUNCATED (exceeded 50,000 characters). Use a smaller pageSize or add filters to narrow results. ---';
-          text = truncated + notice;
+          text = text.slice(0, CHARACTER_LIMIT) + notice;
         }
 
         return {
           content: [{ type: 'text' as const, text }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: bounded as unknown as Record<string, unknown>,
           isError: !result.success,
         };
       }

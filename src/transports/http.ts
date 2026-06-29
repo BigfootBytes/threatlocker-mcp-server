@@ -7,7 +7,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ThreatLockerClient } from '../client.js';
 import { toolsByName, allToolsWithSchema, isWriteBlocked } from '../tools/registry.js';
-import { createMcpServer, CHARACTER_LIMIT, LogFn, fetchAllPagesLoop } from '../server.js';
+import { createMcpServer, CHARACTER_LIMIT, LogFn, fetchAllPagesLoop, capResultData } from '../server.js';
 import { formatAsMarkdown } from '../formatters.js';
 import { VERSION } from '../version.js';
 import { allResources } from '../resources/registry.js';
@@ -307,15 +307,20 @@ export function createApp(): ReturnType<typeof express> {
         ? await fetchAllPagesLoop(tool.handler, client, toolArgs, log as LogFn, tool.name)
         : await tool.handler(client, toolArgs);
 
+      const { result: bounded, droppedRows } = capResultData(result);
+
       if (responseFormat === 'markdown') {
-        let text = formatAsMarkdown(result);
+        let text = formatAsMarkdown(bounded);
+        if (droppedRows > 0) {
+          text += `\n\n---\n**${droppedRows} more row(s) omitted** to fit the response size limit. Use a smaller \`pageSize\`, add filters, or use \`groupBys\` to aggregate.`;
+        }
         if (text.length > CHARACTER_LIMIT) {
           text = text.slice(0, CHARACTER_LIMIT) +
             '\n\n---\n**Output truncated** (exceeded 50,000 characters). Use a smaller `pageSize` or add filters to narrow results.';
         }
         res.type('text/markdown').send(text);
       } else {
-        res.json(result);
+        res.json(bounded);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';

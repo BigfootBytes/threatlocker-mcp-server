@@ -1,7 +1,42 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fetchAllPagesLoop, MAX_AUTO_PAGES } from './server.js';
+import { fetchAllPagesLoop, MAX_AUTO_PAGES, capResultData } from './server.js';
 import type { ThreatLockerClient } from './client.js';
 import type { ApiResponse, Pagination } from './types/responses.js';
+
+describe('capResultData', () => {
+  it('leaves a small array response untouched', () => {
+    const result: ApiResponse<unknown> = { success: true, data: [{ a: 1 }, { a: 2 }] };
+    const { result: out, droppedRows } = capResultData(result, 50_000);
+    expect(droppedRows).toBe(0);
+    expect(out).toBe(result);
+  });
+
+  it('drops trailing rows until a fat array fits under the limit', () => {
+    const data = Array.from({ length: 200 }, (_, i) => ({ id: i, blob: 'x'.repeat(100) }));
+    const result: ApiResponse<unknown> = { success: true, data };
+    const { result: out, droppedRows } = capResultData(result, 2000);
+    expect(droppedRows).toBeGreaterThan(0);
+    expect(JSON.stringify(out).length).toBeLessThanOrEqual(2000);
+    if (out.success && Array.isArray(out.data)) {
+      expect(out.data.length).toBe(200 - droppedRows);
+      expect(out.data[0]).toEqual({ id: 0, blob: 'x'.repeat(100) });
+    }
+  });
+
+  it('does not touch single-object (non-array) data', () => {
+    const result: ApiResponse<unknown> = { success: true, data: { big: 'y'.repeat(5000) } };
+    const { result: out, droppedRows } = capResultData(result, 100);
+    expect(droppedRows).toBe(0);
+    expect(out).toBe(result);
+  });
+
+  it('does not touch error results', () => {
+    const result: ApiResponse<unknown> = { success: false, error: { code: 'BAD_REQUEST', message: 'x'.repeat(5000) } };
+    const { result: out, droppedRows } = capResultData(result, 100);
+    expect(droppedRows).toBe(0);
+    expect(out).toBe(result);
+  });
+});
 
 // Mock client (not used directly by handler in tests)
 const mockClient = {} as ThreatLockerClient;
