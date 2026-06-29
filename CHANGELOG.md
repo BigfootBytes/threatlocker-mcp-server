@@ -2,6 +2,11 @@
 
 All notable changes to the ThreatLocker MCP Server are documented here.
 
+## 1.2.1 (2026-06-29)
+
+### Added
+- Response size bounding: when a tool returns a large array (e.g. a wide grouped `action_log` search), trailing rows are now dropped until `structuredContent` fits the client's token limit, with a note stating how many rows were omitted and how to narrow the query. Previously an oversized response could exceed the limit and fail the entire call. Retained rows keep their full shape, so output-schema validation is unaffected.
+
 ## 1.2.0 (2026-06-29)
 
 Outcome of a full tooling audit reconciling the 16 tools against the Swagger spec, Postman collection, and the ThreatLocker KB, followed by read-only live validation against the API.
