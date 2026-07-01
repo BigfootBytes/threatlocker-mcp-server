@@ -177,3 +177,96 @@ describe('approval_requests tool', () => {
     }
   });
 });
+
+describe('permit action', () => {
+  let mockClient: ThreatLockerClient;
+  beforeEach(() => {
+    mockClient = { post: vi.fn(), get: vi.fn() } as unknown as ThreatLockerClient;
+  });
+
+  const base = {
+    action: 'permit',
+    approvalRequestId: '11111111-1111-1111-1111-111111111111',
+    permitJson: '{"opaque":"blob"}',
+    computerId: '22222222-2222-2222-2222-222222222222',
+    computerGroupId: '33333333-3333-3333-3333-333333333333',
+    organizationId: '44444444-4444-4444-4444-444444444444',
+    organizationIds: ['44444444-4444-4444-4444-444444444444'],
+    osType: 1,
+    fullPath: 'C:\\\\app\\\\tool.exe',
+    ruleId: 0,
+    ringfenceActionId: 1,
+  };
+
+  it('builds existing_app + computer_group DTO', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleApprovalRequestsTool(mockClient, {
+      ...base,
+      permitMode: 'existing_app',
+      applicationId: '55555555-5555-5555-5555-555555555555',
+      applicationName: 'Existing App',
+      policyLevel: 'computer_group',
+    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'ApprovalRequest/ApprovalRequestPermitApplication',
+      expect.objectContaining({
+        matchingApplications: expect.objectContaining({
+          useExistingApplication: true,
+          useMatchingApplication: false,
+          useNewApplication: false,
+          existingApplication: expect.objectContaining({
+            applicationId: '55555555-5555-5555-5555-555555555555',
+            applicationName: 'Existing App',
+            osType: 1,
+          }),
+        }),
+        policyLevel: expect.objectContaining({
+          toComputerGroup: true,
+          toEntireOrganization: false,
+          toComputer: false,
+          selectedComputerGroup: expect.objectContaining({
+            computerGroupId: '33333333-3333-3333-3333-333333333333',
+            osType: 1,
+          }),
+        }),
+        fileDetails: { fullPath: 'C:\\\\app\\\\tool.exe' },
+        organizationHasElevation: true,
+      })
+    );
+  });
+
+  it('builds new_app + organization DTO with no selectedComputerGroup', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleApprovalRequestsTool(mockClient, {
+      ...base, permitMode: 'new_app', newApplicationName: 'Brand New', policyLevel: 'organization',
+    });
+    const body = vi.mocked(mockClient.post).mock.calls[0][1] as any;
+    expect(body.matchingApplications.useNewApplication).toBe(true);
+    expect(body.matchingApplications.newApplicationName).toBe('Brand New');
+    expect(body.policyLevel.toEntireOrganization).toBe(true);
+    expect(body.policyLevel.selectedComputerGroup).toBeUndefined();
+    expect(body.approvalRequest.json).toBe('{"opaque":"blob"}');
+  });
+
+  it('rejects a hash rule that carries extra fields', async () => {
+    const result = await handleApprovalRequestsTool(mockClient, {
+      ...base, permitMode: 'new_app', newApplicationName: 'X', policyLevel: 'computer',
+      manualOptions: [{ hash: 'abc', fullPath: 'C:\\\\x.exe' }],
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.message).toContain('hash');
+  });
+
+  it('requires permitJson', async () => {
+    const result = await handleApprovalRequestsTool(mockClient, {
+      ...base, permitJson: undefined, permitMode: 'new_app', newApplicationName: 'X', policyLevel: 'computer',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.message).toContain('permitJson');
+  });
+
+  it('registers permit as a gated write action', () => {
+    expect(approvalRequestsZodSchema.action.options).toContain('permit');
+    expect(approvalRequestsTool.writeActions?.has('permit')).toBe(true);
+  });
+});

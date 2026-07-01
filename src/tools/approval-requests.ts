@@ -102,13 +102,153 @@ export async function handleApprovalRequestsTool(
       return client.get('ApprovalRequest/ApprovalRequestGetStorageApprovalById', { approvalRequestId });
     }
 
+    case 'permit': {
+      const permitJson = input.permitJson as string | undefined;
+      const computerId = input.computerId as string | undefined;
+      const computerGroupId = input.computerGroupId as string | undefined;
+      const orgId = input.organizationId as string | undefined;
+      const organizationIds = input.organizationIds as string[] | undefined;
+      const osTypeVal = input.osType as number | undefined;
+      const fullPath = input.fullPath as string | undefined;
+      const permitMode = input.permitMode as string | undefined;
+      const policyLevelVal = input.policyLevel as string | undefined;
+      const ruleId = input.ruleId as number | undefined;
+      const ringfenceActionId = input.ringfenceActionId as number | undefined;
+
+      if (!approvalRequestId) return errorResponse('BAD_REQUEST', 'approvalRequestId is required for permit action');
+      const arGuid = validateGuid(approvalRequestId, 'approvalRequestId'); if (arGuid) return arGuid;
+      if (!permitJson) return errorResponse('BAD_REQUEST', 'permitJson is required for permit action (round-trip it verbatim from get_permit_application)');
+      if (!computerId) return errorResponse('BAD_REQUEST', 'computerId is required for permit action');
+      const cGuid = validateGuid(computerId, 'computerId'); if (cGuid) return cGuid;
+      if (!computerGroupId) return errorResponse('BAD_REQUEST', 'computerGroupId is required for permit action');
+      const cgGuid = validateGuid(computerGroupId, 'computerGroupId'); if (cgGuid) return cgGuid;
+      if (!orgId) return errorResponse('BAD_REQUEST', 'organizationId is required for permit action');
+      const oGuid = validateGuid(orgId, 'organizationId'); if (oGuid) return oGuid;
+      if (!organizationIds || organizationIds.length === 0) return errorResponse('BAD_REQUEST', 'organizationIds is required for permit action');
+      for (const id of organizationIds) { const g = validateGuid(id, 'organizationIds[]'); if (g) return g; }
+      if (!osTypeVal) return errorResponse('BAD_REQUEST', 'osType is required for permit action (1=Windows, 2=macOS, 3=Linux, 5=Windows XP)');
+      if (!fullPath) return errorResponse('BAD_REQUEST', 'fullPath is required for permit action');
+      if (!permitMode) return errorResponse('BAD_REQUEST', 'permitMode is required for permit action (existing_app|matching_app|new_app)');
+      if (!policyLevelVal) return errorResponse('BAD_REQUEST', 'policyLevel is required for permit action (organization|computer_group|computer)');
+      if (ruleId === undefined) return errorResponse('BAD_REQUEST', 'ruleId is required for permit action (0-3)');
+      if (ringfenceActionId === undefined) return errorResponse('BAD_REQUEST', 'ringfenceActionId is required for permit action');
+
+      // App selection — handler sets the mutually-exclusive booleans so two modes can never both be true.
+      const appOrgId = (input.applicationOrganizationId as string | undefined) || orgId;
+      const applicationName = input.applicationName as string | undefined;
+      const appId = input.applicationId as string | undefined;
+      const newApplicationName = input.newApplicationName as string | undefined;
+
+      const matchingApplications: Record<string, unknown> = {
+        useMatchingApplication: false,
+        useExistingApplication: false,
+        useNewApplication: false,
+      };
+      if (permitMode === 'matching_app' || permitMode === 'existing_app') {
+        if (!appId) return errorResponse('BAD_REQUEST', `applicationId is required when permitMode=${permitMode}`);
+        const aGuid = validateGuid(appId, 'applicationId'); if (aGuid) return aGuid;
+        if (!applicationName) return errorResponse('BAD_REQUEST', `applicationName is required when permitMode=${permitMode}`);
+        const appObj = { applicationName, applicationId: appId, organizationId: appOrgId, osType: osTypeVal };
+        if (permitMode === 'matching_app') {
+          matchingApplications.useMatchingApplication = true;
+          matchingApplications.matchingApplication = appObj;
+        } else {
+          matchingApplications.useExistingApplication = true;
+          matchingApplications.existingApplication = appObj;
+        }
+      } else if (permitMode === 'new_app') {
+        if (!newApplicationName) return errorResponse('BAD_REQUEST', 'newApplicationName is required when permitMode=new_app');
+        matchingApplications.useNewApplication = true;
+        matchingApplications.newApplicationName = newApplicationName;
+      } else {
+        return errorResponse('BAD_REQUEST', `Unknown permitMode: ${permitMode} (use existing_app|matching_app|new_app)`);
+      }
+
+      // Policy level — exactly one branch true.
+      const policyLevel: Record<string, unknown> = {
+        toEntireOrganization: false,
+        toComputerGroup: false,
+        toComputer: false,
+      };
+      if (policyLevelVal === 'organization') {
+        policyLevel.toEntireOrganization = true;
+      } else if (policyLevelVal === 'computer') {
+        policyLevel.toComputer = true;
+      } else if (policyLevelVal === 'computer_group') {
+        policyLevel.toComputerGroup = true;
+        policyLevel.selectedComputerGroup = { computerGroupId, organizationId: orgId, osType: osTypeVal };
+      } else {
+        return errorResponse('BAD_REQUEST', `Unknown policyLevel: ${policyLevelVal} (use organization|computer_group|computer)`);
+      }
+
+      // manualOptions: a hash rule must contain ONLY the hash (KB: no other fields, no wildcards).
+      const manualOptions = input.manualOptions as Array<Record<string, unknown>> | undefined;
+      if (manualOptions) {
+        for (const opt of manualOptions) {
+          if (opt.hash) {
+            const present = Object.keys(opt).filter(k => opt[k] !== undefined && opt[k] !== '');
+            if (present.length > 1) {
+              return errorResponse('BAD_REQUEST', 'A hash rule must contain only the hash field (no fullPath/cert/processPath/createdBy).');
+            }
+          }
+        }
+      }
+
+      return client.post('ApprovalRequest/ApprovalRequestPermitApplication', {
+        approvalRequest: {
+          approvalRequestId,
+          json: permitJson,
+          comments: input.comments,
+          requestorEmailAddress: input.requestorEmailAddress,
+          ticketApprovalManager: input.ticketApprovalManager,
+          ticketId: input.ticketId,
+        },
+        computerId,
+        computerGroupId,
+        organizationId: orgId,
+        organizationIds,
+        osType: osTypeVal,
+        fileDetails: { fullPath },
+        matchingApplications,
+        policyLevel,
+        policyConditions: {
+          useExistingPolicy: input.useExistingPolicy ?? false,
+          manualOptions: manualOptions ?? [],
+          ruleId,
+        },
+        ringfenceActionId,
+        organizationHasElevation: true,
+      });
+    }
+
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
 
 export const approvalRequestsZodSchema = {
-  action: z.enum(['list', 'get', 'count', 'get_file_download_details', 'get_permit_application', 'get_storage_approval', 'reject', 'take_ownership']).describe('list=search requests, get=single request details, count=pending count, get_file_download_details=file download info, get_permit_application=permit options, get_storage_approval=storage request details, reject=reject a pending request with a reason, take_ownership=assign a request to yourself'),
+  action: z.enum(['list', 'get', 'count', 'get_file_download_details', 'get_permit_application', 'get_storage_approval', 'reject', 'take_ownership', 'permit']).describe('list=search requests, get=single request details, count=pending count, get_file_download_details=file download info, get_permit_application=permit options, get_storage_approval=storage request details, reject=reject a pending request with a reason, take_ownership=assign a request to yourself, permit=approve a request (two-step: call get_permit_application first and round-trip its opaque json blob)'),
+  permitJson: z.string().optional().describe('permit: the opaque "json" blob from get_permit_application, passed back VERBATIM. Do not synthesize or edit it.'),
+  permitMode: z.enum(['existing_app', 'matching_app', 'new_app']).optional().describe('permit: existing_app=add file rule to an existing application; matching_app=use a ThreatLocker-matched application; new_app=create a new application. Requires applicationId+applicationName (existing/matching) or newApplicationName (new).'),
+  policyLevel: z.enum(['organization', 'computer_group', 'computer']).optional().describe('permit: scope the resulting policy to the entire organization, the computer group, or just the requesting computer.'),
+  computerId: z.string().max(100).optional().describe('permit: requesting computer GUID.'),
+  computerGroupId: z.string().max(100).optional().describe('permit: computer group GUID (used as selectedComputerGroup when policyLevel=computer_group).'),
+  organizationId: z.string().max(100).optional().describe('permit: organization GUID of the request.'),
+  organizationIds: z.array(z.string().max(100)).optional().describe('permit: parent-hierarchy GUID chain (child→…→root); usually 1 entry for a child-org request.'),
+  osType: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('permit: 1=Windows, 2=macOS, 3=Linux, 5=Windows XP.'),
+  fullPath: z.string().max(2000).optional().describe('permit: file path of the requested file (use \\\\ for backslashes).'),
+  applicationId: z.string().max(100).optional().describe('permit: application GUID (required for permitMode existing_app/matching_app).'),
+  applicationName: z.string().max(200).optional().describe('permit: application name (required for permitMode existing_app/matching_app).'),
+  applicationOrganizationId: z.string().max(100).optional().describe('permit: organization GUID that owns the application (defaults to organizationId).'),
+  newApplicationName: z.string().max(200).optional().describe('permit: name for the new application (required for permitMode new_app).'),
+  ruleId: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).optional().describe('permit: 0=manual rules, 1=Installation Mode 1hr, 2=Learning Mode 1hr, 3=Monitor Mode 1hr.'),
+  ringfenceActionId: z.number().optional().describe('permit: ringfence action id applied to the permit.'),
+  useExistingPolicy: z.boolean().optional().describe('permit: update an existing policy affecting the computer instead of creating one (default false).'),
+  manualOptions: z.array(z.record(z.string(), z.string())).optional().describe('permit: file-rule conditions. A hash rule = { "hash": "..." } and NOTHING else. A property rule = any of { fullPath, cert, processPath, createdBy } (pair at least two for a stronger rule).'),
+  comments: z.string().max(2000).optional().describe('permit: comment on the request. NOTE: overwrites any existing comment if provided.'),
+  requestorEmailAddress: z.string().max(320).optional().describe('permit: requestor email. NOTE: overwrites existing value if provided.'),
+  ticketApprovalManager: z.string().max(200).optional().describe('permit: approval manager. NOTE: overwrites existing value if provided.'),
+  ticketId: z.string().max(200).optional().describe('permit: ticket id. NOTE: overwrites existing value if provided.'),
   rejectReason: z.string().max(2000).optional().describe('Reason shown to the requestor when rejecting (reject action).'),
   responseSubject: z.string().max(500).optional().describe('Optional response email subject for reject.'),
   responseReason: z.string().max(2000).optional().describe('Optional response email body for reject.'),
@@ -145,6 +285,7 @@ export const approvalRequestsOutputZodSchema = {
     z.array(approvalRequestObject).describe('list: array of approval requests'),
     approvalRequestObject.describe('get/get_file_download_details/get_permit_application/get_storage_approval: single request'),
     z.number().describe('count: pending request count'),
+    z.any().describe('permit/reject/take_ownership: write operation result'),
   ]).optional().describe('Response data — shape varies by action'),
   pagination: paginationOutputSchema.optional(),
   error: errorOutputSchema.optional(),
@@ -165,6 +306,7 @@ Common workflows:
 - Get file info for download/analysis: action=get_file_download_details, approvalRequestId="..."
 - Get permit options (apps, groups): action=get_permit_application, approvalRequestId="..."
 - Get storage request details: action=get_storage_approval, approvalRequestId="..."
+- Approve a request: action=permit. Two-step — call get_permit_application first, round-trip its opaque "json" blob into permitJson, then pick permitMode + policyLevel. Payload-verified, NOT live-tested: validate in a non-prod org before relying on it.
 
 Request statuses: 1=Pending (needs review), 4=Approved, 6=Not Learned (learning mode), 10=Ignored, 12=Added to Application, 13=Escalated (from Cyber Heroes), 16=Self-Approved
 
@@ -181,6 +323,6 @@ Related tools: action_log (see the deny event), applications (find matching apps
   annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
   zodSchema: approvalRequestsZodSchema,
   outputZodSchema: approvalRequestsOutputZodSchema,
-  writeActions: new Set(['reject', 'take_ownership']),
+  writeActions: new Set(['reject', 'take_ownership', 'permit']),
   handler: handleApprovalRequestsTool,
 };
