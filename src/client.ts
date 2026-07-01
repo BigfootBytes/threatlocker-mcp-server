@@ -259,13 +259,13 @@ export class ThreatLockerClient {
     }
   }
 
-  async put<T>(endpoint: string, body: unknown): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, body: unknown, customHeaders?: Record<string, string>): Promise<ApiResponse<T>> {
     this.log('DEBUG', 'API PUT', { endpoint, body });
 
     try {
       const response = await this.fetchWithRetry(`${this.baseUrl}/${endpoint}`, {
         method: 'PUT',
-        headers: this.getHeaders(),
+        headers: { ...this.getHeaders(), ...customHeaders },
         body: JSON.stringify(body),
       });
 
@@ -295,13 +295,13 @@ export class ThreatLockerClient {
     }
   }
 
-  async patch<T>(endpoint: string, body: unknown): Promise<ApiResponse<T>> {
+  async patch<T>(endpoint: string, body: unknown, customHeaders?: Record<string, string>): Promise<ApiResponse<T>> {
     this.log('DEBUG', 'API PATCH', { endpoint, body });
 
     try {
       const response = await this.fetchWithRetry(`${this.baseUrl}/${endpoint}`, {
         method: 'PATCH',
-        headers: this.getHeaders(),
+        headers: { ...this.getHeaders(), ...customHeaders },
         body: JSON.stringify(body),
       });
 

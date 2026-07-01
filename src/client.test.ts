@@ -862,3 +862,34 @@ describe('parseRetryAfter', () => {
     expect(parseRetryAfter('3600')).toBe(MAX_BACKOFF);
   });
 });
+
+describe('put/patch custom headers', () => {
+  const client = new ThreatLockerClient({ apiKey: 'k', baseUrl: 'https://x.example.com' });
+
+  it('put merges customHeaders into the request', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200, headers: new Headers(), json: async () => ({}),
+    });
+    await client.put('T/Update', { a: 1 }, { ManagedOrganizationId: 'org-1' });
+    const opts = (global.fetch as any).mock.calls[0][1];
+    expect(opts.headers).toMatchObject({ Authorization: 'k', ManagedOrganizationId: 'org-1' });
+  });
+
+  it('put without customHeaders sends only default headers', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200, headers: new Headers(), json: async () => ({}),
+    });
+    await client.put('T/Update', { a: 1 });
+    const opts = (global.fetch as any).mock.calls[0][1];
+    expect(opts.headers).toEqual({ 'Content-Type': 'application/json', Authorization: 'k' });
+  });
+
+  it('patch merges customHeaders into the request', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200, headers: new Headers(), json: async () => ({}),
+    });
+    await client.patch('T/Patch', { a: 1 }, { ManagedOrganizationId: 'org-2' });
+    const opts = (global.fetch as any).mock.calls[0][1];
+    expect(opts.headers).toMatchObject({ ManagedOrganizationId: 'org-2' });
+  });
+});
