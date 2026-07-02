@@ -733,12 +733,12 @@ describe('HTTP server integration', () => {
       expect(res.body.osTypes['1']).toBe('Windows');
     });
 
-    it('returns server-info with name, version, and toolCount=16', async () => {
+    it('returns server-info with name, version, and toolCount=18', async () => {
       const res = await request(app).get('/resources/server-info');
       expect(res.status).toBe(200);
       expect(res.body.name).toBe('threatlocker-mcp-server');
       expect(res.body.version).toBeDefined();
-      expect(res.body.toolCount).toBe(16);
+      expect(res.body.toolCount).toBe(18);
       expect(res.body.transports).toEqual(['stdio', 'sse', 'streamable-http']);
     });
 
