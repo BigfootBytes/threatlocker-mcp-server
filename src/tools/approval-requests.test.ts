@@ -270,3 +270,71 @@ describe('permit action', () => {
     expect(approvalRequestsTool.writeActions?.has('permit')).toBe(true);
   });
 });
+
+describe('tier3/4 approval actions', () => {
+  let mockClient: ThreatLockerClient;
+  beforeEach(() => {
+    mockClient = { post: vi.fn(), get: vi.fn() } as unknown as ThreatLockerClient;
+  });
+  const arId = '11111111-1111-1111-1111-111111111111';
+
+  it('ignore posts the ignore DTO', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleApprovalRequestsTool(mockClient, { action: 'ignore', approvalRequestId: arId, ignoreReason: 'dup' });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'ApprovalRequest/ApprovalRequestUpdateForIgnore',
+      expect.objectContaining({
+        approvalRequestDtos: [{ approvalRequestId: arId }],
+        type: 'ignore',
+        ignoreReason: 'dup',
+      })
+    );
+  });
+
+  it('permit_storage add_to_existing round-trips storageJson', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleApprovalRequestsTool(mockClient, {
+      action: 'permit_storage', approvalRequestId: arId, storageJson: '{"blob":1}',
+      storageMode: 'add_to_existing', storagePolicyId: '22222222-2222-2222-2222-222222222222',
+    });
+    const body = vi.mocked(mockClient.post).mock.calls[0][1] as any;
+    expect(body.approvalRequest.json).toBe('{"blob":1}');
+    expect(body.json).toBe('{"blob":1}');
+    expect(body.addDeviceToExisting).toBe(true);
+    expect(body.existingStoragePolicy.storagePolicyId).toBe('22222222-2222-2222-2222-222222222222');
+  });
+
+  it('permit_storage new_policy sets addDeviceToExisting false + policyName', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleApprovalRequestsTool(mockClient, {
+      action: 'permit_storage', approvalRequestId: arId, storageJson: '{"blob":1}',
+      storageMode: 'new_policy', policyName: 'USB Allow', entityType: 0,
+      appliesToId: '33333333-3333-3333-3333-333333333333',
+    });
+    const body = vi.mocked(mockClient.post).mock.calls[0][1] as any;
+    expect(body.addDeviceToExisting).toBe(false);
+    expect(body.policyName).toBe('USB Allow');
+  });
+
+  it('permit_storage requires storageJson', async () => {
+    const result = await handleApprovalRequestsTool(mockClient, {
+      action: 'permit_storage', approvalRequestId: arId, storageMode: 'new_policy', policyName: 'x',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.message).toContain('storageJson');
+  });
+
+  it('get_testing_environment posts approvalRequestId', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleApprovalRequestsTool(mockClient, { action: 'get_testing_environment', approvalRequestId: arId, sourceTableId: 2 });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'VDIHyperV/VDIHyperVGetTestingEnvironmentDetails',
+      expect.objectContaining({ approvalRequestId: arId, sourceTableId: 2 })
+    );
+  });
+
+  it('registers ignore + permit_storage as write actions', () => {
+    expect(approvalRequestsTool.writeActions?.has('ignore')).toBe(true);
+    expect(approvalRequestsTool.writeActions?.has('permit_storage')).toBe(true);
+  });
+});

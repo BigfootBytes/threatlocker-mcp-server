@@ -221,13 +221,100 @@ export async function handleApprovalRequestsTool(
       });
     }
 
+    case 'ignore': {
+      if (!approvalRequestId) return errorResponse('BAD_REQUEST', 'approvalRequestId is required for ignore action');
+      const guidError = validateGuid(approvalRequestId, 'approvalRequestId');
+      if (guidError) return guidError;
+      return client.post('ApprovalRequest/ApprovalRequestUpdateForIgnore', {
+        approvalRequestDtos: [{ approvalRequestId }],
+        type: 'ignore',
+        ignoreReason: (input.ignoreReason as string | undefined) ?? '',
+        ignoreSubject: input.ignoreSubject,
+        responseSubject: input.responseSubject,
+        responseReason: input.responseReason,
+        notifyOnIgnore: input.notifyOnIgnore ?? false,
+      });
+    }
+
+    case 'permit_storage': {
+      const storageJson = input.storageJson as string | undefined;
+      const storageMode = input.storageMode as string | undefined;
+      if (!approvalRequestId) return errorResponse('BAD_REQUEST', 'approvalRequestId is required for permit_storage action');
+      const arGuid = validateGuid(approvalRequestId, 'approvalRequestId');
+      if (arGuid) return arGuid;
+      if (!storageJson) return errorResponse('BAD_REQUEST', 'storageJson is required for permit_storage action (round-trip it verbatim from get_storage_approval)');
+      if (!storageMode) return errorResponse('BAD_REQUEST', 'storageMode is required for permit_storage action (add_to_existing|new_policy)');
+
+      const body: Record<string, unknown> = {
+        approvalRequest: {
+          approvalRequestId,
+          json: storageJson,
+          ticketId: input.ticketId,
+          requestorEmailAddress: input.requestorEmailAddress,
+          comments: input.comments,
+        },
+        json: storageJson,
+        allStorageDevices: input.allStorageDevices ?? false,
+        allFilePaths: input.allFilePaths ?? false,
+        selectedPath: input.selectedPath,
+        expirationDate: input.expirationDate,
+        notifyOnResponse: input.notifyOnResponse ?? false,
+      };
+
+      if (storageMode === 'add_to_existing') {
+        const storagePolicyId = input.storagePolicyId as string | undefined;
+        if (!storagePolicyId) return errorResponse('BAD_REQUEST', 'storagePolicyId is required when storageMode=add_to_existing');
+        const spGuid = validateGuid(storagePolicyId, 'storagePolicyId');
+        if (spGuid) return spGuid;
+        body.addDeviceToExisting = true;
+        body.existingStoragePolicy = { storagePolicyId };
+      } else if (storageMode === 'new_policy') {
+        const policyName = input.policyName as string | undefined;
+        if (!policyName) return errorResponse('BAD_REQUEST', 'policyName is required when storageMode=new_policy');
+        body.addDeviceToExisting = false;
+        body.policyName = policyName;
+        body.entityType = input.entityType ?? 0;
+        body.appliesToId = input.appliesToId;
+      } else {
+        return errorResponse('BAD_REQUEST', `Unknown storageMode: ${storageMode} (use add_to_existing|new_policy)`);
+      }
+
+      return client.post('ApprovalRequest/ApprovalRequestPermitStorageApproval', body);
+    }
+
+    case 'get_testing_environment': {
+      if (!approvalRequestId) return errorResponse('BAD_REQUEST', 'approvalRequestId is required for get_testing_environment action');
+      const guidError = validateGuid(approvalRequestId, 'approvalRequestId');
+      if (guidError) return guidError;
+      // Despite the VDIHyperV path, this returns file-download/testing-env details keyed off an approval request.
+      return client.post('VDIHyperV/VDIHyperVGetTestingEnvironmentDetails', {
+        approvalRequestId,
+        sourceTableId: (input.sourceTableId as number | undefined) ?? 2,
+      });
+    }
+
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
 
 export const approvalRequestsZodSchema = {
-  action: z.enum(['list', 'get', 'count', 'get_file_download_details', 'get_permit_application', 'get_storage_approval', 'reject', 'take_ownership', 'permit']).describe('list=search requests, get=single request details, count=pending count, get_file_download_details=file download info, get_permit_application=permit options, get_storage_approval=storage request details, reject=reject a pending request with a reason, take_ownership=assign a request to yourself, permit=approve a request (two-step: call get_permit_application first and round-trip its opaque json blob)'),
+  action: z.enum(['list', 'get', 'count', 'get_file_download_details', 'get_permit_application', 'get_storage_approval', 'reject', 'take_ownership', 'permit', 'ignore', 'permit_storage', 'get_testing_environment']).describe('list=search requests, get=single request details, count=pending count, get_file_download_details=file download info, get_permit_application=permit options, get_storage_approval=storage request details, reject=reject a pending request with a reason, take_ownership=assign a request to yourself, permit=approve an application request (round-trip the opaque json blob), ignore=ignore a request, permit_storage=approve a storage/USB request (round-trip get_storage_approval json), get_testing_environment=file/testing-env details for a request'),
+  ignoreReason: z.string().max(2000).optional().describe('Reason shown to the requestor when ignoring (ignore action).'),
+  ignoreSubject: z.string().max(500).optional().describe('Optional response email subject for ignore.'),
+  notifyOnIgnore: z.boolean().optional().describe('Email the requestor on ignore (default: false).'),
+  storageJson: z.string().optional().describe('permit_storage: the opaque "json" blob from get_storage_approval, passed back VERBATIM.'),
+  storageMode: z.enum(['add_to_existing', 'new_policy']).optional().describe('permit_storage: add_to_existing=attach the device to an existing storage policy (needs storagePolicyId); new_policy=create a new storage policy (needs policyName).'),
+  storagePolicyId: z.string().max(100).optional().describe('permit_storage: existing storage policy GUID (required for storageMode=add_to_existing).'),
+  policyName: z.string().max(200).optional().describe('permit_storage: name for the new storage policy (required for storageMode=new_policy).'),
+  entityType: z.number().optional().describe('permit_storage: scope level for a new policy (0=computer, 1=group, 2=org).'),
+  appliesToId: z.string().max(100).optional().describe('permit_storage: entity GUID the new policy applies to.'),
+  allStorageDevices: z.boolean().optional().describe('permit_storage: apply to all storage devices (default: false).'),
+  allFilePaths: z.boolean().optional().describe('permit_storage: permit all file paths on the device (default: false); otherwise set selectedPath.'),
+  selectedPath: z.string().max(2000).optional().describe('permit_storage: specific path to permit when allFilePaths=false.'),
+  expirationDate: z.string().max(100).optional().describe('permit_storage: approval expiry in UTC (YYYY-MM-DDTHH:MM:SSZ).'),
+  notifyOnResponse: z.boolean().optional().describe('Email the requestor on response (reject/permit_storage; default: false).'),
+  sourceTableId: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).optional().describe('get_testing_environment: source log table (1=ActionLog, 2=DenyActionLog, 3=Baseline, 4=EventLog; default 2).'),
   permitJson: z.string().optional().describe('permit: the opaque "json" blob from get_permit_application, passed back VERBATIM. Do not synthesize or edit it.'),
   permitMode: z.enum(['existing_app', 'matching_app', 'new_app']).optional().describe('permit: existing_app=add file rule to an existing application; matching_app=use a ThreatLocker-matched application; new_app=create a new application. Requires applicationId+applicationName (existing/matching) or newApplicationName (new).'),
   policyLevel: z.enum(['organization', 'computer_group', 'computer']).optional().describe('permit: scope the resulting policy to the entire organization, the computer group, or just the requesting computer.'),
@@ -252,7 +339,6 @@ export const approvalRequestsZodSchema = {
   rejectReason: z.string().max(2000).optional().describe('Reason shown to the requestor when rejecting (reject action).'),
   responseSubject: z.string().max(500).optional().describe('Optional response email subject for reject.'),
   responseReason: z.string().max(2000).optional().describe('Optional response email body for reject.'),
-  notifyOnResponse: z.boolean().optional().describe('Email the requestor on reject (default: false).'),
   approvalRequestId: z.string().max(100).optional().describe('Approval request GUID (required for get, get_file_download_details, get_permit_application, get_storage_approval). Find via list action first.'),
   statusId: z.union([z.literal(1), z.literal(4), z.literal(6), z.literal(10), z.literal(12), z.literal(13), z.literal(16)]).optional().describe('Filter by status: 1=Pending (default for list), 4=Approved, 6=Not Learned, 10=Ignored, 12=Added to Application, 13=Escalated, 16=Self-Approved'),
   searchText: z.string().max(1000).optional().describe('Filter by text'),
@@ -323,6 +409,6 @@ Related tools: action_log (see the deny event), applications (find matching apps
   annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
   zodSchema: approvalRequestsZodSchema,
   outputZodSchema: approvalRequestsOutputZodSchema,
-  writeActions: new Set(['reject', 'take_ownership', 'permit']),
+  writeActions: new Set(['reject', 'take_ownership', 'permit', 'ignore', 'permit_storage']),
   handler: handleApprovalRequestsTool,
 };
