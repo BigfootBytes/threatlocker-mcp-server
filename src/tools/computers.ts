@@ -117,6 +117,92 @@ export async function handleComputersTool(
       return client.post('Computer/ComputerUpdateShouldRestartByIds', [detail.value]);
     }
 
+    case 'edit': {
+      if (!computerId) return errorResponse('BAD_REQUEST', 'computerId is required for edit action');
+      const cidError = validateGuid(computerId, 'computerId');
+      if (cidError) return cidError;
+      const computerGroupId = input.computerGroupId as string | undefined;
+      if (!computerGroupId) return errorResponse('BAD_REQUEST', 'computerGroupId is required for edit action');
+      const grpError = validateGuid(computerGroupId, 'computerGroupId');
+      if (grpError) return grpError;
+      const name = input.name as string | undefined;
+      if (!name) return errorResponse('BAD_REQUEST', 'name is required for edit action');
+      return client.patch('Computer/ComputerUpdateForEdit', {
+        computerId,
+        computerGroupId,
+        name,
+        useProxyServer: input.useProxyServer ?? false,
+        proxyServerOption: (input.proxyServerOption as string | undefined) ?? '',
+        proxyUrlEntry: (input.proxyUrlEntry as string | undefined) ?? '',
+        proxyURL: (input.proxyURL as string | undefined) ?? '',
+        options: (input.options as string[] | undefined) ?? [],
+      });
+    }
+
+    case 'move_org': {
+      if (!computerId) return errorResponse('BAD_REQUEST', 'computerId is required for move_org action');
+      const cidError = validateGuid(computerId, 'computerId');
+      if (cidError) return cidError;
+      const computerGroupId = input.computerGroupId as string | undefined;
+      const organizationId = input.organizationId as string | undefined;
+      const osType = input.osType as number | undefined;
+      const targetComputerGroupId = input.targetComputerGroupId as string | undefined;
+      const targetOrganizationId = input.targetOrganizationId as string | undefined;
+      if (!computerGroupId) return errorResponse('BAD_REQUEST', 'computerGroupId is required for move_org action');
+      if (!organizationId) return errorResponse('BAD_REQUEST', 'organizationId is required for move_org action');
+      if (!osType) return errorResponse('BAD_REQUEST', 'osType is required for move_org action (1=Windows, 2=macOS, 3=Linux, 5=Windows XP)');
+      if (!targetComputerGroupId) return errorResponse('BAD_REQUEST', 'targetComputerGroupId is required for move_org action');
+      if (!targetOrganizationId) return errorResponse('BAD_REQUEST', 'targetOrganizationId is required for move_org action');
+      for (const [val, label] of [[computerGroupId, 'computerGroupId'], [organizationId, 'organizationId'], [targetComputerGroupId, 'targetComputerGroupId'], [targetOrganizationId, 'targetOrganizationId']] as const) {
+        const e = validateGuid(val, label);
+        if (e) return e;
+      }
+      return client.post('Computer/ComputerMoveToOtherOrganization', {
+        computerDetailDtos: [{
+          computerId,
+          computerGroupId,
+          organizationId,
+          osType,
+          computerName: '',
+          group: '',
+          hostname: '',
+          operatingSystem: '',
+          organization: '',
+          maintenanceTypeId: 0,
+        }],
+        enableLearningRescan: input.enableLearningRescan ?? false,
+        targetComputerGroupId,
+        targetOrganizationId,
+      });
+    }
+
+    case 'delete': {
+      const deleteComputers = input.deleteComputers as Array<Record<string, string>> | undefined;
+      if (!deleteComputers || deleteComputers.length === 0) {
+        return errorResponse('BAD_REQUEST', 'deleteComputers array is required for delete action (all must be in the same organization)');
+      }
+      for (const c of deleteComputers) {
+        const cidError = validateGuid(c.computerId, 'deleteComputers[].computerId');
+        if (cidError) return cidError;
+        const orgError = validateGuid(c.organizationId, 'deleteComputers[].organizationId');
+        if (orgError) return orgError;
+      }
+      // Endpoint expects a bare array; removes from Portal only (does not uninstall the agent).
+      return client.post('Computer/ComputerUpdateForDeleteByIds', deleteComputers.map(c => ({
+        computerId: c.computerId,
+        computerName: c.computerName ?? '',
+        organizationId: c.organizationId,
+      })));
+    }
+
+    case 'restart_org':
+      // Endpoint expects a bare boolean; true also restarts child-org computers.
+      return client.post('Computer/ComputerUpdateShouldRestartByOrganization', (input.includeChildOrganizations as boolean | undefined) ?? false);
+
+    case 'remove_duplicate':
+      // Endpoint expects a bare boolean; true also de-dupes child-org computers.
+      return client.post('Computer/ComputerRemoveDuplicate', (input.includeChildOrganizations as boolean | undefined) ?? false);
+
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
@@ -145,8 +231,24 @@ function buildComputerDetail(
 }
 
 export const computersZodSchema = {
-  action: z.enum(['list', 'get', 'checkins', 'get_install_info', 'isolate', 'lockdown', 'enable_protection', 'baseline_rescan', 'restart_service']).describe('list=search computers, get=details by ID, checkins=connection history, get_install_info=deployment info, isolate=cut network (Detect+Agent>=8.2), lockdown=block executions+isolate, enable_protection=re-secure / clear isolation, baseline_rescan=re-profile system files, restart_service=restart the ThreatLocker agent service'),
+  action: z.enum(['list', 'get', 'checkins', 'get_install_info', 'isolate', 'lockdown', 'enable_protection', 'baseline_rescan', 'restart_service', 'edit', 'move_org', 'delete', 'restart_org', 'remove_duplicate']).describe('list=search computers, get=details by ID, checkins=connection history, get_install_info=deployment info, isolate=cut network (Detect+Agent>=8.2), lockdown=block executions+isolate, enable_protection=re-secure / clear isolation, baseline_rescan=re-profile system files, restart_service=restart the ThreatLocker agent service, edit=rename/move-group/proxy settings, move_org=move a computer to another organization, delete=remove computers from the Portal (does NOT uninstall), restart_org=restart every computer in the org, remove_duplicate=remove duplicate computer records'),
   enableLearning: z.boolean().optional().describe('Enable a learning window during baseline_rescan (default: false).'),
+  name: z.string().max(200).optional().describe('New computer name (required for edit action).'),
+  useProxyServer: z.boolean().optional().describe('edit: enable a proxy server (default: false).'),
+  proxyServerOption: z.string().max(50).optional().describe('edit: proxy protocol, e.g. "https://".'),
+  proxyUrlEntry: z.string().max(500).optional().describe('edit: proxy host, e.g. "proxy.example.com".'),
+  proxyURL: z.string().max(500).optional().describe('edit: full proxy URL (proxyServerOption + proxyUrlEntry).'),
+  options: z.array(z.string().max(200)).optional().describe('edit: ThreatLocker option names to set on the computer.'),
+  osType: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('move_org: OS type of the computer (1=Windows, 2=macOS, 3=Linux, 5=Windows XP).'),
+  targetComputerGroupId: z.string().max(100).optional().describe('move_org: destination computer group GUID.'),
+  targetOrganizationId: z.string().max(100).optional().describe('move_org: destination organization GUID.'),
+  enableLearningRescan: z.boolean().optional().describe('move_org: enable Learning + baseline rescan after the move (default: false).'),
+  deleteComputers: z.array(z.object({
+    computerId: z.string().max(100),
+    computerName: z.string().max(200).optional(),
+    organizationId: z.string().max(100),
+  })).max(500).optional().describe('delete: computers to remove from the Portal. ALL must be in the same organization. Removes from Portal only — does not uninstall the agent.'),
+  includeChildOrganizations: z.boolean().optional().describe('restart_org/remove_duplicate: also affect child organizations (default: false).'),
   computerId: z.string().max(100).optional().describe('Computer GUID (required for get, checkins, isolate, lockdown, enable_protection). Find via list action first.'),
   organizationId: z.string().max(100).optional().describe('Owning organization GUID (required for isolate/lockdown/enable_protection).'),
   startDate: z.string().max(100).optional().describe('Isolation/lockdown window start (ISO 8601 UTC).'),
@@ -208,6 +310,11 @@ Common workflows:
 - Get computer details by ID: action=get, computerId="..."
 - View check-in history: action=checkins, computerId="..."
 - Get installation info for new deployments: action=get_install_info
+- Rename / re-group a computer: action=edit, computerId="...", computerGroupId="...", name="..."
+- Move a computer to another org: action=move_org, computerId="...", computerGroupId="...", organizationId="...", osType=1, targetComputerGroupId="...", targetOrganizationId="..."
+- Remove computers from the Portal: action=delete, deleteComputers=[{computerId, computerName, organizationId}] (same org; does NOT uninstall)
+- Restart every agent in the org: action=restart_org (includeChildOrganizations=true also hits child orgs)
+- Remove duplicate records: action=remove_duplicate
 
 Pitfalls:
 - get returns the editable computer record, not live protection state; read current mode/isolation from list results or maintenance_mode history.
@@ -219,7 +326,7 @@ Key response fields: computerId, computerName, computerGroupName, lastCheckin, a
 
 Related tools: computer_groups (manage groups), maintenance_mode (maintenance history), action_log (audit events)`,
   annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
-  writeActions: new Set(['isolate', 'lockdown', 'enable_protection', 'baseline_rescan', 'restart_service']),
+  writeActions: new Set(['isolate', 'lockdown', 'enable_protection', 'baseline_rescan', 'restart_service', 'edit', 'move_org', 'delete', 'restart_org', 'remove_duplicate']),
   zodSchema: computersZodSchema,
   outputZodSchema: computersOutputZodSchema,
   handler: handleComputersTool,
