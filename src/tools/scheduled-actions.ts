@@ -108,18 +108,46 @@ export async function handleScheduledActionsTool(
       return client.get('ScheduledAgentAction/AppliesTo', params);
     }
 
+    case 'abort': {
+      if (!scheduledId) {
+        return errorResponse('BAD_REQUEST', 'scheduledId is required for abort action (get it from list/search)');
+      }
+      const guidError = validateGuid(scheduledId, 'scheduledId');
+      if (guidError) return guidError;
+      const abortAll = input.abortAll as boolean | undefined;
+      if (abortAll) {
+        // abortAll=true MUST pair with an empty appliesTo.
+        return client.post('ScheduledAgentAction/Abort', { scheduledId, abortAll: true, appliesTo: [] });
+      }
+      const targets = input.appliesTo as Array<{ appliesToId: string }> | undefined;
+      if (!targets || targets.length === 0) {
+        return errorResponse('BAD_REQUEST', 'appliesTo (>=1 computer) is required when abortAll is not true');
+      }
+      for (const t of targets) {
+        const idError = validateGuid(t.appliesToId, 'appliesTo.appliesToId');
+        if (idError) return idError;
+      }
+      // Only per-computer abort (appliesToTypeId=3) is supported by the API today.
+      return client.post('ScheduledAgentAction/Abort', {
+        scheduledId,
+        abortAll: false,
+        appliesTo: targets.map(t => ({ appliesToId: t.appliesToId, appliesToTypeId: 3 })),
+      });
+    }
+
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
 
 export const scheduledActionsZodSchema = {
-  action: z.enum(['list', 'search', 'get', 'get_applies_to', 'schedule']).describe('list=all scheduled actions, search=filtered search, get=single action details, get_applies_to=available scheduling targets, schedule=schedule a batched agent version update'),
+  action: z.enum(['list', 'search', 'get', 'get_applies_to', 'schedule', 'abort']).describe('list=all scheduled actions, search=filtered search, get=single action details, get_applies_to=available scheduling targets, schedule=schedule a batched agent version update, abort=cancel a scheduled action (abortAll=true for the whole action, or appliesTo=[computers] for specific ones)'),
+  abortAll: z.boolean().optional().describe('abort: cancel the entire scheduled action across all targets. When true, appliesTo is ignored; when false/omitted, supply appliesTo.'),
   targetVersionId: z.string().max(100).optional().describe('ThreatLocker version GUID to roll out (schedule action). Get it from the versions tool value field.'),
   appliesTo: z.array(z.object({
     appliesToId: z.string().max(100).describe('GUID of the org/group/computer to target'),
-    appliesToTypeId: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(6)]).describe('1=Organization, 2=Computer Group, 3=Computer, 6=Global Computer Group'),
-  })).max(100).optional().describe('Targets for schedule action. Resolve ids via get_applies_to.'),
+    appliesToTypeId: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(6)]).optional().describe('1=Organization, 2=Computer Group, 3=Computer, 6=Global Computer Group. Required for schedule; ignored for abort (forced to 3=Computer).'),
+  })).max(100).optional().describe('Targets for schedule (each {appliesToId, appliesToTypeId}); for abort, the computers to cancel (each {appliesToId}). Resolve ids via get_applies_to.'),
   batchAmount: z.union([z.literal(25), z.literal(50), z.literal(100), z.literal(250), z.literal(500)]).optional().describe('Computers updated per batch (REQUIRED for schedule). Omitting it would update the whole fleet at once.'),
   startDate: z.string().max(100).optional().describe('When the rollout starts (ISO 8601). Defaults to now.'),
   windowStartTime: z.string().max(10).optional().describe('Daily window start, 24h "HH:MM".'),
@@ -153,6 +181,7 @@ export const scheduledActionsOutputZodSchema = {
     z.array(scheduledActionObject).describe('list/search: array of scheduled actions'),
     scheduledActionObject.describe('get: single scheduled action'),
     z.array(z.object({}).passthrough()).describe('get_applies_to: array of scheduling targets'),
+    z.any().describe('schedule/abort: operation result'),
   ]).optional().describe('Response data — shape varies by action'),
   pagination: paginationOutputSchema.optional(),
   error: errorOutputSchema.optional(),
@@ -183,7 +212,7 @@ Key response fields: scheduledAgentActionId, scheduledType, scheduledDateTime, c
 
 Related tools: computers (see current versions), computer_groups (target groups for updates), organizations (filter by org)`,
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
-  writeActions: new Set(['schedule']),
+  writeActions: new Set(['schedule', 'abort']),
   zodSchema: scheduledActionsZodSchema,
   outputZodSchema: scheduledActionsOutputZodSchema,
   handler: handleScheduledActionsTool,

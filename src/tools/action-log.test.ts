@@ -415,3 +415,24 @@ describe('action_log tool', () => {
     expect(result).toEqual(apiError);
   });
 });
+
+describe('build_search_string action', () => {
+  let mockClient: ThreatLockerClient;
+  beforeEach(() => { mockClient = { post: vi.fn(), get: vi.fn() } as unknown as ThreatLockerClient; });
+
+  it('posts ActionLogGetSearchString with usenewsearch header', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: 'blob' });
+    await handleActionLogTool(mockClient, { action: 'build_search_string', startDate: '2026-01-01T00:00:00Z', endDate: '2026-01-02T00:00:00Z' });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'ActionLog/ActionLogGetSearchString',
+      expect.objectContaining({ startDate: '2026-01-01T00:00:00Z', endDate: '2026-01-02T00:00:00Z' }),
+      undefined,
+      { usenewsearch: 'true' }
+    );
+  });
+
+  it('requires startDate/endDate', async () => {
+    const r = await handleActionLogTool(mockClient, { action: 'build_search_string' });
+    expect(r.success).toBe(false);
+  });
+});

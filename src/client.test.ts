@@ -893,3 +893,35 @@ describe('put/patch custom headers', () => {
     expect(opts.headers).toMatchObject({ ManagedOrganizationId: 'org-2' });
   });
 });
+
+describe('ThreatLockerClient.delete', () => {
+  const client = new ThreatLockerClient({ apiKey: 'k', baseUrl: 'https://x.example.com' });
+
+  it('sends DELETE with query params', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200, headers: new Headers(), text: async () => '',
+    });
+    await client.delete('SaveSearch/SaveSearchDeleteById', { saveSearchId: 'abc' });
+    const url = (global.fetch as any).mock.calls[0][0];
+    const opts = (global.fetch as any).mock.calls[0][1];
+    expect(url).toContain('saveSearchId=abc');
+    expect(opts.method).toBe('DELETE');
+  });
+
+  it('merges customHeaders', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200, headers: new Headers(), text: async () => '',
+    });
+    await client.delete('T/Del', { id: '1' }, { ManagedOrganizationId: 'org-1' });
+    const opts = (global.fetch as any).mock.calls[0][1];
+    expect(opts.headers).toMatchObject({ ManagedOrganizationId: 'org-1' });
+  });
+
+  it('returns error for non-OK status', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false, status: 400, statusText: 'Bad Request', text: async () => '',
+    });
+    const result = await client.delete('T/Del', { id: '1' });
+    expect(result.success).toBe(false);
+  });
+});

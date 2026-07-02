@@ -243,3 +243,69 @@ describe('computers tool', () => {
     expect(result).toEqual(apiError);
   });
 });
+
+describe('computers tier3/4 write actions', () => {
+  let mockClient: ThreatLockerClient;
+  beforeEach(() => {
+    mockClient = { post: vi.fn(), get: vi.fn(), patch: vi.fn() } as unknown as ThreatLockerClient;
+  });
+  const cid = '11111111-1111-1111-1111-111111111111';
+  const grp = '22222222-2222-2222-2222-222222222222';
+  const org = '33333333-3333-3333-3333-333333333333';
+
+  it('edit PATCHes ComputerUpdateForEdit', async () => {
+    vi.mocked(mockClient.patch).mockResolvedValue({ success: true, data: {} });
+    await handleComputersTool(mockClient, {
+      action: 'edit', computerId: cid, computerGroupId: grp, name: 'BOX-1', useProxyServer: false,
+    });
+    expect(mockClient.patch).toHaveBeenCalledWith(
+      'Computer/ComputerUpdateForEdit',
+      expect.objectContaining({ computerId: cid, computerGroupId: grp, name: 'BOX-1' })
+    );
+  });
+
+  it('move_org posts computerDetailDtos + targets', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleComputersTool(mockClient, {
+      action: 'move_org', computerId: cid, computerGroupId: grp, organizationId: org, osType: 1,
+      targetComputerGroupId: grp, targetOrganizationId: org,
+    });
+    const body = vi.mocked(mockClient.post).mock.calls[0][1] as any;
+    expect(body.computerDetailDtos[0]).toMatchObject({ computerId: cid, organizationId: org, osType: 1 });
+    expect(body.targetOrganizationId).toBe(org);
+  });
+
+  it('delete posts a bare array', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleComputersTool(mockClient, {
+      action: 'delete', deleteComputers: [{ computerId: cid, computerName: 'BOX-1', organizationId: org }],
+    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'Computer/ComputerUpdateForDeleteByIds',
+      [{ computerId: cid, computerName: 'BOX-1', organizationId: org }]
+    );
+  });
+
+  it('restart_org posts a bare boolean', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleComputersTool(mockClient, { action: 'restart_org', includeChildOrganizations: true });
+    expect(mockClient.post).toHaveBeenCalledWith('Computer/ComputerUpdateShouldRestartByOrganization', true);
+  });
+
+  it('remove_duplicate posts a bare boolean (default false)', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleComputersTool(mockClient, { action: 'remove_duplicate' });
+    expect(mockClient.post).toHaveBeenCalledWith('Computer/ComputerRemoveDuplicate', false);
+  });
+
+  it('delete requires deleteComputers', async () => {
+    const result = await handleComputersTool(mockClient, { action: 'delete' });
+    expect(result.success).toBe(false);
+  });
+
+  it('registers the new write actions', () => {
+    for (const a of ['edit', 'move_org', 'delete', 'restart_org', 'remove_duplicate']) {
+      expect(computersTool.writeActions?.has(a)).toBe(true);
+    }
+  });
+});

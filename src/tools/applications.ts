@@ -116,6 +116,27 @@ export async function handleApplicationsTool(
     case 'get_for_maintenance':
       return client.get('Application/ApplicationGetForMaintenanceMode', {});
 
+    case 'options': {
+      const optionsOrgId = input.organizationId as string | undefined;
+      if (!optionsOrgId) return errorResponse('BAD_REQUEST', 'organizationId is required for options action');
+      const orgError = validateGuid(optionsOrgId, 'organizationId');
+      if (orgError) return orgError;
+      const optionsAppliesToId = input.appliesToId as string | undefined;
+      if (optionsAppliesToId) {
+        const atError = validateGuid(optionsAppliesToId, 'appliesToId');
+        if (atError) return atError;
+      }
+      return client.post('Application/ApplicationGetForApplicationOptions', {
+        organizationId: optionsOrgId,
+        osType,
+        includeBuiltIn: input.includeBuiltIn ?? false,
+        searchText: searchText || '',
+        hostName: (input.hostName as string | undefined) ?? '',
+        appliesToId: optionsAppliesToId || '',
+        onlyPermitted: input.onlyPermitted ?? false,
+      });
+    }
+
     case 'get_for_network_policy': {
       if (!applicationId) {
         return errorResponse('BAD_REQUEST', 'applicationId is required for get_for_network_policy action');
@@ -318,7 +339,12 @@ export async function handleApplicationsTool(
 }
 
 export const applicationsZodSchema = {
-  action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy', 'create', 'update', 'add_file', 'remove_file', 'delete', 'delete_confirm']).describe('search=find applications, get=details by ID, research=ThreatLocker security analysis, files=list file rules in app, match=find apps by file hash/cert/path, get_for_maintenance=apps for maintenance mode, get_for_network_policy=app for network policy, create=create custom application (metadata only), update=update app name/description, add_file=add file rules to application, remove_file=remove file rules by ID, delete=delete applications (no policies), delete_confirm=force delete (with policies)'),
+  action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy', 'options', 'create', 'update', 'add_file', 'remove_file', 'delete', 'delete_confirm']).describe('search=find applications, get=details by ID, research=ThreatLocker security analysis, files=list file rules in app, match=find apps by file hash/cert/path, get_for_maintenance=apps for maintenance mode, get_for_network_policy=app for network policy, options=application dropdown/lookup for an org, create=create custom application (metadata only), update=update app name/description, add_file=add file rules to application, remove_file=remove file rules by ID, delete=delete applications (no policies), delete_confirm=force delete (with policies)'),
+  organizationId: z.string().max(100).optional().describe('options: organization GUID to list application options for (required).'),
+  appliesToId: z.string().max(100).optional().describe('options: scope to a computer/group/org GUID.'),
+  includeBuiltIn: z.boolean().optional().describe('options: include ThreatLocker built-in applications (default false).'),
+  hostName: z.string().max(500).optional().describe('options: filter by hostname context.'),
+  onlyPermitted: z.boolean().optional().describe('options: only return applications with active permit policies (default false).'),
   applicationId: z.string().max(100).optional().describe('Application GUID (required for get, research, files, get_for_network_policy). Find via search action first.'),
   searchText: z.string().max(1000).optional().describe('Search text for search and files actions'),
   searchBy: z.enum(['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries']).optional().describe('Field to search by (default: app)'),

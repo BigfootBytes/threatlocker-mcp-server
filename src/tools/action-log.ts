@@ -85,6 +85,54 @@ export async function handleActionLogTool(
       );
     }
 
+    case 'build_search_string': {
+      if (!startDate || !endDate) {
+        return errorResponse('BAD_REQUEST', 'startDate and endDate are required for build_search_string action');
+      }
+      const dateError = validateDateRange(startDate, endDate);
+      if (dateError) return dateError;
+      if (policyId) {
+        const guidError = validateGuid(policyId, 'policyId');
+        if (guidError) return guidError;
+      }
+      // Same filter shape as search; returns the opaque saveParameters string for saved_searches.insert.
+      const paramsFieldsDto: Array<Record<string, unknown>> = [];
+      let effectiveActionId = actionId;
+      if (onlyTrueDenies) {
+        effectiveActionId = 99;
+        paramsFieldsDto.push({ fieldAttributeId: 34, fieldType: 1, filterType: 1, name: 'MonitorOnly', value: 'false' });
+      }
+      if (simulateDeny) {
+        effectiveActionId = 99;
+        paramsFieldsDto.push({ fieldAttributeId: 34, fieldType: 1, filterType: 1, name: 'MonitorOnly', value: 'true' });
+      }
+      return client.post(
+        'ActionLog/ActionLogGetSearchString',
+        {
+          startDate,
+          endDate,
+          pageNumber,
+          pageSize,
+          actionId: effectiveActionId,
+          actionType,
+          actionTypes,
+          hostname,
+          fullPath,
+          policyId,
+          paramsFieldsDto,
+          groupBys,
+          exportMode: false,
+          showTotalCount: true,
+          showChildOrganizations,
+          showKnownThreatsOnly,
+          onlyTrueDenies,
+          simulateDeny,
+        },
+        undefined,
+        { usenewsearch: 'true' }
+      );
+    }
+
     case 'get': {
       if (!actionLogId) {
         return errorResponse('BAD_REQUEST', 'actionLogId is required for get action');
@@ -145,7 +193,7 @@ export async function handleActionLogTool(
 }
 
 export const actionLogZodSchema = {
-  action: z.enum(['search', 'get', 'file_history', 'get_file_download', 'get_policy_conditions', 'get_testing_details']).describe('search=query logs with filters, get=single event details, file_history=all events for a file path, get_file_download=file download info, get_policy_conditions=policy conditions for permit, get_testing_details=testing environment details'),
+  action: z.enum(['search', 'get', 'file_history', 'get_file_download', 'get_policy_conditions', 'get_testing_details', 'build_search_string']).describe('search=query logs with filters, get=single event details, file_history=all events for a file path, get_file_download=file download info, get_policy_conditions=policy conditions for permit, get_testing_details=testing environment details, build_search_string=produce the opaque saveParameters string for saved_searches.insert (same filters as search)'),
   startDate: z.string().max(100).optional().describe('Start date for search (ISO 8601 UTC)'),
   endDate: z.string().max(100).optional().describe('End date for search (ISO 8601 UTC)'),
   actionId: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(6), z.literal(99)]).optional().describe('Filter by action: 1=Permit, 2=Deny, 3=Deny (Option to Request), 6=Ringfenced, 99=Any Deny'),
@@ -190,6 +238,7 @@ export const actionLogOutputZodSchema = {
     z.array(actionLogObject).describe('search/file_history: array of audit log entries'),
     actionLogObject.describe('get: single audit log entry'),
     z.object({}).passthrough().describe('get_file_download/get_policy_conditions/get_testing_details: detail object'),
+    z.any().describe('build_search_string: opaque serialized search string'),
   ]).optional().describe('Response data — shape varies by action'),
   pagination: paginationOutputSchema.optional(),
   error: errorOutputSchema.optional(),

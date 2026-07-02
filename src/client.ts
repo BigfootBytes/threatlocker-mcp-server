@@ -217,6 +217,52 @@ export class ThreatLockerClient {
     }
   }
 
+  async delete<T>(endpoint: string, params?: Record<string, string>, customHeaders?: Record<string, string>): Promise<ApiResponse<T>> {
+    const url = new URL(`${this.baseUrl}/${endpoint}`);
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          url.searchParams.set(key, value);
+        }
+      });
+    }
+
+    this.log('DEBUG', 'API DELETE', { endpoint, params });
+
+    try {
+      const response = await this.fetchWithRetry(url.toString(), {
+        method: 'DELETE',
+        headers: { ...this.getHeaders(), ...customHeaders },
+      });
+
+      if (!response.ok) {
+        const code = mapHttpStatusToErrorCode(response.status);
+        let errorBody: string | undefined;
+        try {
+          errorBody = await response.text();
+        } catch { /* ignore */ }
+        this.log('ERROR', 'API DELETE failed', {
+          endpoint,
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody?.substring(0, 500)
+        });
+        const message = extractErrorMessage(errorBody) ?? response.statusText;
+        return errorResponse(code, message, response.status);
+      }
+
+      // DELETE endpoints often return an empty body; tolerate it.
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
+      this.log('DEBUG', 'API DELETE success', { endpoint, status: response.status });
+      return successResponse<T>(data);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.log('ERROR', 'API DELETE network error', { endpoint, error: message });
+      return errorResponse('NETWORK_ERROR', message);
+    }
+  }
+
   async post<T>(
     endpoint: string,
     body: unknown,

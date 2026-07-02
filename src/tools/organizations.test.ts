@@ -57,3 +57,40 @@ describe('organizations tool', () => {
     );
   });
 });
+
+describe('tier3/4 organization actions', () => {
+  let mockClient: ThreatLockerClient;
+  beforeEach(() => { mockClient = { post: vi.fn(), get: vi.fn() } as unknown as ThreatLockerClient; });
+
+  it('timezones GETs UserGetAllTimezones', async () => {
+    vi.mocked(mockClient.get).mockResolvedValue({ success: true, data: [] });
+    await handleOrganizationsTool(mockClient, { action: 'timezones' });
+    expect(mockClient.get).toHaveBeenCalledWith('User/UserGetAllTimezones', {});
+  });
+
+  it('create_child posts displayName + timezoneId', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleOrganizationsTool(mockClient, { action: 'create_child', displayName: 'Client A', timezoneId: 'Eastern Standard Time' });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'Organization/OrganizationCreateChild',
+      expect.objectContaining({ displayName: 'Client A', timezoneId: 'Eastern Standard Time', name: 'Client A' })
+    );
+  });
+
+  it('create_child requires timezoneId', async () => {
+    const r = await handleOrganizationsTool(mockClient, { action: 'create_child', displayName: 'Client A' });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.message).toContain('timezoneId');
+  });
+
+  it('rotate_auth_key posts empty body', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleOrganizationsTool(mockClient, { action: 'rotate_auth_key' });
+    expect(mockClient.post).toHaveBeenCalledWith('Organization/OrganizationUpdateAuthKeyById', {});
+  });
+
+  it('gates create_child and rotate_auth_key', () => {
+    expect(organizationsTool.writeActions?.has('create_child')).toBe(true);
+    expect(organizationsTool.writeActions?.has('rotate_auth_key')).toBe(true);
+  });
+});
