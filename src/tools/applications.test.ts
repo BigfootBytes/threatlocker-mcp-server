@@ -535,3 +535,24 @@ describe('cross-org managedOrganizationId', () => {
     if (!result.success) expect(result.error.message).toContain('managedOrganizationId');
   });
 });
+
+describe('options action', () => {
+  let mockClient: ThreatLockerClient;
+  beforeEach(() => { mockClient = { post: vi.fn(), get: vi.fn(), put: vi.fn() } as unknown as ThreatLockerClient; });
+  const org = '11111111-1111-1111-1111-111111111111';
+
+  it('posts ApplicationGetForApplicationOptions', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: [] });
+    await handleApplicationsTool(mockClient, { action: 'options', organizationId: org, osType: 1, onlyPermitted: true });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'Application/ApplicationGetForApplicationOptions',
+      expect.objectContaining({ organizationId: org, osType: 1, onlyPermitted: true })
+    );
+  });
+
+  it('requires organizationId', async () => {
+    const r = await handleApplicationsTool(mockClient, { action: 'options', osType: 1 });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.message).toContain('organizationId');
+  });
+});
