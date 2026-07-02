@@ -2,12 +2,12 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { allTools, toolsByName, allToolsWithSchema, ToolDefinition, isWriteBlocked } from './registry.js';
 
 describe('tool registry', () => {
-  it('has exactly 16 tools', () => {
-    expect(allTools).toHaveLength(16);
+  it('has exactly 18 tools', () => {
+    expect(allTools).toHaveLength(18);
   });
 
-  it('toolsByName maps all 16 names', () => {
-    expect(toolsByName.size).toBe(16);
+  it('toolsByName maps all 18 names', () => {
+    expect(toolsByName.size).toBe(18);
   });
 
   it('allTools and toolsByName are consistent', () => {

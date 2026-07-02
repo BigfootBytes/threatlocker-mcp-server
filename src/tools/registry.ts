@@ -44,6 +44,8 @@ import { storagePoliciesTool } from './storage-policies.js';
 import { networkAccessPoliciesTool } from './network-access-policies.js';
 import { threatlockerVersionsTool } from './threatlocker-versions.js';
 import { onlineDevicesTool } from './online-devices.js';
+import { savedSearchesTool } from './saved-searches.js';
+import { uploadRequestsTool } from './upload-requests.js';
 
 export const allTools: ToolDefinition[] = [
   computersTool,
@@ -62,6 +64,8 @@ export const allTools: ToolDefinition[] = [
   networkAccessPoliciesTool,
   threatlockerVersionsTool,
   onlineDevicesTool,
+  savedSearchesTool,
+  uploadRequestsTool,
 ];
 
 export const toolsByName = new Map(allTools.map(t => [t.name, t]));
