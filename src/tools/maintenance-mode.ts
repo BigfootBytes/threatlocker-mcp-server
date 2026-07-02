@@ -70,13 +70,30 @@ export async function handleMaintenanceModeTool(
       });
     }
 
+    case 'update_end_time': {
+      const maintenanceEndDate = input.maintenanceEndDate as string | undefined;
+      const maintenanceTypeId = input.maintenanceTypeId as number | undefined;
+      if (!maintenanceEndDate) {
+        return errorResponse('BAD_REQUEST', 'maintenanceEndDate is required for update_end_time action (UTC YYYY-MM-DDTHH:MM:SSZ)');
+      }
+      if (!maintenanceTypeId) {
+        return errorResponse('BAD_REQUEST', 'maintenanceTypeId is required for update_end_time action and MUST match the currently active mode (the API silently no-ops otherwise)');
+      }
+      return client.post('MaintenanceMode/MaintenanceModeUpdateEndDateTimeForSpecificDate', {
+        computerId,
+        maintenanceEndDate,
+        maintenanceTypeId,
+      });
+    }
+
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
 }
 
 export const maintenanceModeZodSchema = {
-  action: z.enum(['get_history', 'enable', 'end']).describe('get_history=paginated history for a computer, enable=put a computer into a maintenance mode (MaintenanceModeInsert), end=end an active maintenance window early (MaintenanceModeEndById)'),
+  action: z.enum(['get_history', 'enable', 'end', 'update_end_time']).describe('get_history=paginated history for a computer, enable=put a computer into a maintenance mode (MaintenanceModeInsert), end=end an active maintenance window early (MaintenanceModeEndById), update_end_time=extend/shorten an active window (maintenanceTypeId must match the active mode)'),
+  maintenanceEndDate: z.string().max(100).optional().describe('New window end (UTC YYYY-MM-DDTHH:MM:SSZ) for update_end_time.'),
   computerId: z.string().max(100).describe('Computer GUID (required). Find via computers list first.'),
   maintenanceTypeId: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(6), z.literal(14), z.literal(15), z.literal(16), z.literal(17), z.literal(18), z.literal(19)]).optional().describe('Maintenance type (required for enable/end): 1=MonitorOnly, 2=Installation, 3=Learning, 4=Elevation, 6=TamperProtectionDisabled, 14=Isolation, 15=Lockdown, 16=DisableOpsAlerts, 17=NetworkControlMonitorOnly, 18=StorageControlMonitorOnly, 19=InstallationLegacy. For end, must match the active mode.'),
   maintenanceModeId: z.string().max(100).optional().describe('Active maintenance window GUID (required for end). Get it from get_history.'),
@@ -138,6 +155,6 @@ Related tools: computers (get computer IDs, see current mode), computer_groups (
   annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
   zodSchema: maintenanceModeZodSchema,
   outputZodSchema: maintenanceModeOutputZodSchema,
-  writeActions: new Set(['enable', 'end']),
+  writeActions: new Set(['enable', 'end', 'update_end_time']),
   handler: handleMaintenanceModeTool,
 };

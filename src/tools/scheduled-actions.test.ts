@@ -164,3 +164,31 @@ describe('scheduled_actions tool', () => {
     );
   });
 });
+
+describe('abort action', () => {
+  let mockClient: ThreatLockerClient;
+  beforeEach(() => { mockClient = { post: vi.fn(), get: vi.fn() } as unknown as ThreatLockerClient; });
+  const sid = '11111111-1111-1111-1111-111111111111';
+  const cid = '22222222-2222-2222-2222-222222222222';
+
+  it('abortAll sends empty appliesTo', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleScheduledActionsTool(mockClient, { action: 'abort', scheduledId: sid, abortAll: true });
+    expect(mockClient.post).toHaveBeenCalledWith('ScheduledAgentAction/Abort', { scheduledId: sid, abortAll: true, appliesTo: [] });
+  });
+
+  it('targeted abort forces appliesToTypeId=3', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleScheduledActionsTool(mockClient, { action: 'abort', scheduledId: sid, appliesTo: [{ appliesToId: cid }] });
+    expect(mockClient.post).toHaveBeenCalledWith('ScheduledAgentAction/Abort', { scheduledId: sid, abortAll: false, appliesTo: [{ appliesToId: cid, appliesToTypeId: 3 }] });
+  });
+
+  it('requires appliesTo when not abortAll', async () => {
+    const r = await handleScheduledActionsTool(mockClient, { action: 'abort', scheduledId: sid });
+    expect(r.success).toBe(false);
+  });
+
+  it('registers abort as a write action', () => {
+    expect(scheduledActionsTool.writeActions?.has('abort')).toBe(true);
+  });
+});

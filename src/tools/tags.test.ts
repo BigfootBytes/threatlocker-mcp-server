@@ -58,3 +58,32 @@ describe('tags tool', () => {
     expect(result).toEqual(apiError);
   });
 });
+
+describe('update action', () => {
+  let mockClient: ThreatLockerClient;
+  beforeEach(() => { mockClient = { post: vi.fn(), get: vi.fn() } as unknown as ThreatLockerClient; });
+  const tid = '11111111-1111-1111-1111-111111111111';
+  const org = '22222222-2222-2222-2222-222222222222';
+
+  it('posts the full TagDto', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleTagsTool(mockClient, {
+      action: 'update', tagId: tid, organizationId: org, name: 'CRM', active: true, tagType: 1,
+      tagItemsIPv4: [{ label: '10.0.0.1', value: '10.0.0.1' }],
+    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'Tag/TagUpdate',
+      expect.objectContaining({ tagId: tid, organizationId: org, name: 'CRM', active: true, tagType: 1, tagItemsIPv4: [{ label: '10.0.0.1', value: '10.0.0.1' }] })
+    );
+  });
+
+  it('requires organizationId', async () => {
+    const r = await handleTagsTool(mockClient, { action: 'update', tagId: tid });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.message).toContain('organizationId');
+  });
+
+  it('registers update as a write action', () => {
+    expect(tagsTool.writeActions?.has('update')).toBe(true);
+  });
+});

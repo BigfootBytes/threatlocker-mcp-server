@@ -117,3 +117,27 @@ describe('maintenance_mode tool', () => {
     );
   });
 });
+
+describe('update_end_time action', () => {
+  let mockClient: ThreatLockerClient;
+  beforeEach(() => { mockClient = { post: vi.fn(), get: vi.fn(), patch: vi.fn() } as unknown as ThreatLockerClient; });
+  const cid = '11111111-1111-1111-1111-111111111111';
+
+  it('posts computerId, maintenanceEndDate, maintenanceTypeId', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleMaintenanceModeTool(mockClient, { action: 'update_end_time', computerId: cid, maintenanceEndDate: '2026-01-01T00:00:00Z', maintenanceTypeId: 3 });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'MaintenanceMode/MaintenanceModeUpdateEndDateTimeForSpecificDate',
+      { computerId: cid, maintenanceEndDate: '2026-01-01T00:00:00Z', maintenanceTypeId: 3 }
+    );
+  });
+
+  it('requires maintenanceEndDate', async () => {
+    const r = await handleMaintenanceModeTool(mockClient, { action: 'update_end_time', computerId: cid, maintenanceTypeId: 3 });
+    expect(r.success).toBe(false);
+  });
+
+  it('registers update_end_time as a write action', () => {
+    expect(maintenanceModeTool.writeActions?.has('update_end_time')).toBe(true);
+  });
+});
