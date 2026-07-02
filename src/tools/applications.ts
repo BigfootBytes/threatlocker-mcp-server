@@ -32,6 +32,18 @@ export async function handleApplicationsTool(
   } = input as ToolInput;
   const { pageNumber, pageSize } = clampPagination(input.pageNumber as number | undefined, input.pageSize as number | undefined);
 
+  // Cross-org: a parent org can manage a child org's apps by setting the managed-org headers.
+  const managedOrganizationId = input.managedOrganizationId as string | undefined;
+  let crossOrgHeaders: Record<string, string> | undefined;
+  if (managedOrganizationId) {
+    const moGuidError = validateGuid(managedOrganizationId, 'managedOrganizationId');
+    if (moGuidError) return moGuidError;
+    crossOrgHeaders = {
+      ManagedOrganizationId: managedOrganizationId,
+      OverrideManagedOrganizationId: managedOrganizationId,
+    };
+  }
+
   switch (action) {
     case 'search':
       return client.post(
@@ -124,7 +136,7 @@ export async function handleApplicationsTool(
         osType,
         description: appDescription || '',
         applicationFileUpdates: [],
-      });
+      }, undefined, crossOrgHeaders);
     }
 
     case 'update': {
@@ -143,7 +155,7 @@ export async function handleApplicationsTool(
         name: appName,
         osType,
         description: appDescription || '',
-      });
+      }, crossOrgHeaders);
     }
 
     case 'add_file': {
@@ -329,6 +341,7 @@ export const applicationsZodSchema = {
   createdBy: z.string().max(1000).optional().describe('Created by path for match action'),
   name: z.string().max(200).optional().describe('Application name (required for create, update)'),
   description: z.string().max(2000).optional().describe('Application description'),
+  managedOrganizationId: z.string().max(100).optional().describe('Parent-org GUID to manage a child organization\'s applications (sets the ManagedOrganizationId/OverrideManagedOrganizationId headers for create/update). Find via organizations.'),
   fileRules: z.array(z.object({
     fullPath: z.string().max(1000).optional().describe('Full file path'),
     processPath: z.string().max(1000).optional().describe('Process path'),
@@ -405,6 +418,7 @@ Common workflows:
 - Get app for network policy: action=get_for_network_policy, applicationId="..."
 - Create custom application: action=create, name="My App", osType=1
 - Update application metadata: action=update, applicationId="...", name="...", osType=1
+- Manage a child org's app: add managedOrganizationId="child-org-guid" to create/update
 - Add file rules to application: action=add_file, applicationId="...", osType=1, fileRules=[{hash:"..."}, {fullPath:"...", cert:"..."}]
 - Remove file rules from application: action=remove_file, applicationId="...", applicationFileIds=[7111524894, 7111524907] (get IDs via action=files)
 - Delete application (no policies): action=delete, applications=[{applicationId:"...", name:"...", organizationId:"...", osType:1}]

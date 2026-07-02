@@ -222,7 +222,9 @@ describe('applications tool', () => {
           osType: 1,
           description: 'Test app',
           applicationFileUpdates: [],
-        })
+        }),
+        undefined,
+        undefined
       );
     });
   });
@@ -271,7 +273,8 @@ describe('applications tool', () => {
           name: 'Updated App',
           osType: 1,
           description: 'Updated desc',
-        })
+        }),
+        undefined
       );
     });
   });
@@ -479,5 +482,56 @@ describe('applications tool', () => {
         { applications: apps }
       );
     });
+  });
+});
+
+describe('cross-org managedOrganizationId', () => {
+  let mockClient: ThreatLockerClient;
+
+  beforeEach(() => {
+    mockClient = { post: vi.fn(), get: vi.fn(), put: vi.fn() } as unknown as ThreatLockerClient;
+  });
+
+  it('update sends both managed-org headers when provided', async () => {
+    vi.mocked(mockClient.put).mockResolvedValue({ success: true, data: {} });
+    await handleApplicationsTool(mockClient, {
+      action: 'update',
+      applicationId: '12345678-1234-1234-1234-123456789abc',
+      name: 'App',
+      osType: 1,
+      managedOrganizationId: '23456789-2345-2345-2345-23456789abcd',
+    });
+    expect(mockClient.put).toHaveBeenCalledWith(
+      'Application/ApplicationUpdateById',
+      expect.objectContaining({ name: 'App' }),
+      {
+        ManagedOrganizationId: '23456789-2345-2345-2345-23456789abcd',
+        OverrideManagedOrganizationId: '23456789-2345-2345-2345-23456789abcd',
+      }
+    );
+  });
+
+  it('update without managedOrganizationId passes no custom headers', async () => {
+    vi.mocked(mockClient.put).mockResolvedValue({ success: true, data: {} });
+    await handleApplicationsTool(mockClient, {
+      action: 'update',
+      applicationId: '12345678-1234-1234-1234-123456789abc',
+      name: 'App',
+      osType: 1,
+    });
+    expect(mockClient.put).toHaveBeenCalledWith(
+      'Application/ApplicationUpdateById',
+      expect.objectContaining({ name: 'App' }),
+      undefined
+    );
+  });
+
+  it('rejects an invalid managedOrganizationId', async () => {
+    mockClient = { post: vi.fn(), get: vi.fn(), put: vi.fn() } as unknown as ThreatLockerClient;
+    const result = await handleApplicationsTool(mockClient, {
+      action: 'create', name: 'App', osType: 1, managedOrganizationId: 'not-a-guid',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.message).toContain('managedOrganizationId');
   });
 });

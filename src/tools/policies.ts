@@ -5,6 +5,17 @@ import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof policiesZodSchema>>;
 
+// Build the ringfencingOptions wire object. The KB requires rfNetworkPolicy to be
+// OMITTED entirely when empty (an empty array is rejected), so strip it here.
+function buildRingfencingOptions(rf: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!rf) return undefined;
+  const out: Record<string, unknown> = { ...rf };
+  if (Array.isArray(out.rfNetworkPolicy) && out.rfNetworkPolicy.length === 0) {
+    delete out.rfNetworkPolicy;
+  }
+  return out;
+}
+
 export async function handlePoliciesTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -117,6 +128,11 @@ export async function handlePoliciesTool(
         description: input.description,
         allowRequest: input.allowRequest ?? false,
         killRunningProcesses: input.killRunningProcesses ?? false,
+        ringfencingOptions: buildRingfencingOptions(input.ringfencingOptions as Record<string, unknown> | undefined),
+        // NOTE: KB prose says "dayOfTheWeek"; some JSON examples show lowercase "dayoftheWeek".
+        // We send dayOfTheWeek (prose); revisit if live rejects (payload-verified, not live-tested).
+        policySchedules: input.policySchedules,
+        networkExclusions: input.networkExclusions,
       });
     }
 
@@ -161,6 +177,10 @@ export async function handlePoliciesTool(
         description: input.description,
         allowRequest: input.allowRequest ?? false,
         killRunningProcesses: input.killRunningProcesses ?? false,
+        ringfencingOptions: buildRingfencingOptions(input.ringfencingOptions as Record<string, unknown> | undefined),
+        // NOTE: see create — send dayOfTheWeek (prose spelling); lowercase variant is the live fallback.
+        policySchedules: input.policySchedules,
+        networkExclusions: input.networkExclusions,
       });
     }
 
@@ -257,6 +277,41 @@ export const policiesZodSchema = {
   allowRequest: z.boolean().optional().describe('Allow users to request access when denied. Only valid with policyActionId=2 (Deny).'),
   killRunningProcesses: z.boolean().optional().describe('Kill running processes when policy denies. Only valid with policyActionId=2 (Deny).'),
   policyIds: z.array(z.string().max(100)).min(1).max(50).optional().describe('Policy GUIDs (required for delete, copy)'),
+  ringfencingOptions: z.object({
+    restrictApplication: z.boolean(),
+    restrictApplicationSpawning: z.boolean(),
+    restrictFileAccess: z.boolean(),
+    restrictNetworkAccess: z.boolean(),
+    restrictRegistryAccess: z.boolean(),
+    rfAssociatedApplicationPolicy: z.array(z.object({
+      applicationId: z.string().max(100),
+      osType: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(5)]),
+    })).optional(),
+    rfFilePolicy: z.array(z.object({
+      action: z.union([z.literal(1), z.literal(2)]),
+      path: z.string().max(2000),
+      permission: z.union([z.literal(1), z.literal(2)]),
+    })).optional().describe('permit: 1=read-only,2=read+write; deny: 1=deny-write,2=deny-read+write'),
+    rfRegistryPolicy: z.array(z.object({
+      action: z.union([z.literal(1), z.literal(2)]),
+      path: z.string().max(2000),
+    })).optional(),
+    rfNetworkPolicy: z.array(z.object({
+      action: z.union([z.literal(1), z.literal(2)]),
+      port: z.number(),
+      server: z.string().max(200).describe('Tag reference, format "tag:<guid>"'),
+    })).optional().describe('Omitted automatically when empty.'),
+  }).optional().describe('Ringfencing config (requires policyActionId=6). 5 restrict flags are required; rf* arrays are optional.'),
+  policySchedules: z.array(z.object({
+    dayOfTheWeek: z.number().min(0).max(6).describe('0=Sunday … 6=Saturday'),
+    durationHours: z.number().min(0).max(23),
+    durationMinutes: z.number().min(0).max(59),
+    startTime: z.string().max(100).describe('UTC YYYY-MM-DDTHH:MM:SSZ'),
+  })).optional().describe('Recurring schedule windows (requires policyScheduleStatus=2).'),
+  networkExclusions: z.array(z.object({
+    tagPrefixTypeId: z.union([z.literal(1), z.literal(2), z.literal(3)]).describe('1=Domain, 2=IPv4, 3=IPv6'),
+    value: z.string().max(500),
+  })).optional().describe('Internet-ringfence exclusions (pairs with ringfencingOptions.restrictNetworkAccess=true).'),
   sourceAppliesToId: z.string().max(100).optional().describe('Source computer group GUID (required for copy)'),
   sourceOrganizationId: z.string().max(100).optional().describe('Source organization GUID (required for copy)'),
   targetAppliesToIds: z.array(z.string().max(100)).min(1).max(50).optional().describe('Target computer group GUIDs (required for copy)'),
@@ -312,7 +367,9 @@ Pitfalls:
 - Precedence is first-match-wins (Global > Global Group > Entire Org > Computer > Computer Group). New policies land at the bottom unless orderBefore=true.
 - monitorMode=1 (Secured) creates an explicit deny that overrides Learning Mode; monitorMode=2 is Monitor Only.
 - allowRequest/killRunningProcesses are only valid with policyActionId=2 (Deny).
-- Ringfence requires policyActionId=6; the ringfencingOptions payload is not yet exposed (a bare ringfence policy will have no restrictions).
+- Ringfence requires policyActionId=6 + ringfencingOptions (5 restrict flags + rf* arrays). rfFilePolicy permission: permit 1=read-only/2=read+write, deny 1=deny-write/2=deny-read+write. rfNetworkPolicy.server uses "tag:<guid>".
+- policySchedules requires policyScheduleStatus=2; networkExclusions pairs with restrictNetworkAccess=true.
+- update is FULL-REPLACE: get first, then resend ALL nested arrays (ringfencingOptions/policySchedules/networkExclusions) you want to keep — omitting one removes it. Payload-verified, NOT live-tested.
 
 Permissions: View Application Control Policies, Edit Application Control Policies.
 Pagination: list_by_application is paginated (use fetchAllPages=true to auto-fetch all pages).

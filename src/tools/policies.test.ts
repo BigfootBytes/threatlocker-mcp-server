@@ -413,3 +413,78 @@ describe('policies tool', () => {
     });
   });
 });
+
+describe('nested policy builders', () => {
+  let mockClient: ThreatLockerClient;
+  beforeEach(() => {
+    mockClient = { post: vi.fn(), get: vi.fn(), put: vi.fn() } as unknown as ThreatLockerClient;
+  });
+
+  const guid = '12345678-1234-1234-1234-123456789abc';
+  const grp = '23456789-2345-2345-2345-23456789abcd';
+
+  it('create passes ringfencingOptions with rfFilePolicy through', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handlePoliciesTool(mockClient, {
+      action: 'create', name: 'RF', applicationIds: [guid], computerGroupId: grp,
+      osType: 1, policyActionId: 6,
+      ringfencingOptions: {
+        restrictApplication: true, restrictApplicationSpawning: false,
+        restrictFileAccess: true, restrictNetworkAccess: false, restrictRegistryAccess: false,
+        rfFilePolicy: [{ action: 2, path: 'C:\\\\secret\\\\*', permission: 2 }],
+      },
+    });
+    const body = vi.mocked(mockClient.post).mock.calls[0][1] as any;
+    expect(body.ringfencingOptions.rfFilePolicy).toEqual([{ action: 2, path: 'C:\\\\secret\\\\*', permission: 2 }]);
+    expect(body.ringfencingOptions.restrictFileAccess).toBe(true);
+  });
+
+  it('strips an empty rfNetworkPolicy array from the outgoing body', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handlePoliciesTool(mockClient, {
+      action: 'create', name: 'RF', applicationIds: [guid], computerGroupId: grp,
+      osType: 1, policyActionId: 6,
+      ringfencingOptions: {
+        restrictApplication: true, restrictApplicationSpawning: false,
+        restrictFileAccess: false, restrictNetworkAccess: false, restrictRegistryAccess: false,
+        rfNetworkPolicy: [],
+      },
+    });
+    const body = vi.mocked(mockClient.post).mock.calls[0][1] as any;
+    expect('rfNetworkPolicy' in body.ringfencingOptions).toBe(false);
+  });
+
+  it('create passes policySchedules through with the dayOfTheWeek key', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handlePoliciesTool(mockClient, {
+      action: 'create', name: 'Sched', applicationIds: [guid], computerGroupId: grp,
+      osType: 1, policyActionId: 1, policyScheduleStatus: 2,
+      policySchedules: [{ dayOfTheWeek: 1, durationHours: 2, durationMinutes: 30, startTime: '2025-01-15T09:00:00Z' }],
+    });
+    const body = vi.mocked(mockClient.post).mock.calls[0][1] as any;
+    expect(body.policySchedules).toEqual([{ dayOfTheWeek: 1, durationHours: 2, durationMinutes: 30, startTime: '2025-01-15T09:00:00Z' }]);
+  });
+
+  it('update passes networkExclusions through', async () => {
+    vi.mocked(mockClient.put).mockResolvedValue({ success: true, data: {} });
+    await handlePoliciesTool(mockClient, {
+      action: 'update', policyId: guid, name: 'RF', applicationIds: [guid], computerGroupId: grp,
+      osType: 1, policyActionId: 6,
+      networkExclusions: [{ tagPrefixTypeId: 1, value: 'update.example.com' }],
+    });
+    const body = vi.mocked(mockClient.put).mock.calls[0][1] as any;
+    expect(body.networkExclusions).toEqual([{ tagPrefixTypeId: 1, value: 'update.example.com' }]);
+  });
+
+  it('create without ringfencingOptions omits it (regression)', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handlePoliciesTool(mockClient, {
+      action: 'create', name: 'Plain', applicationIds: [guid], computerGroupId: grp,
+      osType: 1, policyActionId: 1,
+    });
+    const body = vi.mocked(mockClient.post).mock.calls[0][1] as any;
+    expect(body.ringfencingOptions).toBeUndefined();
+    expect(body.policySchedules).toBeUndefined();
+    expect(body.networkExclusions).toBeUndefined();
+  });
+});
