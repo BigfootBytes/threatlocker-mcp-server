@@ -2,6 +2,34 @@
 
 All notable changes to the ThreatLocker MCP Server are documented here.
 
+## 1.3.0 (2026-07-06)
+
+Completes the remaining tooling-audit roadmap (deferred features, Tier 3/4, and polish) and hardens several paths found during live validation against a non-prod org. All new writes are gated by `THREATLOCKER_READ_ONLY` and annotated. Payloads are verified against the docs; the actions marked "live-validated" below were exercised end-to-end against a test organization.
+
+### Added
+- New tools:
+  - `saved_searches` — `list` / `insert` / `delete` (live-validated)
+  - `upload_requests` — `insert` / `get` (forensic file uploads; `shA256` field)
+- `approval_requests`: `permit` (guided sub-modes over the ~40-field DTO, round-trips the opaque `json`; elevation/expiration/network-exclusion fields), `permit_storage`, `ignore`, `get_testing_environment`
+- `computers`: `edit`, `move_org`, `delete`, `restart_org`, `remove_duplicate`
+- `maintenance_mode`: `update_end_time`
+- `tags`: `update` (full-object replace)
+- `scheduled_actions`: `abort` (individual + fleet-wide)
+- `organizations`: `timezones`, `create_child`, `rotate_auth_key` (destructive)
+- `applications`: `options`; cross-org `managedOrganizationId` on `create`/`update` (live-validated)
+- `action_log`: `build_search_string` (produces the label for saved searches; live-validated)
+- `policies`: `ringfencingOptions`, `policySchedules`, `networkExclusions`, and scoping fields (`userGroups`/`allUserGroups`, `deviceType`/`allDevices`, `applicationSelection`, `parentProcessIdList`/`parentRestrictionEnabled`, `notifyOnRequest`/`requestEmailAddressesList`) on `create`/`update` (live-validated). `copy` and `list_all` live-validated.
+- `client.delete()` for DELETE endpoints; custom headers on `client.put()` / `client.patch()`
+
+### Fixed
+- `client.post` now parses response bodies tolerantly — empty and `text/plain` `200`s previously failed with `NETWORK_ERROR: Unexpected end of JSON input`. This broke `policies.deploy` and `action_log.build_search_string` (found via live validation).
+- `policies.deploy` called a non-existent endpoint (`DeployPolicyQueueInsert`); corrected to `DeployPolicyQueue/DeployPolicies` with the org as the `managedOrganizationId` header (live-validated).
+- `policies.delete` sent the wrong body; corrected to a bare array of `{organizationId, policyId}` and added the required `organizationId` param (live-validated).
+- `saved_searches.insert` returned an opaque `500`; `searchData` is required and must be valid JSON (object or JSON string), now enforced client-side with a clear error (live-validated).
+
+### Changed
+- Added `vitest.config.ts` scoping tests to `src/**` so the compiled `dist/` copies are no longer collected (the suite was silently running twice).
+
 ## 1.2.1 (2026-06-29)
 
 ### Added
