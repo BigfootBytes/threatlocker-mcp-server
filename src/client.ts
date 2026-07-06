@@ -79,6 +79,23 @@ export function parseRetryAfter(header: string | null): number | null {
   return Math.min(seconds * 1000, MAX_BACKOFF);
 }
 
+/**
+ * Parse a successful response body tolerantly. Several ThreatLocker write/helper
+ * endpoints (e.g. DeployPolicyQueue/DeployPolicies, ActionLogGetSearchString)
+ * return 200 with an empty or text/plain body, which response.json() rejects with
+ * "Unexpected end of JSON input". Return {} for an empty body, the parsed value for
+ * JSON, and the raw string for anything else. (Found via live validation, 2026-07-06.)
+ */
+async function parseResponseBody(response: { text: () => Promise<string> }): Promise<unknown> {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
 /** Extract the human-readable Message from a ThreatLocker JSON error body. */
 function extractErrorMessage(body: string | undefined): string | undefined {
   if (!body) return undefined;
@@ -294,10 +311,10 @@ export class ThreatLockerClient {
         return errorResponse(code, message, response.status);
       }
 
-      const data = await response.json();
+      const data = await parseResponseBody(response);
       const pagination = extractPagination?.(response.headers);
       this.log('DEBUG', 'API POST success', { endpoint, status: response.status, hasPagination: !!pagination });
-      return successResponse<T>(data, pagination);
+      return successResponse<T>(data as T, pagination);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.log('ERROR', 'API POST network error', { endpoint, error: message });

@@ -256,7 +256,7 @@ describe('ThreatLockerClient.post', () => {
   it('returns success response for 200', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => [{ id: 1 }],
+      text: async () => JSON.stringify([{ id: 1 }]),
       headers: new Headers(),
     });
 
@@ -299,7 +299,7 @@ describe('ThreatLockerClient.post', () => {
 
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => [],
+      text: async () => '[]',
       headers: mockHeaders,
     });
 
@@ -329,7 +329,7 @@ describe('ThreatLockerClient.post', () => {
   it('omits pagination when callback returns undefined', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => [],
+      text: async () => '[]',
       headers: new Headers(),
     });
 
@@ -676,7 +676,7 @@ describe('ThreatLockerClient retry', () => {
     const client = createClient(1);
     global.fetch = vi.fn()
       .mockResolvedValueOnce({ ok: false, status: 417, statusText: 'Expectation Failed', text: async () => '' })
-      .mockResolvedValueOnce({ ok: true, json: async () => [1, 2], headers: new Headers() });
+      .mockResolvedValueOnce({ ok: true, text: async () => '[1,2]', headers: new Headers() });
 
     const promise = client.post('Test/Endpoint', {});
     await vi.advanceTimersByTimeAsync(500);
@@ -923,5 +923,36 @@ describe('ThreatLockerClient.delete', () => {
     });
     const result = await client.delete('T/Del', { id: '1' });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('ThreatLockerClient.post body parsing (live-validation hardening)', () => {
+  const client = new ThreatLockerClient({ apiKey: 'k', baseUrl: 'https://x.example.com', maxRetries: 0 });
+
+  it('returns {} for an empty 200 body (e.g. DeployPolicies)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200, headers: new Headers(), text: async () => '',
+    });
+    const res = await client.post('DeployPolicyQueue/DeployPolicies', {});
+    expect(res.success).toBe(true);
+    if (res.success) expect(res.data).toEqual({});
+  });
+
+  it('returns the raw string for a text/plain 200 body', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200, headers: new Headers(), text: async () => 'opaque-search-token',
+    });
+    const res = await client.post('ActionLog/ActionLogGetSearchString', {});
+    expect(res.success).toBe(true);
+    if (res.success) expect(res.data).toBe('opaque-search-token');
+  });
+
+  it('parses a JSON 200 body', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200, headers: new Headers(), text: async () => JSON.stringify({ policyId: 'x' }),
+    });
+    const res = await client.post('Policy/PolicyInsert', {});
+    expect(res.success).toBe(true);
+    if (res.success) expect(res.data).toEqual({ policyId: 'x' });
   });
 });
