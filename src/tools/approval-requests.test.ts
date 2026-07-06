@@ -338,3 +338,30 @@ describe('tier3/4 approval actions', () => {
     expect(approvalRequestsTool.writeActions?.has('permit_storage')).toBe(true);
   });
 });
+
+describe('permit polish fields', () => {
+  let mockClient: ThreatLockerClient;
+  beforeEach(() => { mockClient = { post: vi.fn(), get: vi.fn() } as unknown as ThreatLockerClient; });
+  const arId = '11111111-1111-1111-1111-111111111111';
+
+  it('permit passes elevation/expiration/network fields through', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleApprovalRequestsTool(mockClient, {
+      action: 'permit', approvalRequestId: arId, permitJson: '{}',
+      computerId: '22222222-2222-2222-2222-222222222222',
+      computerGroupId: '33333333-3333-3333-3333-333333333333',
+      organizationId: '44444444-4444-4444-4444-444444444444',
+      organizationIds: ['44444444-4444-4444-4444-444444444444'],
+      osType: 1, fullPath: 'C:\\\\x.exe', ruleId: 0, ringfenceActionId: 1,
+      permitMode: 'new_app', newApplicationName: 'X', policyLevel: 'organization',
+      elevationStatus: 1, elevationExpiration: 4,
+      networkExclusions: [{ tagPrefixTypeId: 1, value: 'update.example.com' }],
+      policyExpirationDate: '2026-08-01T00:00:00Z',
+    });
+    const body = vi.mocked(mockClient.post).mock.calls[0][1] as any;
+    expect(body.elevationStatus).toBe(1);
+    expect(body.elevationExpiration).toBe(4);
+    expect(body.networkExclusions).toEqual([{ tagPrefixTypeId: 1, value: 'update.example.com' }]);
+    expect(body.policyExpirationDate).toBe('2026-08-01T00:00:00Z');
+  });
+});

@@ -218,6 +218,10 @@ export async function handleApprovalRequestsTool(
         },
         ringfenceActionId,
         organizationHasElevation: true,
+        elevationStatus: input.elevationStatus,
+        elevationExpiration: input.elevationExpiration,
+        networkExclusions: input.networkExclusions,
+        policyExpirationDate: input.policyExpirationDate,
       });
     }
 
@@ -330,6 +334,13 @@ export const approvalRequestsZodSchema = {
   newApplicationName: z.string().max(200).optional().describe('permit: name for the new application (required for permitMode new_app).'),
   ruleId: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).optional().describe('permit: 0=manual rules, 1=Installation Mode 1hr, 2=Learning Mode 1hr, 3=Monitor Mode 1hr.'),
   ringfenceActionId: z.number().optional().describe('permit: ringfence action id applied to the permit.'),
+  elevationStatus: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional().describe('permit: 0=do not elevate, 1=elevate, 2=silent elevation (only with the Elevation product).'),
+  elevationExpiration: z.number().optional().describe('permit: elevation expiry in hours (used when elevationStatus>0).'),
+  networkExclusions: z.array(z.object({
+    tagPrefixTypeId: z.union([z.literal(1), z.literal(2), z.literal(3)]).describe('1=Domain, 2=IPv4, 3=IPv6'),
+    value: z.string().max(500),
+  })).optional().describe('permit: network exclusions applied to the resulting ringfence permit.'),
+  policyExpirationDate: z.string().max(100).optional().describe('permit: expiry for the created policy in UTC (YYYY-MM-DDTHH:MM:SSZ).'),
   useExistingPolicy: z.boolean().optional().describe('permit: update an existing policy affecting the computer instead of creating one (default false).'),
   manualOptions: z.array(z.record(z.string(), z.string())).optional().describe('permit: file-rule conditions. A hash rule = { "hash": "..." } and NOTHING else. A property rule = any of { fullPath, cert, processPath, createdBy } (pair at least two for a stronger rule).'),
   comments: z.string().max(2000).optional().describe('permit: comment on the request. NOTE: overwrites any existing comment if provided.'),

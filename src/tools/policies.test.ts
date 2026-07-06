@@ -499,3 +499,54 @@ describe('nested policy builders', () => {
     expect(body.networkExclusions).toBeUndefined();
   });
 });
+
+describe('policy scoping polish fields', () => {
+  let mockClient: ThreatLockerClient;
+  beforeEach(() => {
+    mockClient = { post: vi.fn(), get: vi.fn(), put: vi.fn() } as unknown as ThreatLockerClient;
+  });
+  const guid = '12345678-1234-1234-1234-123456789abc';
+  const grp = '23456789-2345-2345-2345-23456789abcd';
+
+  it('create passes user/device/parent/notify scoping through', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handlePoliciesTool(mockClient, {
+      action: 'create', name: 'Default - Deny', applicationIds: [guid], computerGroupId: grp,
+      osType: 1, policyActionId: 2,
+      allUserGroups: false, userGroups: [{ text: 'CORP\\jdoe', value: 'CORP\\jdoe' }],
+      allDevices: false, deviceType: 'USB',
+      applicationSelection: 1,
+      parentRestrictionEnabled: true, parentProcessIdList: [guid],
+      notifyOnRequest: true, requestEmailAddressesList: ['admin@example.com'],
+    });
+    const body = vi.mocked(mockClient.post).mock.calls[0][1] as any;
+    expect(body.userGroups).toEqual([{ text: 'CORP\\jdoe', value: 'CORP\\jdoe' }]);
+    expect(body.allUserGroups).toBe(false);
+    expect(body.deviceType).toBe('USB');
+    expect(body.applicationSelection).toBe(1);
+    expect(body.parentRestrictionEnabled).toBe(true);
+    expect(body.parentProcessIdList).toEqual([guid]);
+    expect(body.requestEmailAddressesList).toEqual(['admin@example.com']);
+  });
+
+  it('update passes scoping through', async () => {
+    vi.mocked(mockClient.put).mockResolvedValue({ success: true, data: {} });
+    await handlePoliciesTool(mockClient, {
+      action: 'update', policyId: guid, name: 'p', applicationIds: [guid], computerGroupId: grp,
+      osType: 1, policyActionId: 1, deviceType: 'DVD',
+    });
+    const body = vi.mocked(mockClient.put).mock.calls[0][1] as any;
+    expect(body.deviceType).toBe('DVD');
+  });
+
+  it('omits scoping fields when not provided (regression)', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handlePoliciesTool(mockClient, {
+      action: 'create', name: 'Plain', applicationIds: [guid], computerGroupId: grp, osType: 1, policyActionId: 1,
+    });
+    const body = vi.mocked(mockClient.post).mock.calls[0][1] as any;
+    expect(body.userGroups).toBeUndefined();
+    expect(body.deviceType).toBeUndefined();
+    expect(body.parentProcessIdList).toBeUndefined();
+  });
+});
