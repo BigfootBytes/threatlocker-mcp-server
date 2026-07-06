@@ -186,16 +186,21 @@ export async function handlePoliciesTool(
 
     case 'delete': {
       const policyIds = input.policyIds as string[] | undefined;
+      const orgId = input.organizationId as string | undefined;
       if (!policyIds || policyIds.length === 0) {
         return errorResponse('BAD_REQUEST', 'policyIds is required for delete action');
       }
+      if (!orgId) {
+        return errorResponse('BAD_REQUEST', 'organizationId is required for delete action (each policy is deleted by {organizationId, policyId})');
+      }
+      const orgGuidError = validateGuid(orgId, 'organizationId');
+      if (orgGuidError) return orgGuidError;
       for (const id of policyIds) {
         const guidError = validateGuid(id, 'policyIds[]');
         if (guidError) return guidError;
       }
-      return client.put('Policy/PolicyUpdateForDeleteByIds', {
-        policyIds: policyIds.map(id => ({ policyId: id })),
-      });
+      // Endpoint expects a BARE ARRAY of {organizationId, policyId} (verified live 2026-07-06).
+      return client.put('Policy/PolicyUpdateForDeleteByIds', policyIds.map(id => ({ organizationId: orgId, policyId: id })));
     }
 
     case 'copy': {
@@ -237,8 +242,11 @@ export async function handlePoliciesTool(
       if (!orgId) return errorResponse('BAD_REQUEST', 'organizationId is required for deploy action');
       const guidError = validateGuid(orgId, 'organizationId');
       if (guidError) return guidError;
-      return client.post('DeployPolicyQueue/DeployPolicyQueueInsert', {
-        organizationId: orgId,
+      // Correct endpoint is DeployPolicyQueue/DeployPolicies; the target org is the
+      // managedOrganizationId header, not a body field (verified live 2026-07-06).
+      return client.post('DeployPolicyQueue/DeployPolicies', {}, undefined, {
+        ManagedOrganizationId: orgId,
+        OverrideManagedOrganizationId: orgId,
       });
     }
 
@@ -354,7 +362,7 @@ Common workflows:
 - Include deny policies in results: action=list_by_application, ..., includeDenies=true
 - Create new policy: action=create, name="...", applicationIds=["..."], computerGroupId="...", osType=1, policyActionId=1
 - Update policy (full replace - get first!): action=update, policyId="...", name="...", applicationIds=["..."], computerGroupId="...", osType=1, policyActionId=1
-- Delete policies: action=delete, policyIds=["..."]
+- Delete policies: action=delete, policyIds=["..."], organizationId="..."
 - Copy policies between groups: action=copy, osType=1, policyIds=["..."], sourceAppliesToId="...", sourceOrganizationId="...", targetAppliesToIds=["..."]
 - Deploy pending changes: action=deploy, organizationId="..."
 

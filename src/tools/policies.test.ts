@@ -339,21 +339,30 @@ describe('policies tool', () => {
 
     it('returns error for invalid GUID in policyIds', async () => {
       const result = await handlePoliciesTool(mockClient, {
-        action: 'delete', policyIds: ['bad-guid'],
+        action: 'delete', policyIds: ['bad-guid'], organizationId: '23456789-2345-2345-2345-23456789abcd',
       });
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error.message).toContain('must be a valid GUID');
     });
 
-    it('calls PolicyUpdateForDeleteByIds with PUT', async () => {
+    it('returns error when organizationId is missing', async () => {
+      const result = await handlePoliciesTool(mockClient, {
+        action: 'delete', policyIds: ['f6a7b8c9-d0e1-2345-fabc-456789012345'],
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('organizationId');
+    });
+
+    it('calls PolicyUpdateForDeleteByIds with a bare array of {organizationId, policyId}', async () => {
       vi.mocked(mockClient.put).mockResolvedValue({ success: true, data: true });
       await handlePoliciesTool(mockClient, {
         action: 'delete',
         policyIds: ['f6a7b8c9-d0e1-2345-fabc-456789012345'],
+        organizationId: '23456789-2345-2345-2345-23456789abcd',
       });
       expect(mockClient.put).toHaveBeenCalledWith(
         'Policy/PolicyUpdateForDeleteByIds',
-        { policyIds: [{ policyId: 'f6a7b8c9-d0e1-2345-fabc-456789012345' }] }
+        [{ organizationId: '23456789-2345-2345-2345-23456789abcd', policyId: 'f6a7b8c9-d0e1-2345-fabc-456789012345' }]
       );
     });
   });
@@ -400,15 +409,17 @@ describe('policies tool', () => {
       if (!result.success) expect(result.error.message).toContain('organizationId');
     });
 
-    it('calls DeployPolicyQueue endpoint', async () => {
+    it('calls DeployPolicies with the org as a managed-org header', async () => {
       vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
       await handlePoliciesTool(mockClient, {
         action: 'deploy',
         organizationId: '12345678-1234-1234-1234-123456789abc',
       });
       expect(mockClient.post).toHaveBeenCalledWith(
-        'DeployPolicyQueue/DeployPolicyQueueInsert',
-        { organizationId: '12345678-1234-1234-1234-123456789abc' }
+        'DeployPolicyQueue/DeployPolicies',
+        {},
+        undefined,
+        { ManagedOrganizationId: '12345678-1234-1234-1234-123456789abc', OverrideManagedOrganizationId: '12345678-1234-1234-1234-123456789abc' }
       );
     });
   });
