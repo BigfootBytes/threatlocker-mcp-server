@@ -16,6 +16,22 @@ function buildRingfencingOptions(rf: Record<string, unknown> | undefined): Recor
   return out;
 }
 
+// Pass-through scoping fields shared by create/update. Undefined entries are dropped by
+// JSON.stringify. Like the other nested arrays, these are FULL-REPLACE on update.
+function buildScopingFields(input: Record<string, unknown>): Record<string, unknown> {
+  return {
+    allUserGroups: input.allUserGroups,
+    userGroups: input.userGroups,
+    allDevices: input.allDevices,
+    deviceType: input.deviceType,
+    applicationSelection: input.applicationSelection,
+    parentRestrictionEnabled: input.parentRestrictionEnabled,
+    parentProcessIdList: input.parentProcessIdList,
+    notifyOnRequest: input.notifyOnRequest,
+    requestEmailAddressesList: input.requestEmailAddressesList,
+  };
+}
+
 export async function handlePoliciesTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -133,6 +149,7 @@ export async function handlePoliciesTool(
         // We send dayOfTheWeek (prose); revisit if live rejects (payload-verified, not live-tested).
         policySchedules: input.policySchedules,
         networkExclusions: input.networkExclusions,
+        ...buildScopingFields(input),
       });
     }
 
@@ -181,6 +198,7 @@ export async function handlePoliciesTool(
         // NOTE: see create — send dayOfTheWeek (prose spelling); lowercase variant is the live fallback.
         policySchedules: input.policySchedules,
         networkExclusions: input.networkExclusions,
+        ...buildScopingFields(input),
       });
     }
 
@@ -320,6 +338,18 @@ export const policiesZodSchema = {
     tagPrefixTypeId: z.union([z.literal(1), z.literal(2), z.literal(3)]).describe('1=Domain, 2=IPv4, 3=IPv6'),
     value: z.string().max(500),
   })).optional().describe('Internet-ringfence exclusions (pairs with ringfencingOptions.restrictNetworkAccess=true).'),
+  allUserGroups: z.boolean().optional().describe('true=policy applies to all users; false=restrict to userGroups. Full-replace on update.'),
+  userGroups: z.array(z.object({
+    text: z.string().max(500).describe('Display text, typically DOMAIN\\\\USERNAME'),
+    value: z.string().max(500).describe('Value, typically DOMAIN\\\\USERNAME'),
+  })).max(200).optional().describe('User/AD-group scoping (requires allUserGroups=false). Re-send all on update or they are removed.'),
+  allDevices: z.boolean().optional().describe('true=policy applies to all device types; false=restrict to deviceType.'),
+  deviceType: z.enum(['USB', 'DVD', 'UNC', 'SCSI', 'SATA', 'IDE']).optional().describe('Single device interface to scope to (requires allDevices=false). Only one per policy.'),
+  applicationSelection: z.union([z.literal(0), z.literal(1)]).optional().describe('0=use applicationIds (default), 1=all applications. Value 1 requires the policy name to contain "Permit All" or start with "Default - ".'),
+  parentRestrictionEnabled: z.boolean().optional().describe('Enable parent-process restriction (requires parentProcessIdList).'),
+  parentProcessIdList: z.array(z.string().max(100)).max(50).optional().describe('Application GUIDs allowed to launch this policy\'s apps (requires parentRestrictionEnabled=true; all must match the policy osType). Full-replace on update.'),
+  notifyOnRequest: z.boolean().optional().describe('Email admins on approval requests. Only valid with policyActionId=2 (Deny); requires requestEmailAddressesList.'),
+  requestEmailAddressesList: z.array(z.string().max(320)).max(50).optional().describe('Admin emails notified on requests (with notifyOnRequest=true; Deny-only). Full-replace on update.'),
   sourceAppliesToId: z.string().max(100).optional().describe('Source computer group GUID (required for copy)'),
   sourceOrganizationId: z.string().max(100).optional().describe('Source organization GUID (required for copy)'),
   targetAppliesToIds: z.array(z.string().max(100)).min(1).max(50).optional().describe('Target computer group GUIDs (required for copy)'),
@@ -377,7 +407,8 @@ Pitfalls:
 - allowRequest/killRunningProcesses are only valid with policyActionId=2 (Deny).
 - Ringfence requires policyActionId=6 + ringfencingOptions (5 restrict flags + rf* arrays). rfFilePolicy permission: permit 1=read-only/2=read+write, deny 1=deny-write/2=deny-read+write. rfNetworkPolicy.server uses "tag:<guid>".
 - policySchedules requires policyScheduleStatus=2; networkExclusions pairs with restrictNetworkAccess=true.
-- update is FULL-REPLACE: get first, then resend ALL nested arrays (ringfencingOptions/policySchedules/networkExclusions) you want to keep — omitting one removes it. Payload-verified, NOT live-tested.
+- update is FULL-REPLACE: get first, then resend ALL nested arrays (ringfencingOptions/policySchedules/networkExclusions/userGroups/parentProcessIdList/requestEmailAddressesList) you want to keep — omitting one removes it. Payload-verified, NOT live-tested.
+- Scoping: userGroups needs allUserGroups=false; deviceType needs allDevices=false; parentProcessIdList needs parentRestrictionEnabled=true (apps must match the policy osType); applicationSelection=1 (all apps) needs a name containing "Permit All" or starting "Default - "; notifyOnRequest/requestEmailAddressesList are Deny-only (policyActionId=2).
 
 Permissions: View Application Control Policies, Edit Application Control Policies.
 Pagination: list_by_application is paginated (use fetchAllPages=true to auto-fetch all pages).
