@@ -16,16 +16,40 @@ describe('saved_searches tool', () => {
     expect(mockClient.post).toHaveBeenCalledWith('SaveSearch/SaveSearchGetByPage', { saveSearchPageId: 5 });
   });
 
-  it('insert posts the full DTO', async () => {
+  it('insert serializes an object searchData to a JSON string', async () => {
     vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
     await handleSavedSearchesTool(mockClient, {
       action: 'insert', saveSearchId: ssId, saveSearchPageId: 5, organizationId: org,
-      searchName: 'Denies', saveParameters: '{"blob":1}',
+      searchName: 'Denies', saveParameters: 'Any Deny', searchData: { actionId: 7 },
     });
     expect(mockClient.post).toHaveBeenCalledWith(
       'SaveSearch/SaveSearchInsert',
-      expect.objectContaining({ saveSearchId: ssId, saveSearchPageId: 5, organizationId: org, searchName: 'Denies', saveParameters: '{"blob":1}' })
+      expect.objectContaining({ saveSearchId: ssId, saveSearchPageId: 5, organizationId: org, searchName: 'Denies', saveParameters: 'Any Deny', searchData: '{"actionId":7}' })
     );
+  });
+
+  it('insert passes a valid JSON-string searchData through', async () => {
+    vi.mocked(mockClient.post).mockResolvedValue({ success: true, data: {} });
+    await handleSavedSearchesTool(mockClient, {
+      action: 'insert', saveSearchId: ssId, saveSearchPageId: 5, organizationId: org,
+      searchName: 'Denies', saveParameters: 'Any Deny', searchData: '{"actionId":7}',
+    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      'SaveSearch/SaveSearchInsert',
+      expect.objectContaining({ searchData: '{"actionId":7}' })
+    );
+  });
+
+  it('insert requires searchData', async () => {
+    const r = await handleSavedSearchesTool(mockClient, { action: 'insert', saveSearchId: ssId, saveSearchPageId: 5, organizationId: org, searchName: 'x', saveParameters: 'Any Deny' });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.message).toContain('searchData');
+  });
+
+  it('insert rejects a non-JSON searchData string', async () => {
+    const r = await handleSavedSearchesTool(mockClient, { action: 'insert', saveSearchId: ssId, saveSearchPageId: 5, organizationId: org, searchName: 'x', saveParameters: 'Any Deny', searchData: 'not json' });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.message).toContain('valid JSON');
   });
 
   it('insert requires saveParameters', async () => {
