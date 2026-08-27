@@ -1,7 +1,7 @@
-import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { ThreatLockerClient } from './client.js';
-import { allTools, ToolDefinition, isWriteBlocked } from './tools/registry.js';
+import { allTools, allToolsWithSchema, ToolDefinition, isWriteBlocked, toolInputShape } from './tools/registry.js';
 import { ApiResponse, apiResponseOutputSchema, SuccessResponse, errorResponse } from './types/responses.js';
 import { formatAsMarkdown } from './formatters.js';
 import { VERSION } from './version.js';
@@ -115,13 +115,7 @@ export function createMcpServer(client: ThreatLockerClient, log?: LogFn): McpSer
       {
         title: tool.title,
         description: tool.description,
-        inputSchema: {
-          ...tool.zodSchema,
-          response_format: z.enum(['json', 'markdown']).default('markdown')
-            .describe('Output format: markdown (default, human-readable) or json (structured)'),
-          fetchAllPages: z.boolean().default(false)
-            .describe('Fetch all pages automatically (max 10 pages). Default: false (single page).'),
-        },
+        inputSchema: toolInputShape(tool),
         outputSchema: tool.outputZodSchema ?? apiResponseOutputSchema,
         annotations: tool.annotations ?? {},
       },
@@ -185,6 +179,22 @@ export function createMcpServer(client: ThreatLockerClient, log?: LogFn): McpSer
       }
     );
   }
+
+  // The SDK converts Zod schemas to JSON Schema with a hardcoded draft-07 target and offers no
+  // way to change it, which clients with a 2020-12-only validator reject outright. Serve the tool
+  // list ourselves so the advertised schemas carry the dialect the spec and clients expect. The
+  // SDK keeps ownership of tools/call, so runtime argument and structuredContent validation still
+  // run against the same Zod schemas these are derived from.
+  server.server.setRequestHandler(ListToolsRequestSchema, () => ({
+    tools: allToolsWithSchema.map(tool => ({
+      name: tool.name,
+      title: tool.title,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+      outputSchema: tool.outputSchema,
+      annotations: tool.annotations ?? {},
+    })),
+  }));
 
   // Register static resources
   for (const res of allResources) {
