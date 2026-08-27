@@ -2,6 +2,18 @@
 
 All notable changes to the ThreatLocker MCP Server are documented here.
 
+## 1.3.1 (2026-08-27)
+
+Fixes a defect that made the server unusable from MCP clients that validate tool schemas against JSON Schema 2020-12 — every tool was rejected before any request reached ThreatLocker.
+
+### Fixed
+- Tool `inputSchema` and `outputSchema` are now advertised in the 2020-12 dialect. The MCP SDK converts Zod to JSON Schema with a hardcoded `draft-07` target and `registerTool` offers no way to override it, so the server now serves `tools/list` itself. `tools/call` stays with the SDK, which keeps using the same Zod schemas for argument and `structuredContent` validation. Affected both the stdio and streamable-HTTP MCP transports; the REST `/tools` route was already correct.
+- `response_format` and `fetchAllPages` are no longer advertised as required parameters. Zod's default `output` view marks a `.default()` field as always-present; input schemas now convert under the `input` view.
+
+### Changed
+- `zod` is declared as a direct dependency instead of resolving as a transitive dependency of the MCP SDK. The advertised schemas depend on zod v4's `z.toJSONSchema` default dialect, so the version needs to be pinned by our own manifest.
+- Tool JSON Schemas are built once in `allToolsWithSchema` and shared by the MCP and REST listings, replacing hand-maintained JSON Schema literals in the HTTP transport. No change to the emitted payload.
+
 ## 1.3.0 (2026-07-06)
 
 Completes the remaining tooling-audit roadmap (deferred features, Tier 3/4, and polish) and hardens several paths found during live validation against a non-prod org. All new writes are gated by `THREATLOCKER_READ_ONLY` and annotated. Payloads are verified against the docs; the actions marked "live-validated" below were exercised end-to-end against a test organization.
