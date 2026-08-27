@@ -31,9 +31,19 @@ export function isWriteBlocked(writeActions: Set<string> | undefined, action: st
  */
 export const JSON_SCHEMA_DIALECT = 'https://json-schema.org/draft/2020-12/schema';
 
-/** Convert a Zod shape record to a 2020-12 JSON Schema (replacing Zod's $schema, dropping additionalProperties). */
-export function zodShapeToJsonSchema(shape: Record<string, z.ZodTypeAny>): Record<string, unknown> {
-  const { $schema, additionalProperties, ...rest } = z.toJSONSchema(z.object(shape)) as Record<string, unknown>;
+/**
+ * Convert a Zod shape record to a 2020-12 JSON Schema (replacing Zod's $schema, dropping
+ * additionalProperties).
+ *
+ * `io` must match how the schema is used. Under the default 'output' view a field with a
+ * `.default()` is always present once parsed, so Zod marks it required — correct for an output
+ * schema, wrong for an input schema where that field is exactly what the caller may omit.
+ */
+export function zodShapeToJsonSchema(
+  shape: Record<string, z.ZodTypeAny>,
+  io: 'input' | 'output' = 'output',
+): Record<string, unknown> {
+  const { $schema, additionalProperties, ...rest } = z.toJSONSchema(z.object(shape), { io }) as Record<string, unknown>;
   return { $schema: JSON_SCHEMA_DIALECT, type: 'object', ...rest };
 }
 

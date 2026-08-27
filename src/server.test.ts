@@ -222,6 +222,17 @@ describe('createMcpServer tool schema dialect', () => {
     }
   });
 
+  // A `.default()` field is required under Zod's output view but optional under its input view.
+  // Advertising these as required would force callers to send options they are meant to omit.
+  it('does not mark the defaulted per-call options as required', async () => {
+    const tools = await listToolsOverMcp();
+    for (const tool of tools) {
+      const required = (tool.inputSchema as { required?: string[] }).required ?? [];
+      expect(required, `${tool.name} wrongly requires response_format`).not.toContain('response_format');
+      expect(required, `${tool.name} wrongly requires fetchAllPages`).not.toContain('fetchAllPages');
+    }
+  });
+
   it('lists exactly the registered tool set', async () => {
     const tools = await listToolsOverMcp();
     expect(tools.map(t => t.name).sort()).toEqual(allTools.map(t => t.name).sort());

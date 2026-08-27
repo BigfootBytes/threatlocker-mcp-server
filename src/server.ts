@@ -190,7 +190,7 @@ export function createMcpServer(client: ThreatLockerClient, log?: LogFn): McpSer
       name: tool.name,
       title: tool.title,
       description: tool.description,
-      inputSchema: zodShapeToJsonSchema(toolInputShape(tool)),
+      inputSchema: zodShapeToJsonSchema(toolInputShape(tool), 'input'),
       outputSchema: zodShapeToJsonSchema(tool.outputZodSchema ?? apiResponseOutputSchema),
       annotations: tool.annotations ?? {},
     })),
