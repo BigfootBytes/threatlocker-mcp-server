@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fetchAllPagesLoop, MAX_AUTO_PAGES, capResultData } from './server.js';
-import type { ThreatLockerClient } from './client.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { fetchAllPagesLoop, MAX_AUTO_PAGES, capResultData, createMcpServer } from './server.js';
+import { ThreatLockerClient } from './client.js';
+import { allTools, JSON_SCHEMA_DIALECT } from './tools/registry.js';
 import type { ApiResponse, Pagination } from './types/responses.js';
 
 describe('capResultData', () => {
@@ -171,5 +174,97 @@ describe('fetchAllPagesLoop', () => {
 
     // Should override pageNumber to 1
     expect(handler).toHaveBeenCalledWith(mockClient, expect.objectContaining({ pageNumber: 1 }));
+  });
+});
+
+describe('createMcpServer tool schema dialect', () => {
+  async function listToolsOverMcp() {
+    const client = new ThreatLockerClient({
+      apiKey: 'test-key',
+      baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+    });
+    const server = createMcpServer(client);
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const mcpClient = new Client({ name: 'test', version: '1.0.0' });
+    await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
+    const { tools } = await mcpClient.listTools();
+    await mcpClient.close();
+    return tools;
+  }
+
+  it('advertises every outputSchema in the 2020-12 dialect, not draft-07', async () => {
+    const tools = await listToolsOverMcp();
+    expect(tools.length).toBeGreaterThan(0);
+    for (const tool of tools) {
+      expect(
+        (tool.outputSchema as Record<string, unknown>).$schema,
+        `${tool.name} outputSchema declares an unsupported dialect`,
+      ).toBe(JSON_SCHEMA_DIALECT);
+    }
+  });
+
+  it('advertises every inputSchema in the 2020-12 dialect, not draft-07', async () => {
+    const tools = await listToolsOverMcp();
+    for (const tool of tools) {
+      expect(
+        (tool.inputSchema as Record<string, unknown>).$schema,
+        `${tool.name} inputSchema declares an unsupported dialect`,
+      ).toBe(JSON_SCHEMA_DIALECT);
+    }
+  });
+
+  it('keeps the per-call response_format and fetchAllPages options on every inputSchema', async () => {
+    const tools = await listToolsOverMcp();
+    for (const tool of tools) {
+      const props = (tool.inputSchema as { properties?: Record<string, unknown> }).properties ?? {};
+      expect(props, `${tool.name} lost response_format`).toHaveProperty('response_format');
+      expect(props, `${tool.name} lost fetchAllPages`).toHaveProperty('fetchAllPages');
+    }
+  });
+
+  it('lists exactly the registered tool set', async () => {
+    const tools = await listToolsOverMcp();
+    expect(tools.map(t => t.name).sort()).toEqual(allTools.map(t => t.name).sort());
+  });
+
+  // Serving tools/list ourselves must not disturb tools/call, which the SDK still owns along
+  // with its Zod-based argument and structuredContent validation.
+  it('still dispatches a successful call and returns validated structured content', async () => {
+    const client = new ThreatLockerClient({
+      apiKey: 'test-key',
+      baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+    });
+    vi.spyOn(client, 'get').mockResolvedValue({
+      success: true,
+      data: [{ label: '9.3.3', value: 'v-id', isEnabled: true, dateTime: '2025-01-01', isDefault: true, osType: 1 }],
+    });
+
+    const server = createMcpServer(client);
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const mcpClient = new Client({ name: 'test', version: '1.0.0' });
+    await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
+
+    const result = await mcpClient.callTool({ name: 'versions', arguments: { action: 'list' } });
+    await mcpClient.close();
+
+    expect(result.isError).toBeFalsy();
+    expect((result.structuredContent as { success: boolean }).success).toBe(true);
+  });
+
+  it('still rejects arguments that violate a tool input schema', async () => {
+    const client = new ThreatLockerClient({
+      apiKey: 'test-key',
+      baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+    });
+    const server = createMcpServer(client);
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const mcpClient = new Client({ name: 'test', version: '1.0.0' });
+    await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
+
+    const result = await mcpClient.callTool({ name: 'versions', arguments: { action: 'not-a-real-action' } });
+    await mcpClient.close();
+
+    expect(result.isError).toBe(true);
+    expect((result.content as { text: string }[])[0].text).toMatch(/Input validation error/);
   });
 });
