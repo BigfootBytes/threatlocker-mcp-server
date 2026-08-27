@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { ThreatLockerClient } from './client.js';
-import { allTools, ToolDefinition, isWriteBlocked, zodShapeToJsonSchema, toolInputShape } from './tools/registry.js';
+import { allTools, allToolsWithSchema, ToolDefinition, isWriteBlocked, toolInputShape } from './tools/registry.js';
 import { ApiResponse, apiResponseOutputSchema, SuccessResponse, errorResponse } from './types/responses.js';
 import { formatAsMarkdown } from './formatters.js';
 import { VERSION } from './version.js';
@@ -186,12 +186,12 @@ export function createMcpServer(client: ThreatLockerClient, log?: LogFn): McpSer
   // SDK keeps ownership of tools/call, so runtime argument and structuredContent validation still
   // run against the same Zod schemas these are derived from.
   server.server.setRequestHandler(ListToolsRequestSchema, () => ({
-    tools: allTools.map(tool => ({
+    tools: allToolsWithSchema.map(tool => ({
       name: tool.name,
       title: tool.title,
       description: tool.description,
-      inputSchema: zodShapeToJsonSchema(toolInputShape(tool), 'input'),
-      outputSchema: zodShapeToJsonSchema(tool.outputZodSchema ?? apiResponseOutputSchema),
+      inputSchema: tool.inputSchema,
+      outputSchema: tool.outputSchema,
       annotations: tool.annotations ?? {},
     })),
   }));

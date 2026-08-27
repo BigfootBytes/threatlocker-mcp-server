@@ -6,25 +6,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ThreatLockerClient } from '../client.js';
-import { toolsByName, allToolsWithSchema, isWriteBlocked } from '../tools/registry.js';
+import { toolsByName, allToolsWithSchema, isWriteBlocked, toolInputShape } from '../tools/registry.js';
 import { createMcpServer, CHARACTER_LIMIT, LogFn, fetchAllPagesLoop, capResultData } from '../server.js';
 import { formatAsMarkdown } from '../formatters.js';
 import { VERSION } from '../version.js';
 import { allResources } from '../resources/registry.js';
 import { allPrompts } from '../prompts/registry.js';
-
-const responseFormatJsonSchema = {
-  type: 'string',
-  enum: ['json', 'markdown'],
-  default: 'markdown',
-  description: 'Output format: markdown (default, human-readable) or json (structured)',
-};
-
-const fetchAllPagesJsonSchema = {
-  type: 'boolean',
-  default: false,
-  description: 'Fetch all pages automatically (max 10 pages). Default: false (single page).',
-};
 
 interface ClientCredentials {
   apiKey: string;
@@ -166,14 +153,7 @@ export function createApp(): ReturnType<typeof express> {
       tools: allToolsWithSchema.map(t => ({
         name: t.name,
         description: t.description,
-        inputSchema: {
-          ...t.inputSchema,
-          properties: {
-            ...(t.inputSchema.properties as Record<string, unknown>),
-            response_format: responseFormatJsonSchema,
-            fetchAllPages: fetchAllPagesJsonSchema,
-          },
-        },
+        inputSchema: t.inputSchema,
         outputSchema: t.outputSchema,
       })),
     });
@@ -277,11 +257,7 @@ export function createApp(): ReturnType<typeof express> {
       }
 
       // Validate request body against Zod schema (REST API bypasses MCP SDK validation)
-      const zodObject = z.object({
-        ...tool.zodSchema,
-        response_format: z.enum(['json', 'markdown']).default('markdown').optional(),
-        fetchAllPages: z.boolean().default(false).optional(),
-      }).strict();
+      const zodObject = z.object(toolInputShape(tool)).strict();
       const parsed = zodObject.safeParse(args);
       if (!parsed.success) {
         res.status(400).json({

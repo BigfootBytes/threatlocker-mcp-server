@@ -112,6 +112,6 @@ export interface ToolWithJsonSchema extends ToolDefinition {
 
 export const allToolsWithSchema: ToolWithJsonSchema[] = allTools.map(t => ({
   ...t,
-  inputSchema: zodShapeToJsonSchema(t.zodSchema),
+  inputSchema: zodShapeToJsonSchema(toolInputShape(t), 'input'),
   outputSchema: zodShapeToJsonSchema(t.outputZodSchema ?? apiResponseOutputSchema),
 }));
