@@ -2,6 +2,18 @@
 
 All notable changes to the ThreatLocker MCP Server are documented here.
 
+## 1.4.0 (2026-10-06)
+
+Moves the runtime to Node 26, which becomes Active LTS on 2026-10-28. Node 24 enters maintenance on 2026-10-20. No functional changes.
+
+### Changed
+- **Breaking for source installs:** `engines.node` is now `>=26` (was `>=24`). Docker users are unaffected; the image ships its own runtime.
+- Docker image is built on `node:26-alpine` (both stages).
+- `@types/node` updated to 26 to match the runtime.
+
+### Security
+- Only 1.4.x now receives security updates; see `SECURITY.md`.
+
 ## 1.3.2 (2026-10-06)
 
 Security release. Clears all 14 `npm audit` advisories (1 critical, 6 high, 6 moderate, 1 low). No functional changes.
