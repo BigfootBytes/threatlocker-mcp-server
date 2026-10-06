@@ -2,6 +2,18 @@
 
 All notable changes to the ThreatLocker MCP Server are documented here.
 
+## 1.3.2 (2026-10-06)
+
+Security release. Clears all 14 `npm audit` advisories (1 critical, 6 high, 6 moderate, 1 low). No functional changes.
+
+### Security
+- `proxy-addr` updated past the IPv4-mapped IPv6 trust-subnet IP spoofing advisory (critical, reached through express).
+- `@modelcontextprotocol/sdk` updated from 1.27.1 to 1.32.1; releases up to 1.30.1 and their `hono` / `@hono/node-server` dependencies were flagged.
+- Transitive runtime fixes: `qs`, `body-parser`, `fast-uri`, `ip-address`. Dev-only fixes: `postcss`, `nanoid`, `source-map-js`, `@vitest/mocker`.
+
+### Changed
+- Minimum dependency versions in `package.json` raised to the patched releases, so a fresh install cannot resolve a vulnerable MCP SDK.
+
 ## 1.3.1 (2026-08-27)
 
 Fixes a defect that made the server unusable from MCP clients that validate tool schemas against JSON Schema 2020-12 — every tool was rejected before any request reached ThreatLocker.
