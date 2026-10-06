@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/node": "^24.19.1",
+    "@types/node": "^26.6.4",
     "@types/supertest": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.11",
     "supertest": "^7.3.1",
@@ -41,6 +41,6 @@
     "vitest": "^4.1.11"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=26"
   }
 }

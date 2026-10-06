@@ -50,7 +50,7 @@ This way, ThreatLocker prevents any other process from reading your API keys, ev
 
 ### Prerequisites
 
-- Node.js 24+ or Docker
+- Node.js 26+ or Docker
 - ThreatLocker API key ([generate in Portal](https://threatlocker.kb.help/how-to-generate-and-revoke-threatlocker-api-keys/))
 
 ### Option 1: Docker (Recommended)
