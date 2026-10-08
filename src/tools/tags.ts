@@ -5,6 +5,9 @@ import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof tagsZodSchema>>;
 
+// TagUpdate replaces the whole tag, so an item array left out of the request is cleared server-side.
+const TAG_ITEM_ARRAY_FIELDS = ['tagItemsText', 'tagItemsIPv4', 'tagItemsIPv6', 'tagItemsReadablePath', 'tagItemsWritablePath'] as const;
+
 export async function handleTagsTool(
   client: ThreatLockerClient,
   input: Record<string, unknown>
@@ -46,7 +49,17 @@ export async function handleTagsTool(
       }
       const orgError = validateGuid(organizationId, 'organizationId');
       if (orgError) return orgError;
-      // Full-object replace: any item array omitted is CLEARED server-side. Caller must get first and resend all items to keep.
+      if (!input.name) {
+        return errorResponse('BAD_REQUEST', 'name is required for update action. TagUpdate replaces the whole tag: call action=get first and resend its current name.');
+      }
+      const missingArrays = TAG_ITEM_ARRAY_FIELDS.filter(field => !Array.isArray(input[field]));
+      if (missingArrays.length > 0) {
+        return errorResponse(
+          'BAD_REQUEST',
+          `update requires every tag item array because TagUpdate clears any that are omitted. Missing: ${missingArrays.join(', ')}. ` +
+          'Call action=get first and resend the current arrays; pass [] only to intentionally empty one.',
+        );
+      }
       return client.post('Tag/TagUpdate', {
         tagId,
         organizationId,
@@ -124,7 +137,7 @@ Common workflows:
 - List all available tags: action=dropdown
 - Include ThreatLocker built-in tags: action=dropdown, includeBuiltIns=true
 - Get tag details by ID: action=get, tagId="..."
-- Update tag membership: action=update, tagId="...", organizationId="..." (full-object replace — get first, resend ALL item arrays you want to keep; there is no insert/delete endpoint)
+- Update tag membership: action=update, tagId="...", organizationId="...", name="...", plus all five tagItems* arrays (full-object replace — get first and resend every array; the tool rejects a call missing any of them; pass [] to intentionally empty one; there is no insert/delete endpoint)
 
 Tags are used in:
 - Network Control policies (allow/deny traffic to tagged destinations)
@@ -141,7 +154,7 @@ Permissions: Edit Network Control Policies, Manage Tags, Edit Application Contro
 Key response fields: tagId, name, tagType, values (IP/domain/port entries).
 
 Related tools: policies (use tags in policy rules), applications (ringfence with tags)`,
-  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
   zodSchema: tagsZodSchema,
   outputZodSchema: tagsOutputZodSchema,
   writeActions: new Set(['update']),
