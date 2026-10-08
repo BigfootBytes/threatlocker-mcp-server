@@ -106,6 +106,22 @@ describe('fetchAllPagesLoop', () => {
     }
   });
 
+  it('fetchAllPagesLoop_midRunPageFails_reportsHasMoreFromTheFailedPage', async () => {
+    const handler = vi.fn()
+      .mockResolvedValueOnce(makePage(['a', 'b'], 1, 5, 10))
+      .mockResolvedValueOnce(makePage(['c', 'd'], 2, 5, 10))
+      .mockResolvedValueOnce({ success: false, error: { code: 'SERVER_ERROR', message: 'boom' } });
+
+    const result = await fetchAllPagesLoop(handler, mockClient, {});
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual(['a', 'b', 'c', 'd']);
+      expect(result.pagination?.has_more, 'pages 3-5 were never fetched, so the result must not claim to be complete').toBe(true);
+      expect(result.pagination?.nextPage, 'the caller resumes from the page that failed').toBe(3);
+    }
+  });
+
   it('passes through error responses without looping', async () => {
     const handler = vi.fn().mockResolvedValue({
       success: false,

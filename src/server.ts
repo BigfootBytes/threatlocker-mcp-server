@@ -16,6 +16,10 @@ export const MAX_AUTO_PAGES = 10;
 /**
  * Auto-fetch all pages by calling the handler repeatedly until has_more is false
  * or MAX_AUTO_PAGES is reached. Merges data arrays across pages.
+ *
+ * If a later page fails, the pages already fetched are returned with `has_more: true` and
+ * `nextPage` pointing at the failed page, so the caller can resume instead of mistaking a
+ * partial result for the full set.
  */
 export async function fetchAllPagesLoop(
   handler: (client: ThreatLockerClient, args: Record<string, unknown>) => Promise<ApiResponse<unknown>>,
@@ -36,6 +40,7 @@ export async function fetchAllPagesLoop(
   let totalPages = firstResult.pagination.totalPages;
   let totalItems = firstResult.pagination.totalItems;
   let pagesFetched = 1;
+  let stoppedOnFailure = false;
 
   while (pagesFetched < MAX_AUTO_PAGES) {
     log?.('DEBUG', `fetchAllPages: page ${currentPage}/${totalPages}`, { toolName, pagesFetched });
@@ -43,7 +48,8 @@ export async function fetchAllPagesLoop(
 
     if (!pageResult.success) {
       // Return what we have so far with a summary pagination
-      log?.('ERROR', `fetchAllPages: page ${currentPage} failed`, { toolName, error: (pageResult as any).error });
+      log?.('ERROR', `fetchAllPages: page ${currentPage} failed`, { toolName, error: pageResult.error });
+      stoppedOnFailure = true;
       break;
     }
 
@@ -60,6 +66,7 @@ export async function fetchAllPagesLoop(
     totalItems = pageResult.pagination.totalItems;
   }
 
+  const hasMore = stoppedOnFailure || (pagesFetched >= MAX_AUTO_PAGES && currentPage <= totalPages);
   const result: SuccessResponse<unknown> = {
     success: true,
     data: allData,
@@ -68,8 +75,8 @@ export async function fetchAllPagesLoop(
       pageSize: allData.length,
       totalItems,
       totalPages,
-      has_more: pagesFetched >= MAX_AUTO_PAGES && currentPage <= totalPages,
-      nextPage: pagesFetched >= MAX_AUTO_PAGES && currentPage <= totalPages ? currentPage : null,
+      has_more: hasMore,
+      nextPage: hasMore ? currentPage : null,
     },
   };
   return result;
