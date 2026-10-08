@@ -126,6 +126,8 @@ Add to your MCP config file:
 | `LOG_LEVEL` | No | `INFO` | Logging: `ERROR`, `INFO`, `DEBUG` |
 | `ALLOWED_ORIGINS` | No | - | CORS origins (comma-separated) |
 | `THREATLOCKER_READ_ONLY` | No | - | Set to `true`, `1`, or `yes` to block all write operations server-wide |
+| `THREATLOCKER_MAX_RETRIES` | No | `1` | Retries for transient API failures. Writes retry only on 408/417/429, never after a 5xx, network error, or timeout |
+| `THREATLOCKER_TIMEOUT_MS` | No | `30000` | Per-attempt API request timeout in milliseconds |
 
 *Required for stdio mode. HTTP mode uses per-request headers.
 

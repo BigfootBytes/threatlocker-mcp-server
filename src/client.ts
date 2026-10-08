@@ -51,13 +51,33 @@ export interface ClientConfig {
   baseUrl: string;
   organizationId?: string;
   maxRetries?: number;
+  /** Per-attempt request timeout in ms. Falls back to THREATLOCKER_TIMEOUT_MS, then DEFAULT_TIMEOUT_MS. */
+  timeoutMs?: number;
 }
 
-const RETRYABLE_STATUS_CODES = [408, 417, 429];
 export const MAX_BACKOFF = 30_000; // 30 seconds
+export const DEFAULT_TIMEOUT_MS = 30_000;
 
-function isRetryableStatus(status: number): boolean {
-  return status >= 500 || RETRYABLE_STATUS_CODES.includes(status);
+// Statuses where the server refused the request before acting on it, so even a write is safe to resend.
+const REJECTED_BEFORE_PROCESSING_STATUS_CODES = [408, 417, 429];
+
+/**
+ * Whether a non-GET endpoint only reads data. ThreatLocker names its read endpoints with a `Get`
+ * segment (ComputerGetByAllParameters, ScheduledAgentAction/GetByParameters) even when they use POST.
+ * Anything else is treated as a write, which errs toward not retrying.
+ */
+export function isReadEndpoint(endpoint: string): boolean {
+  const lastSegment = endpoint.split('/').pop() ?? '';
+  return /Get(?=[A-Z]|$)/.test(lastSegment);
+}
+
+/**
+ * A 5xx can arrive after the server already committed a write, so only requests that are safe to
+ * repeat retry on it. Statuses in REJECTED_BEFORE_PROCESSING_STATUS_CODES retry for every request.
+ */
+function isRetryableStatus(status: number, safeToRepeat: boolean): boolean {
+  if (REJECTED_BEFORE_PROCESSING_STATUS_CODES.includes(status)) return true;
+  return safeToRepeat && status >= 500;
 }
 
 function delay(ms: number): Promise<void> {
@@ -113,6 +133,7 @@ export class ThreatLockerClient {
   private readonly apiKey: string;
   private readonly organizationId?: string;
   private readonly maxRetries: number;
+  private readonly timeoutMs: number;
 
   constructor(config: ClientConfig) {
     if (!config.apiKey) {
@@ -132,6 +153,9 @@ export class ThreatLockerClient {
     const envRetries = parseInt(process.env.THREATLOCKER_MAX_RETRIES ?? '', 10);
     const rawRetries = config.maxRetries ?? (Number.isFinite(envRetries) ? envRetries : 1);
     this.maxRetries = Math.max(0, rawRetries);
+    const envTimeout = parseInt(process.env.THREATLOCKER_TIMEOUT_MS ?? '', 10);
+    const rawTimeout = config.timeoutMs ?? (Number.isFinite(envTimeout) ? envTimeout : DEFAULT_TIMEOUT_MS);
+    this.timeoutMs = rawTimeout > 0 ? rawTimeout : DEFAULT_TIMEOUT_MS;
   }
 
   // Logger that sanitizes API keys from output
@@ -155,12 +179,31 @@ export class ThreatLockerClient {
     return headers;
   }
 
-  private async fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+  /** One fetch attempt, aborted after timeoutMs so a stalled connection cannot hang the tool call. */
+  private async fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(
+      () => controller.abort(new Error(`Request to ${new URL(url).pathname} timed out after ${this.timeoutMs} ms`)),
+      this.timeoutMs,
+    );
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Fetch with retries. `safeToRepeat` is false for writes: a 5xx, network error, or timeout may
+   * come after the server committed the write, and resending it could duplicate an insert or
+   * re-run an isolate. Writes still retry on statuses that mean the request was refused outright.
+   */
+  private async fetchWithRetry(url: string, options: RequestInit, safeToRepeat: boolean): Promise<Response> {
     let lastError: Error | undefined;
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
-        const response = await fetch(url, options);
-        if (response.ok || attempt >= this.maxRetries || !isRetryableStatus(response.status)) {
+        const response = await this.fetchWithTimeout(url, options);
+        if (response.ok || attempt >= this.maxRetries || !isRetryableStatus(response.status, safeToRepeat)) {
           return response;
         }
         this.log('INFO', `Retryable HTTP ${response.status}, attempt ${attempt + 1}/${this.maxRetries + 1}`, {
@@ -177,7 +220,7 @@ export class ThreatLockerClient {
         }
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
-        if (attempt >= this.maxRetries) {
+        if (attempt >= this.maxRetries || !safeToRepeat) {
           throw lastError;
         }
         this.log('INFO', `Network error, attempt ${attempt + 1}/${this.maxRetries + 1}`, {
@@ -206,7 +249,7 @@ export class ThreatLockerClient {
       const response = await this.fetchWithRetry(url.toString(), {
         method: 'GET',
         headers: this.getHeaders(),
-      });
+      }, true);
 
       if (!response.ok) {
         const code = mapHttpStatusToErrorCode(response.status);
@@ -250,7 +293,7 @@ export class ThreatLockerClient {
       const response = await this.fetchWithRetry(url.toString(), {
         method: 'DELETE',
         headers: { ...this.getHeaders(), ...customHeaders },
-      });
+      }, isReadEndpoint(endpoint));
 
       if (!response.ok) {
         const code = mapHttpStatusToErrorCode(response.status);
@@ -293,7 +336,7 @@ export class ThreatLockerClient {
         method: 'POST',
         headers: { ...this.getHeaders(), ...customHeaders },
         body: JSON.stringify(body),
-      });
+      }, isReadEndpoint(endpoint));
 
       if (!response.ok) {
         const code = mapHttpStatusToErrorCode(response.status);
@@ -330,7 +373,7 @@ export class ThreatLockerClient {
         method: 'PUT',
         headers: { ...this.getHeaders(), ...customHeaders },
         body: JSON.stringify(body),
-      });
+      }, isReadEndpoint(endpoint));
 
       if (!response.ok) {
         const code = mapHttpStatusToErrorCode(response.status);
@@ -366,7 +409,7 @@ export class ThreatLockerClient {
         method: 'PATCH',
         headers: { ...this.getHeaders(), ...customHeaders },
         body: JSON.stringify(body),
-      });
+      }, isReadEndpoint(endpoint));
 
       if (!response.ok) {
         const code = mapHttpStatusToErrorCode(response.status);
