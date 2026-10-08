@@ -32,8 +32,9 @@ export function isWriteBlocked(writeActions: Set<string> | undefined, action: st
 export const JSON_SCHEMA_DIALECT = 'https://json-schema.org/draft/2020-12/schema';
 
 /**
- * Convert a Zod shape record to a 2020-12 JSON Schema (replacing Zod's $schema, dropping
- * additionalProperties).
+ * Convert a Zod shape record to a 2020-12 JSON Schema (replacing Zod's $schema). Input schemas
+ * advertise `additionalProperties: false` to match the strict runtime validation in
+ * toolInputSchema; output schemas leave it out because response objects pass through extra fields.
  *
  * `io` must match how the schema is used. Under the default 'output' view a field with a
  * `.default()` is always present once parsed, so Zod marks it required — correct for an output
@@ -44,7 +45,12 @@ export function zodShapeToJsonSchema(
   io: 'input' | 'output' = 'output',
 ): Record<string, unknown> {
   const { $schema, additionalProperties, ...rest } = z.toJSONSchema(z.object(shape), { io }) as Record<string, unknown>;
-  return { $schema: JSON_SCHEMA_DIALECT, type: 'object', ...rest };
+  return {
+    $schema: JSON_SCHEMA_DIALECT,
+    type: 'object',
+    ...rest,
+    ...(io === 'input' && { additionalProperties: false }),
+  };
 }
 
 /**
@@ -61,6 +67,34 @@ const commonToolInputShape: Record<string, z.ZodTypeAny> = {
 /** Full input shape advertised for a tool: its own parameters plus the common per-call options. */
 export function toolInputShape(tool: ToolDefinition): Record<string, z.ZodTypeAny> {
   return { ...tool.zodSchema, ...commonToolInputShape };
+}
+
+/** Lowercased with separators removed, so `searchtext`, `search_text` and `searchText` compare equal. */
+function normalizeParameterName(name: string): string {
+  return name.toLowerCase().replace(/[_-]/g, '');
+}
+
+/** Error text for unknown parameters, naming the real parameter when one differs only by case or separators. */
+export function unknownParameterMessage(unknownKeys: string[], knownKeys: string[]): string {
+  const knownByNormalized = new Map(knownKeys.map(k => [normalizeParameterName(k), k]));
+  return unknownKeys.map(key => {
+    const suggestion = knownByNormalized.get(normalizeParameterName(key));
+    return suggestion
+      ? `Unknown parameter "${key}". Did you mean "${suggestion}"?`
+      : `Unknown parameter "${key}". Check the tool's inputSchema for valid parameter names.`;
+  }).join(' ');
+}
+
+/**
+ * Runtime input validator for a tool. Strict, because Zod's default strips unknown keys: a
+ * misspelled filter (`searchtext`) would vanish and the call would run unfiltered.
+ */
+export function toolInputSchema(tool: ToolDefinition): z.ZodObject {
+  const shape = toolInputShape(tool);
+  const knownKeys = Object.keys(shape);
+  return z.strictObject(shape, {
+    error: issue => issue.code === 'unrecognized_keys' ? unknownParameterMessage(issue.keys, knownKeys) : undefined,
+  });
 }
 
 import { computersTool } from './computers.js';

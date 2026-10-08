@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { ThreatLockerClient } from './client.js';
-import { allTools, allToolsWithSchema, ToolDefinition, isWriteBlocked, toolInputShape } from './tools/registry.js';
+import { allTools, allToolsWithSchema, ToolDefinition, isWriteBlocked, toolInputSchema } from './tools/registry.js';
 import { ApiResponse, apiResponseOutputSchema, SuccessResponse, errorResponse } from './types/responses.js';
 import { formatAsMarkdown } from './formatters.js';
 import { VERSION } from './version.js';
@@ -122,7 +122,7 @@ export function createMcpServer(client: ThreatLockerClient, log?: LogFn): McpSer
       {
         title: tool.title,
         description: tool.description,
-        inputSchema: toolInputShape(tool),
+        inputSchema: toolInputSchema(tool),
         outputSchema: tool.outputZodSchema ?? apiResponseOutputSchema,
         annotations: tool.annotations ?? {},
       },
