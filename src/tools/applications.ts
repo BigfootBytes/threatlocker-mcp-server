@@ -171,11 +171,19 @@ export async function handleApplicationsTool(
       if (!appName) {
         return errorResponse('BAD_REQUEST', 'name is required for update action');
       }
+      // ApplicationUpdateById removes the description when it is omitted and expects osType to match
+      // the existing app, so neither may fall back to a default here.
+      if (input.osType === undefined) {
+        return errorResponse('BAD_REQUEST', "osType is required for update action and must match the application's current osType (see action=get).");
+      }
+      if (appDescription === undefined) {
+        return errorResponse('BAD_REQUEST', 'description is required for update action: the API removes it when omitted. Resend the current description from action=get, or pass "" to clear it.');
+      }
       return client.put('Application/ApplicationUpdateById', {
         applicationId,
         name: appName,
         osType,
-        description: appDescription || '',
+        description: appDescription,
       }, crossOrgHeaders);
     }
 
@@ -368,7 +376,7 @@ export const applicationsZodSchema = {
   applicationId: z.string().max(100).optional().describe('Application GUID (required for get, research, files, get_for_network_policy). Find via search action first.'),
   searchText: z.string().max(1000).optional().describe('Search text for search and files actions'),
   searchBy: z.enum(['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries']).optional().describe('Field to search by (default: app)'),
-  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
+  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP. Required for update, where it must match the application\'s current osType.'),
   category: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional().describe('Category: 0=All, 1=My Applications (Custom), 2=Built-In'),
   orderBy: z.enum(['name', 'date-created', 'review-rating', 'computer-count', 'policy']).optional().describe('Field to sort by (default: name)'),
   isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
@@ -386,7 +394,7 @@ export const applicationsZodSchema = {
   validCert: z.boolean().optional().describe('Whether the cert supplied for match is valid/trusted (default: true)'),
   createdBy: z.string().max(1000).optional().describe('Created by path for match action'),
   name: z.string().max(200).optional().describe('Application name (required for create, update)'),
-  description: z.string().max(2000).optional().describe('Application description'),
+  description: z.string().max(2000).optional().describe('Application description. Required for update: the API removes the description when omitted, so resend the current one (or "" to clear it).'),
   managedOrganizationId: z.string().max(100).optional().describe('Parent-org GUID to manage a child organization\'s applications (sets the ManagedOrganizationId/OverrideManagedOrganizationId headers for create/update). Find via organizations.'),
   fileRules: z.array(z.object({
     fullPath: z.string().max(1000).optional().describe('Full file path'),
@@ -463,7 +471,7 @@ Common workflows:
 - Get apps for maintenance mode: action=get_for_maintenance
 - Get app for network policy: action=get_for_network_policy, applicationId="..."
 - Create custom application: action=create, name="My App", osType=1
-- Update application metadata: action=update, applicationId="...", name="...", osType=1
+- Update application metadata: action=update, applicationId="...", name="...", osType=<current>, description="<current or new>" (full replace: get first; omitting description clears it, so the tool rejects that)
 - Manage a child org's app: add managedOrganizationId="child-org-guid" to create/update
 - Add file rules to application: action=add_file, applicationId="...", osType=1, fileRules=[{hash:"..."}, {fullPath:"...", cert:"..."}]
 - Remove file rules from application: action=remove_file, applicationId="...", applicationFileIds=[7111524894, 7111524907] (get IDs via action=files)

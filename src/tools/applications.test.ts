@@ -501,6 +501,7 @@ describe('cross-org managedOrganizationId', () => {
       applicationId: '12345678-1234-1234-1234-123456789abc',
       name: 'App',
       osType: 1,
+      description: '',
       managedOrganizationId: '23456789-2345-2345-2345-23456789abcd',
     });
     expect(mockClient.put).toHaveBeenCalledWith(
@@ -520,6 +521,7 @@ describe('cross-org managedOrganizationId', () => {
       applicationId: '12345678-1234-1234-1234-123456789abc',
       name: 'App',
       osType: 1,
+      description: '',
     });
     expect(mockClient.put).toHaveBeenCalledWith(
       'Application/ApplicationUpdateById',

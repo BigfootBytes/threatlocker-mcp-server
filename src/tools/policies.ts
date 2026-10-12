@@ -5,6 +5,11 @@ import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof policiesZodSchema>>;
 
+// PolicyUpdateById is a full replace. create defaults these fields, but on update a default would
+// silently change live state (isEnabled=true re-enables a disabled policy, policyScheduleStatus=0
+// drops its expiration), so update requires the caller to send each one.
+const POLICY_UPDATE_STATE_FIELDS = ['isEnabled', 'logAction', 'elevationStatus', 'policyScheduleStatus', 'allowRequest', 'killRunningProcesses'] as const;
+
 // Build the ringfencingOptions wire object. The KB requires rfNetworkPolicy to be
 // OMITTED entirely when empty (an empty array is rejected), so strip it here.
 function buildRingfencingOptions(rf: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
@@ -168,6 +173,14 @@ export async function handlePoliciesTool(
       if (!computerGroupId) return errorResponse('BAD_REQUEST', 'computerGroupId is required for update action');
       if (!osType) return errorResponse('BAD_REQUEST', 'osType is required for update action');
       if (!policyActionIdVal) return errorResponse('BAD_REQUEST', 'policyActionId is required for update action');
+      const missingStateFields = POLICY_UPDATE_STATE_FIELDS.filter(field => input[field] === undefined);
+      if (missingStateFields.length > 0) {
+        return errorResponse(
+          'BAD_REQUEST',
+          `update replaces the whole policy, so these must be sent explicitly: ${missingStateFields.join(', ')}. ` +
+          'Call action=get first and resend the current values.',
+        );
+      }
 
       const groupGuidError = validateGuid(computerGroupId, 'computerGroupId');
       if (groupGuidError) return groupGuidError;
@@ -183,17 +196,17 @@ export async function handlePoliciesTool(
         computerGroupId,
         osType,
         policyActionId: policyActionIdVal,
-        isEnabled: input.isEnabled ?? true,
-        logAction: input.logAction ?? true,
-        elevationStatus: input.elevationStatus ?? 0,
-        policyScheduleStatus: input.policyScheduleStatus ?? 0,
+        isEnabled: input.isEnabled,
+        logAction: input.logAction,
+        elevationStatus: input.elevationStatus,
+        policyScheduleStatus: input.policyScheduleStatus,
         endDate: input.endDate || undefined,
         elevationEndDate: input.elevationEndDate || undefined,
         monitorMode: input.monitorMode,
         orderBefore: input.orderBefore,
         description: input.description,
-        allowRequest: input.allowRequest ?? false,
-        killRunningProcesses: input.killRunningProcesses ?? false,
+        allowRequest: input.allowRequest,
+        killRunningProcesses: input.killRunningProcesses,
         ringfencingOptions: buildRingfencingOptions(input.ringfencingOptions as Record<string, unknown> | undefined),
         // NOTE: see create — send dayOfTheWeek (prose spelling); lowercase variant is the live fallback.
         policySchedules: input.policySchedules,
@@ -292,8 +305,8 @@ export const policiesZodSchema = {
   computerGroupId: z.string().max(100).optional().describe('Computer group GUID (required for create, update)'),
   osType: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 1=Windows, 2=macOS, 3=Linux, 5=Windows XP (required for create, update, copy)'),
   policyActionId: z.union([z.literal(1), z.literal(2), z.literal(6)]).optional().describe('1=Permit, 2=Deny, 6=Permit+Ringfence (required for create, update)'),
-  isEnabled: z.boolean().optional().describe('Enable policy (default: true for create)'),
-  logAction: z.boolean().optional().describe('Log to Unified Audit (default: true for create)'),
+  isEnabled: z.boolean().optional().describe('Enable policy (create default: true; required for update)'),
+  logAction: z.boolean().optional().describe('Log to Unified Audit (create default: true; required for update)'),
   elevationStatus: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).optional().describe('0=None, 1=Elevate+Notify, 2=Silent, 3=Force Standard User'),
   policyScheduleStatus: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional().describe('0=None, 1=Expiration, 2=Schedule'),
   endDate: z.string().max(100).optional().describe('Expiration date in UTC (YYYY-MM-DDTHH:MM:SSZ). Used with policyScheduleStatus=1.'),
@@ -397,7 +410,7 @@ Common workflows:
 - Deploy pending changes: action=deploy, organizationId="..."
 
 IMPORTANT: After create/update/delete/copy, deploy changes with action=deploy to push to computers.
-IMPORTANT: Update is a full replace — use action=get first to read current values, then provide ALL fields.
+IMPORTANT: Update is a full replace — use action=get first to read current values, then provide ALL fields. Update rejects calls missing isEnabled, logAction, elevationStatus, policyScheduleStatus, allowRequest or killRunningProcesses.
 
 Policy actions: Permit (allow), Deny (block), Ringfence (allow but restrict network/storage access)
 
