@@ -31,7 +31,8 @@ describe('online_devices tool', () => {
     await handleOnlineDevicesTool(mockClient, { action: 'list' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'OnlineDevices/OnlineDevicesGetByParameters',
-      { pageNumber: '1', pageSize: '25' }
+      { pageNumber: '1', pageSize: '25' },
+      expect.anything(), // pagination header reader
     );
   });
 
@@ -40,7 +41,8 @@ describe('online_devices tool', () => {
     await handleOnlineDevicesTool(mockClient, { action: 'list', pageNumber: 3, pageSize: 10 });
     expect(mockClient.get).toHaveBeenCalledWith(
       'OnlineDevices/OnlineDevicesGetByParameters',
-      { pageNumber: '3', pageSize: '10' }
+      { pageNumber: '3', pageSize: '10' },
+      expect.anything(), // pagination header reader
     );
   });
 
@@ -49,7 +51,8 @@ describe('online_devices tool', () => {
     await handleOnlineDevicesTool(mockClient, { action: 'list', orderBy: 'lastcheckin', isAscending: false });
     expect(mockClient.get).toHaveBeenCalledWith(
       'OnlineDevices/OnlineDevicesGetByParameters',
-      expect.objectContaining({ orderBy: 'lastcheckin', isAscending: 'false' })
+      expect.objectContaining({ orderBy: 'lastcheckin', isAscending: 'false' }),
+      expect.anything(), // pagination header reader
     );
   });
 
@@ -58,7 +61,8 @@ describe('online_devices tool', () => {
     await handleOnlineDevicesTool(mockClient, { action: 'list', pageNumber: -5, pageSize: 99999 });
     expect(mockClient.get).toHaveBeenCalledWith(
       'OnlineDevices/OnlineDevicesGetByParameters',
-      { pageNumber: '1', pageSize: '500' }
+      { pageNumber: '1', pageSize: '500' },
+      expect.anything(), // pagination header reader
     );
   });
 

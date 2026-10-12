@@ -233,7 +233,11 @@ export class ThreatLockerClient {
     throw lastError ?? new Error('Retry exhausted');
   }
 
-  async get<T>(endpoint: string, params?: Record<string, string>): Promise<ApiResponse<T>> {
+  async get<T>(
+    endpoint: string,
+    params?: Record<string, string>,
+    extractPagination?: (headers: Headers) => Pagination | undefined,
+  ): Promise<ApiResponse<T>> {
     const url = new URL(`${this.baseUrl}/${endpoint}`);
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -268,8 +272,9 @@ export class ThreatLockerClient {
       }
 
       const data = await response.json();
-      this.log('DEBUG', 'API GET success', { endpoint, status: response.status });
-      return successResponse<T>(data);
+      const pagination = extractPagination?.(response.headers);
+      this.log('DEBUG', 'API GET success', { endpoint, status: response.status, hasPagination: !!pagination });
+      return successResponse<T>(data, pagination);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.log('ERROR', 'API GET network error', { endpoint, error: message });
@@ -460,6 +465,14 @@ export function extractPaginationFromJsonHeader(headers: Headers): Pagination | 
   } catch {
     return undefined;
   }
+}
+
+/**
+ * For endpoints whose pagination header format hasn't been confirmed against live traffic: tries the
+ * JSON `Pagination` header, then the split totalItems/totalPages headers.
+ */
+export function extractPaginationFromAnyHeader(headers: Headers): Pagination | undefined {
+  return extractPaginationFromJsonHeader(headers) ?? extractPaginationFromHeaders(headers);
 }
 
 export function extractPaginationFromHeaders(headers: Headers): Pagination | undefined {

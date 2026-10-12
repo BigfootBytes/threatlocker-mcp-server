@@ -134,7 +134,8 @@ describe('applications tool', () => {
     await handleApplicationsTool(mockClient, { action: 'files', applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'ApplicationFile/ApplicationFileGetByApplicationId',
-      expect.objectContaining({ applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' })
+      expect.objectContaining({ applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' }),
+      expect.anything(), // pagination header reader
     );
   });
 
@@ -408,7 +409,8 @@ describe('applications tool', () => {
 
       expect(mockClient.get).toHaveBeenCalledWith(
         'ApplicationFile/ApplicationFileGetByApplicationId',
-        expect.objectContaining({ applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' })
+        expect.objectContaining({ applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' }),
+        expect.anything(), // pagination header reader
       );
       expect(mockClient.post).toHaveBeenCalledWith(
         'ApplicationFile/ApplicationFileDeleteById',

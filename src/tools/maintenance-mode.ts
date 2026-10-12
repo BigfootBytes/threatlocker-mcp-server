@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
+import { ThreatLockerClient, extractPaginationFromAnyHeader } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
@@ -27,7 +27,7 @@ export async function handleMaintenanceModeTool(
         computerId,
         pageNumber: String(pageNumber),
         pageSize: String(pageSize),
-      });
+      }, extractPaginationFromAnyHeader); // header format not seen in captured traffic yet
 
     case 'enable': {
       const maintenanceTypeId = input.maintenanceTypeId as number | undefined;

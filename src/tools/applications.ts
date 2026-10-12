@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
+import { ThreatLockerClient, extractPaginationFromHeaders, extractPaginationFromJsonHeader } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid, validateSha256, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
@@ -94,7 +94,7 @@ export async function handleApplicationsTool(
         searchText,
         pageNumber: String(pageNumber),
         pageSize: String(pageSize),
-      });
+      }, extractPaginationFromJsonHeader);
     }
 
     case 'match': {
@@ -268,16 +268,13 @@ export async function handleApplicationsTool(
         return errorResponse('BAD_REQUEST', 'applicationFileIds array is required for remove_file action');
       }
 
-      // Fetch all file rules for this application to get the full objects needed by the delete endpoint
-      const filesResult = await client.get<Array<Record<string, unknown>>>(
-        'ApplicationFile/ApplicationFileGetByApplicationId',
-        { applicationId, pageNumber: '1', pageSize: '500' }
-      );
+      // The delete endpoint needs the full file-rule objects, so load every rule for this application
+      const filesResult = await fetchAllApplicationFiles(client, applicationId);
       if (!filesResult.success) {
         return errorResponse('BAD_REQUEST', `Failed to fetch file rules: ${filesResult.error.message}`);
       }
 
-      const allFiles = Array.isArray(filesResult.data) ? filesResult.data : [];
+      const allFiles = filesResult.data;
       const fileMap = new Map(allFiles.map(f => [f.applicationFileId as number, f]));
 
       const results: Array<{ success: boolean; applicationFileId: number; error?: string }> = [];
@@ -336,6 +333,29 @@ export async function handleApplicationsTool(
     default:
       return errorResponse('BAD_REQUEST', `Unknown action: ${action}`);
   }
+}
+
+const FILE_RULES_PAGE_SIZE = 500;
+// Bounds the lookup at 10,000 rules so a server that always reports another page cannot loop forever.
+const MAX_FILE_RULE_PAGES = 20;
+
+/** Load every file rule of an application, following the JSON Pagination header across pages. */
+async function fetchAllApplicationFiles(
+  client: ThreatLockerClient,
+  applicationId: string,
+): Promise<ApiResponse<Array<Record<string, unknown>>>> {
+  const allFiles: Array<Record<string, unknown>> = [];
+  for (let page = 1; page <= MAX_FILE_RULE_PAGES; page++) {
+    const result = await client.get<Array<Record<string, unknown>>>(
+      'ApplicationFile/ApplicationFileGetByApplicationId',
+      { applicationId, pageNumber: String(page), pageSize: String(FILE_RULES_PAGE_SIZE) },
+      extractPaginationFromJsonHeader,
+    );
+    if (!result.success) return result;
+    if (Array.isArray(result.data)) allFiles.push(...result.data);
+    if (!result.pagination?.has_more) break;
+  }
+  return { success: true, data: allFiles };
 }
 
 export const applicationsZodSchema = {
