@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
+import { ThreatLockerClient, extractPaginationFromHeaders, extractPaginationFromJsonHeader } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, validateGuid, validateSha256, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
@@ -94,7 +94,7 @@ export async function handleApplicationsTool(
         searchText,
         pageNumber: String(pageNumber),
         pageSize: String(pageSize),
-      });
+      }, extractPaginationFromJsonHeader);
     }
 
     case 'match': {
@@ -171,11 +171,19 @@ export async function handleApplicationsTool(
       if (!appName) {
         return errorResponse('BAD_REQUEST', 'name is required for update action');
       }
+      // ApplicationUpdateById removes the description when it is omitted and expects osType to match
+      // the existing app, so neither may fall back to a default here.
+      if (input.osType === undefined) {
+        return errorResponse('BAD_REQUEST', "osType is required for update action and must match the application's current osType (see action=get).");
+      }
+      if (appDescription === undefined) {
+        return errorResponse('BAD_REQUEST', 'description is required for update action: the API removes it when omitted. Resend the current description from action=get, or pass "" to clear it.');
+      }
       return client.put('Application/ApplicationUpdateById', {
         applicationId,
         name: appName,
         osType,
-        description: appDescription || '',
+        description: appDescription,
       }, crossOrgHeaders);
     }
 
@@ -268,16 +276,13 @@ export async function handleApplicationsTool(
         return errorResponse('BAD_REQUEST', 'applicationFileIds array is required for remove_file action');
       }
 
-      // Fetch all file rules for this application to get the full objects needed by the delete endpoint
-      const filesResult = await client.get<Array<Record<string, unknown>>>(
-        'ApplicationFile/ApplicationFileGetByApplicationId',
-        { applicationId, pageNumber: '1', pageSize: '500' }
-      );
+      // The delete endpoint needs the full file-rule objects, so load every rule for this application
+      const filesResult = await fetchAllApplicationFiles(client, applicationId);
       if (!filesResult.success) {
         return errorResponse('BAD_REQUEST', `Failed to fetch file rules: ${filesResult.error.message}`);
       }
 
-      const allFiles = Array.isArray(filesResult.data) ? filesResult.data : [];
+      const allFiles = filesResult.data;
       const fileMap = new Map(allFiles.map(f => [f.applicationFileId as number, f]));
 
       const results: Array<{ success: boolean; applicationFileId: number; error?: string }> = [];
@@ -338,6 +343,29 @@ export async function handleApplicationsTool(
   }
 }
 
+const FILE_RULES_PAGE_SIZE = 500;
+// Bounds the lookup at 10,000 rules so a server that always reports another page cannot loop forever.
+const MAX_FILE_RULE_PAGES = 20;
+
+/** Load every file rule of an application, following the JSON Pagination header across pages. */
+async function fetchAllApplicationFiles(
+  client: ThreatLockerClient,
+  applicationId: string,
+): Promise<ApiResponse<Array<Record<string, unknown>>>> {
+  const allFiles: Array<Record<string, unknown>> = [];
+  for (let page = 1; page <= MAX_FILE_RULE_PAGES; page++) {
+    const result = await client.get<Array<Record<string, unknown>>>(
+      'ApplicationFile/ApplicationFileGetByApplicationId',
+      { applicationId, pageNumber: String(page), pageSize: String(FILE_RULES_PAGE_SIZE) },
+      extractPaginationFromJsonHeader,
+    );
+    if (!result.success) return result;
+    if (Array.isArray(result.data)) allFiles.push(...result.data);
+    if (!result.pagination?.has_more) break;
+  }
+  return { success: true, data: allFiles };
+}
+
 export const applicationsZodSchema = {
   action: z.enum(['search', 'get', 'research', 'files', 'match', 'get_for_maintenance', 'get_for_network_policy', 'options', 'create', 'update', 'add_file', 'remove_file', 'delete', 'delete_confirm']).describe('search=find applications, get=details by ID, research=ThreatLocker security analysis, files=list file rules in app, match=find apps by file hash/cert/path, get_for_maintenance=apps for maintenance mode, get_for_network_policy=app for network policy, options=application dropdown/lookup for an org, create=create custom application (metadata only), update=update app name/description, add_file=add file rules to application, remove_file=remove file rules by ID, delete=delete applications (no policies), delete_confirm=force delete (with policies)'),
   organizationId: z.string().max(100).optional().describe('options: organization GUID to list application options for (required).'),
@@ -348,7 +376,7 @@ export const applicationsZodSchema = {
   applicationId: z.string().max(100).optional().describe('Application GUID (required for get, research, files, get_for_network_policy). Find via search action first.'),
   searchText: z.string().max(1000).optional().describe('Search text for search and files actions'),
   searchBy: z.enum(['app', 'full', 'process', 'hash', 'cert', 'created', 'categories', 'countries']).optional().describe('Field to search by (default: app)'),
-  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP'),
+  osType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(5)]).optional().describe('OS type: 0=All, 1=Windows, 2=macOS, 3=Linux, 5=Windows XP. Required for update, where it must match the application\'s current osType.'),
   category: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional().describe('Category: 0=All, 1=My Applications (Custom), 2=Built-In'),
   orderBy: z.enum(['name', 'date-created', 'review-rating', 'computer-count', 'policy']).optional().describe('Field to sort by (default: name)'),
   isAscending: z.boolean().optional().describe('Sort ascending (default: true)'),
@@ -366,7 +394,7 @@ export const applicationsZodSchema = {
   validCert: z.boolean().optional().describe('Whether the cert supplied for match is valid/trusted (default: true)'),
   createdBy: z.string().max(1000).optional().describe('Created by path for match action'),
   name: z.string().max(200).optional().describe('Application name (required for create, update)'),
-  description: z.string().max(2000).optional().describe('Application description'),
+  description: z.string().max(2000).optional().describe('Application description. Required for update: the API removes the description when omitted, so resend the current one (or "" to clear it).'),
   managedOrganizationId: z.string().max(100).optional().describe('Parent-org GUID to manage a child organization\'s applications (sets the ManagedOrganizationId/OverrideManagedOrganizationId headers for create/update). Find via organizations.'),
   fileRules: z.array(z.object({
     fullPath: z.string().max(1000).optional().describe('Full file path'),
@@ -443,7 +471,7 @@ Common workflows:
 - Get apps for maintenance mode: action=get_for_maintenance
 - Get app for network policy: action=get_for_network_policy, applicationId="..."
 - Create custom application: action=create, name="My App", osType=1
-- Update application metadata: action=update, applicationId="...", name="...", osType=1
+- Update application metadata: action=update, applicationId="...", name="...", osType=<current>, description="<current or new>" (full replace: get first; omitting description clears it, so the tool rejects that)
 - Manage a child org's app: add managedOrganizationId="child-org-guid" to create/update
 - Add file rules to application: action=add_file, applicationId="...", osType=1, fileRules=[{hash:"..."}, {fullPath:"...", cert:"..."}]
 - Remove file rules from application: action=remove_file, applicationId="...", applicationFileIds=[7111524894, 7111524907] (get IDs via action=files)

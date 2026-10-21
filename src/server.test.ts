@@ -106,6 +106,22 @@ describe('fetchAllPagesLoop', () => {
     }
   });
 
+  it('fetchAllPagesLoop_midRunPageFails_reportsHasMoreFromTheFailedPage', async () => {
+    const handler = vi.fn()
+      .mockResolvedValueOnce(makePage(['a', 'b'], 1, 5, 10))
+      .mockResolvedValueOnce(makePage(['c', 'd'], 2, 5, 10))
+      .mockResolvedValueOnce({ success: false, error: { code: 'SERVER_ERROR', message: 'boom' } });
+
+    const result = await fetchAllPagesLoop(handler, mockClient, {});
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual(['a', 'b', 'c', 'd']);
+      expect(result.pagination?.has_more, 'pages 3-5 were never fetched, so the result must not claim to be complete').toBe(true);
+      expect(result.pagination?.nextPage, 'the caller resumes from the page that failed').toBe(3);
+    }
+  });
+
   it('passes through error responses without looping', async () => {
     const handler = vi.fn().mockResolvedValue({
       success: false,
@@ -277,5 +293,36 @@ describe('createMcpServer tool schema dialect', () => {
 
     expect(result.isError).toBe(true);
     expect((result.content as { text: string }[])[0].text).toMatch(/Input validation error/);
+  });
+
+  it('callTool_misspelledParameter_rejectedWithSuggestionInsteadOfSilentlyDropped', async () => {
+    const client = new ThreatLockerClient({
+      apiKey: 'test-key',
+      baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+    });
+    const post = vi.spyOn(client, 'post').mockResolvedValue({ success: true, data: [] });
+    const server = createMcpServer(client);
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const mcpClient = new Client({ name: 'test', version: '1.0.0' });
+    await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
+
+    const result = await mcpClient.callTool({ name: 'computers', arguments: { action: 'list', searchtext: 'jsmith' } });
+    await mcpClient.close();
+
+    expect(result.isError).toBe(true);
+    const text = (result.content as { text: string }[])[0].text;
+    expect(text).toContain('searchtext');
+    expect(text, 'the error should point the agent at the real parameter name').toContain('searchText');
+    expect(post, 'an unfiltered list must not be fetched when a filter was misspelled').not.toHaveBeenCalled();
+  });
+
+  it('advertises every inputSchema as closed to unknown parameters', async () => {
+    const tools = await listToolsOverMcp();
+    for (const tool of tools) {
+      expect(
+        (tool.inputSchema as Record<string, unknown>).additionalProperties,
+        `${tool.name} inputSchema does not tell clients unknown keys are rejected`,
+      ).toBe(false);
+    }
   });
 });

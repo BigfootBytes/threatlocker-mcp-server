@@ -113,7 +113,8 @@ describe('maintenance_mode tool', () => {
     await handleMaintenanceModeTool(mockClient, { action: 'get_history', computerId: 'e5f6a7b8-c9d0-1234-efab-345678901234' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'MaintenanceMode/MaintenanceModeGetByComputerIdV2',
-      expect.objectContaining({ computerId: 'e5f6a7b8-c9d0-1234-efab-345678901234' })
+      expect.objectContaining({ computerId: 'e5f6a7b8-c9d0-1234-efab-345678901234' }),
+      expect.anything(), // pagination header reader
     );
   });
 });

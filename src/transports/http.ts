@@ -6,7 +6,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ThreatLockerClient } from '../client.js';
-import { toolsByName, allToolsWithSchema, isWriteBlocked, toolInputShape } from '../tools/registry.js';
+import { toolsByName, allToolsWithSchema, isWriteBlocked, toolInputSchema } from '../tools/registry.js';
 import { createMcpServer, CHARACTER_LIMIT, LogFn, fetchAllPagesLoop, capResultData } from '../server.js';
 import { formatAsMarkdown } from '../formatters.js';
 import { VERSION } from '../version.js';
@@ -257,8 +257,7 @@ export function createApp(): ReturnType<typeof express> {
       }
 
       // Validate request body against Zod schema (REST API bypasses MCP SDK validation)
-      const zodObject = z.object(toolInputShape(tool)).strict();
-      const parsed = zodObject.safeParse(args);
+      const parsed = toolInputSchema(tool).safeParse(args);
       if (!parsed.success) {
         res.status(400).json({
           success: false,

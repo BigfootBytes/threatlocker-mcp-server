@@ -134,7 +134,8 @@ describe('applications tool', () => {
     await handleApplicationsTool(mockClient, { action: 'files', applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' });
     expect(mockClient.get).toHaveBeenCalledWith(
       'ApplicationFile/ApplicationFileGetByApplicationId',
-      expect.objectContaining({ applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' })
+      expect.objectContaining({ applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' }),
+      expect.anything(), // pagination header reader
     );
   });
 
@@ -408,7 +409,8 @@ describe('applications tool', () => {
 
       expect(mockClient.get).toHaveBeenCalledWith(
         'ApplicationFile/ApplicationFileGetByApplicationId',
-        expect.objectContaining({ applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' })
+        expect.objectContaining({ applicationId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901' }),
+        expect.anything(), // pagination header reader
       );
       expect(mockClient.post).toHaveBeenCalledWith(
         'ApplicationFile/ApplicationFileDeleteById',
@@ -499,6 +501,7 @@ describe('cross-org managedOrganizationId', () => {
       applicationId: '12345678-1234-1234-1234-123456789abc',
       name: 'App',
       osType: 1,
+      description: '',
       managedOrganizationId: '23456789-2345-2345-2345-23456789abcd',
     });
     expect(mockClient.put).toHaveBeenCalledWith(
@@ -518,6 +521,7 @@ describe('cross-org managedOrganizationId', () => {
       applicationId: '12345678-1234-1234-1234-123456789abc',
       name: 'App',
       osType: 1,
+      description: '',
     });
     expect(mockClient.put).toHaveBeenCalledWith(
       'Application/ApplicationUpdateById',

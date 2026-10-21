@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ThreatLockerClient } from '../client.js';
+import { ThreatLockerClient, extractPaginationFromAnyHeader } from '../client.js';
 import { ApiResponse, errorResponse, clampPagination, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
@@ -20,7 +20,8 @@ export async function handleOnlineDevicesTool(
       };
       if (orderBy) params.orderBy = orderBy;
       if (isAscending !== undefined) params.isAscending = String(isAscending);
-      return client.get('OnlineDevices/OnlineDevicesGetByParameters', params);
+      // Header format not seen in captured traffic yet, so accept either known format.
+      return client.get('OnlineDevices/OnlineDevicesGetByParameters', params, extractPaginationFromAnyHeader);
     }
 
     default:

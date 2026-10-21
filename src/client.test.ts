@@ -796,6 +796,119 @@ describe('ThreatLockerClient retry', () => {
   });
 });
 
+describe('ThreatLockerClient write-request retry safety', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function createClient() {
+    return new ThreatLockerClient({
+      apiKey: 'test-api-key',
+      baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+      maxRetries: 2,
+    });
+  }
+
+  it('post_writeEndpointReturns500_doesNotRetrySoTheWriteIsNotDuplicated', async () => {
+    const client = createClient();
+    global.fetch = vi.fn()
+      .mockResolvedValue({ ok: false, status: 500, statusText: 'Internal Server Error', text: async () => '' });
+
+    const result = await client.post('Policy/PolicyInsert', { name: 'x' });
+
+    expect(result.success).toBe(false);
+    expect(global.fetch, 'a 500 may arrive after the insert committed; retrying could create a duplicate policy').toHaveBeenCalledTimes(1);
+  });
+
+  it('put_writeEndpointNetworkError_doesNotRetrySoTheWriteIsNotDuplicated', async () => {
+    const client = createClient();
+    global.fetch = vi.fn().mockRejectedValue(new Error('ECONNRESET'));
+
+    const result = await client.put('Policy/PolicyUpdateById', { policyId: 'x' });
+
+    expect(result.success).toBe(false);
+    expect(global.fetch, 'a dropped connection may arrive after the update committed').toHaveBeenCalledTimes(1);
+  });
+
+  it('post_readEndpointReturns500_stillRetries', async () => {
+    const client = createClient();
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Internal Server Error', text: async () => '' })
+      .mockResolvedValueOnce({ ok: true, text: async () => '[]', headers: new Headers() });
+
+    const promise = client.post('Computer/ComputerGetByAllParameters', {});
+    await vi.advanceTimersByTimeAsync(500);
+    const result = await promise;
+
+    expect(result).toEqual({ success: true, data: [] });
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('ThreatLockerClient request timeout', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** A fetch that never settles on its own and rejects only when its signal aborts. */
+  function hangingFetch() {
+    return vi.fn((_url: string, options: RequestInit) => new Promise((_resolve, reject) => {
+      options.signal?.addEventListener('abort', () => reject(options.signal?.reason));
+    }));
+  }
+
+  it('get_serverNeverResponds_returnsNetworkErrorNamingTheTimeout', async () => {
+    const client = new ThreatLockerClient({
+      apiKey: 'test-api-key',
+      baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+      maxRetries: 0,
+      timeoutMs: 1000,
+    });
+    global.fetch = hangingFetch() as unknown as typeof fetch;
+
+    const promise = client.get('Computer/ComputerGetForEditById');
+    await vi.advanceTimersByTimeAsync(1000);
+    const result = await promise;
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('NETWORK_ERROR');
+      expect(result.error.message).toContain('timed out after 1000 ms');
+    }
+  });
+
+  it('constructor_timeoutFromEnv_appliesIt', async () => {
+    const original = process.env.THREATLOCKER_TIMEOUT_MS;
+    process.env.THREATLOCKER_TIMEOUT_MS = '250';
+    try {
+      const client = new ThreatLockerClient({
+        apiKey: 'test-api-key',
+        baseUrl: 'https://portalapi.g.threatlocker.com/portalapi',
+        maxRetries: 0,
+      });
+      global.fetch = hangingFetch() as unknown as typeof fetch;
+
+      const promise = client.get('Computer/ComputerGetForEditById');
+      await vi.advanceTimersByTimeAsync(250);
+      const result = await promise;
+
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('timed out after 250 ms');
+    } finally {
+      if (original === undefined) delete process.env.THREATLOCKER_TIMEOUT_MS;
+      else process.env.THREATLOCKER_TIMEOUT_MS = original;
+    }
+  });
+});
+
 describe('computeRetryDelay', () => {
   it('returns a value between 50% and 100% of base delay for attempt 0', () => {
     // Base delay at attempt 0 = 500ms, so range is [250, 500]

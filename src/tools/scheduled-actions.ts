@@ -84,6 +84,9 @@ export async function handleScheduledActionsTool(
       for (const t of appliesTo) {
         const idError = validateGuid(t.appliesToId, 'appliesTo.appliesToId');
         if (idError) return idError;
+        if (t.appliesToTypeId === undefined) {
+          return errorResponse('BAD_REQUEST', `appliesTo entry ${t.appliesToId} needs appliesToTypeId for schedule (1=Organization, 2=Computer Group, 3=Computer, 6=Global Computer Group); get_applies_to lists each target's type.`);
+        }
       }
       // batchAmount is technically optional in the API, but omitting it updates the
       // ENTIRE target fleet simultaneously with no window — require it to prevent that footgun.
@@ -211,7 +214,7 @@ Pagination: search action is paginated (use fetchAllPages=true to auto-fetch all
 Key response fields: scheduledAgentActionId, scheduledType, scheduledDateTime, computerName, computerGroupName, status.
 
 Related tools: computers (see current versions), computer_groups (target groups for updates), organizations (filter by org)`,
-  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
   writeActions: new Set(['schedule', 'abort']),
   zodSchema: scheduledActionsZodSchema,
   outputZodSchema: scheduledActionsOutputZodSchema,

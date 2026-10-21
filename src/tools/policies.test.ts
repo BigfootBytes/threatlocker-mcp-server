@@ -318,6 +318,7 @@ describe('policies tool', () => {
         applicationIds: ['12345678-1234-1234-1234-123456789abc'],
         computerGroupId: '23456789-2345-2345-2345-23456789abcd',
         osType: 1, policyActionId: 1,
+        isEnabled: true, logAction: true, elevationStatus: 0, policyScheduleStatus: 0, allowRequest: false, killRunningProcesses: false,
       });
       expect(mockClient.put).toHaveBeenCalledWith(
         'Policy/PolicyUpdateById',
@@ -481,6 +482,7 @@ describe('nested policy builders', () => {
     await handlePoliciesTool(mockClient, {
       action: 'update', policyId: guid, name: 'RF', applicationIds: [guid], computerGroupId: grp,
       osType: 1, policyActionId: 6,
+      isEnabled: true, logAction: true, elevationStatus: 0, policyScheduleStatus: 0, allowRequest: false, killRunningProcesses: false,
       networkExclusions: [{ tagPrefixTypeId: 1, value: 'update.example.com' }],
     });
     const body = vi.mocked(mockClient.put).mock.calls[0][1] as any;
@@ -534,6 +536,7 @@ describe('policy scoping polish fields', () => {
     await handlePoliciesTool(mockClient, {
       action: 'update', policyId: guid, name: 'p', applicationIds: [guid], computerGroupId: grp,
       osType: 1, policyActionId: 1, deviceType: 'DVD',
+      isEnabled: true, logAction: true, elevationStatus: 0, policyScheduleStatus: 0, allowRequest: false, killRunningProcesses: false,
     });
     const body = vi.mocked(mockClient.put).mock.calls[0][1] as any;
     expect(body.deviceType).toBe('DVD');

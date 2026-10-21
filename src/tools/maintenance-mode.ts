@@ -1,9 +1,17 @@
 import { z } from 'zod';
-import { ThreatLockerClient, extractPaginationFromHeaders } from '../client.js';
-import { ApiResponse, errorResponse, clampPagination, validateGuid, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
+import { ThreatLockerClient, extractPaginationFromAnyHeader } from '../client.js';
+import { ApiResponse, errorResponse, clampPagination, validateGuid, validateDateRange, paginationOutputSchema, errorOutputSchema } from '../types/responses.js';
 import type { ToolDefinition } from './registry.js';
 
 type ToolInput = z.infer<z.ZodObject<typeof maintenanceModeZodSchema>>;
+
+// Window length used when enable is called without endDateTime, as the tool description promises.
+const DEFAULT_WINDOW_MS = 60 * 60 * 1000;
+
+/** UTC "YYYY-MM-DDTHH:MM:SSZ", the format the API requires (no milliseconds). */
+function toApiDateTime(date: Date): string {
+  return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
 
 export async function handleMaintenanceModeTool(
   client: ThreatLockerClient,
@@ -27,21 +35,39 @@ export async function handleMaintenanceModeTool(
         computerId,
         pageNumber: String(pageNumber),
         pageSize: String(pageSize),
-      });
+      }, extractPaginationFromAnyHeader); // header format not seen in captured traffic yet
 
     case 'enable': {
       const maintenanceTypeId = input.maintenanceTypeId as number | undefined;
       if (!maintenanceTypeId) {
         return errorResponse('BAD_REQUEST', 'maintenanceTypeId is required for enable action (1=MonitorOnly, 2=Installation, 3=Learning, 4=Elevation, 6=TamperProtectionDisabled, 14=Isolation, 15=Lockdown)');
       }
+      const usersList = input.usersList as string[] | undefined;
+      const hasUsersList = Array.isArray(usersList) && usersList.length > 0;
+      if (hasUsersList && input.allUsers === true) {
+        return errorResponse('BAD_REQUEST', 'usersList only applies when allUsers=false. Drop allUsers=true to limit the mode to the listed users, or drop usersList to apply it to everyone.');
+      }
+
+      const now = new Date();
+      const startDateTime = (input.startDateTime as string | undefined) ?? toApiDateTime(now);
+      const startMs = Date.parse(startDateTime);
+      if (isNaN(startMs)) {
+        return errorResponse('BAD_REQUEST', `startDateTime is not a valid date: ${startDateTime}. Use UTC "YYYY-MM-DDTHH:MM:SSZ".`);
+      }
+      const endDateTime = (input.endDateTime as string | undefined) ?? toApiDateTime(new Date(startMs + DEFAULT_WINDOW_MS));
+      const rangeError = validateDateRange(startDateTime, endDateTime);
+      if (rangeError) return rangeError;
+
       return client.post('MaintenanceMode/MaintenanceModeInsert', {
         computerId,
         maintenanceTypeId,
-        startDateTime: input.startDateTime,
-        endDateTime: input.endDateTime,
-        computerDateTime: input.startDateTime ?? input.endDateTime,
-        allUsers: input.allUsers ?? true,
-        usersList: input.usersList ?? [],
+        startDateTime,
+        endDateTime,
+        // The KB requires this non-blank and describes it as the machine's current time.
+        computerDateTime: toApiDateTime(now),
+        // A usersList without allUsers means "only these users"; defaulting allUsers to true would ignore it.
+        allUsers: (input.allUsers as boolean | undefined) ?? !hasUsersList,
+        usersList: usersList ?? [],
         permitEnd: input.permitEnd ?? true,
         automaticApplication: false,
         automaticApplicationType: 0,
